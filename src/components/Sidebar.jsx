@@ -174,7 +174,7 @@ export function Sidebar() {
 						/>
 						<SidebarItem
 							href="/changelog"
-							title="Changelog"
+							title="No"
 							icon={<TbSpeakerphone />}
 						/>
 						<SidebarDivider />
