@@ -1,7 +1,9 @@
-import { Orders } from '../../../routes/Orders';
+import { Orders } from '../../../routes/Dashboard/Orders/main';
 export default function Page() {
     return <Orders />;
 }
 export const metadata = {
-    title: 'Orders',
+    title: 'Orders • Vasky | Nevios',
 };
+
+

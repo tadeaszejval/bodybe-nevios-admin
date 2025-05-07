@@ -3,5 +3,5 @@ export default function Page() {
 	return <Homepage />;
 }
 export const metadata = {
-	title: "Homepage",
+	title: "Nevios | Vasky",
 };

@@ -1,7 +1,7 @@
-import { Home } from '../../../routes/Home';
+import { Home } from '../../../routes/Dashboard/Home/main';
 export default function Page() {
     return <Home />;
 }
 export const metadata = {
-    title: 'Home',
+    title: 'Dashboard • Vasky | Nevios',
 };

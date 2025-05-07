@@ -2,9 +2,9 @@ import * as React from "react";
 import { LoadingScreen } from "../components/LoadingScreen";
 import { AppProviders } from "../context/AppProviders";
 export const metadata = {
-	title: "UI Foundations Kit",
+	title: "Vasky | Nevios",
 	description:
-		"A SaaS template built with MUI based on design and style of UI Foundations.",
+		"Nevios is the all-in-one eCommerce platform for creating, managing, and growing your online store. Fast setup, flexible design, and powerful sales tools.",
 };
 export default function RootLayout({ children }) {
 	return (

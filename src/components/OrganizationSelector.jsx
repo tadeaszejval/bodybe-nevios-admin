@@ -24,10 +24,10 @@ export function OrganizationSelector() {
 				startIcon={
 					<Avatar
 						sx={{ height: 24, width: 24, fontSize: "sm" }}
-						src="/ui-foundations.svg"
+						src="https://botas.cz/cdn/shop/files/favicon_67fc487f-68d0-41a4-84af-004846b06ff7.svg?crop=center&height=32&v=1713705256&width=32"
 						alt="Active organization avatar"
 					>
-						UI
+						Botas
 					</Avatar>
 				}
 				endIcon={<TbChevronDown size={16} />}
@@ -46,7 +46,7 @@ export function OrganizationSelector() {
 						width: "100%",
 					}}
 				>
-					UI Foundations
+					Botas
 				</Box>
 			</Button>
 			<Menu
@@ -72,10 +72,10 @@ export function OrganizationSelector() {
 				</MenuItem>
 				<MenuDivider />
 				<MenuItem onClick={selectorDisclosure.onClose}>
-					<OrganizationRow name="UI Foundations" src="/ui-foundations.svg" />
+					<OrganizationRow name="Botas" src="https://botas.cz/cdn/shop/files/favicon_67fc487f-68d0-41a4-84af-004846b06ff7.svg?crop=center&height=32&v=1713705256&width=32" />
 				</MenuItem>
 				<MenuItem onClick={selectorDisclosure.onClose}>
-					<OrganizationRow name="Diamond Events" src="/gem-events.svg" />
+					<OrganizationRow name="Vasky" src="/gem-events.svg" />
 				</MenuItem>
 				<MenuDivider />
 				<MenuItem onClick={selectorDisclosure.onClose}>

@@ -1,24 +1,23 @@
 "use client";
 import { Box, Divider, List } from "@mui/material";
 import {
-	TbAd2,
-	TbBook,
 	TbHome,
-	TbListDetails,
-	TbLockAccess,
-	TbShoppingCart,
 	TbSpeakerphone,
 	TbTicket,
-	TbUnlink,
-	TbWallpaper,
 	TbArchive,
 	TbUsers,
 	TbHeartSpark,
 	TbChartBar,
 	TbReportAnalytics,
 	TbUser,
-	TbSettings,
 	TbLogout,
+	TbShoe,
+	TbBuildingStore,
+	TbReplace,
+	TbCash,
+	TbFileDescription,
+	TbMail,
+	TbToolsKitchen2,
 } from "react-icons/tb";
 import { CommandBar } from "../components/CommandBar";
 import { OnboardingButton } from "../components/OnboardingButton";
@@ -107,12 +106,12 @@ export function Sidebar() {
 							icon={<TbTicket size={ICON_SIZE} />}
 						/>
 						<SidebarItem
-							href="/dashboard/events"
+							href="/dashboard/products"
 							title="Products"
-							icon={<TbArchive size={ICON_SIZE} />}
+							icon={<TbShoe size={ICON_SIZE} />}
 						/>
 						<SidebarItem
-							href="/dashboard/speakers"
+							href="/dashboard/customers"
 							title="Customers"
 							icon={<TbUsers size={ICON_SIZE} />}
 							rightAdornment={
@@ -135,7 +134,7 @@ export function Sidebar() {
 						/>
 						<SidebarDivider />
 						<SidebarItem
-							href="/dashboard/charts"
+							href="/dashboard/reports"
 							title="Reports"
 							icon={<TbReportAnalytics size={ICON_SIZE} />}
 						/>
@@ -145,9 +144,41 @@ export function Sidebar() {
 							icon={<TbChartBar size={ICON_SIZE} />}
 						/>
 						<SidebarItem
-							href="/dashboard"
+							href="/dashboard/marketing"
 							title="Marketing"
 							icon={<TbHeartSpark size={ICON_SIZE} />}
+						/>
+						<SidebarDivider />
+						<SidebarItem
+							href="/dashboard/stores"
+							title="Stores"
+							icon={<TbBuildingStore size={ICON_SIZE} />}
+						/>
+						<SidebarItem
+							href="/dashboard/inventory"
+							title="Inventory"
+							icon={<TbArchive size={ICON_SIZE} />}
+						/>
+						<SidebarItem
+							href="/dashboard/stock-movements"
+							title="Stock Movements"
+							icon={<TbReplace size={ICON_SIZE} />}
+						/>
+						<SidebarDivider />
+						<SidebarItem
+							href="/dashboard/payments"
+							title="Payments"
+							icon={<TbCash size={ICON_SIZE} />}
+						/>
+						<SidebarItem
+							href="/dashboard/documents"
+							title="Documents"
+							icon={<TbFileDescription size={ICON_SIZE} />}
+						/>
+						<SidebarItem
+							href="/dashboard/emails"
+							title="Emails"
+							icon={<TbMail size={ICON_SIZE} />}
 						/>
 					</List>
 				</Box>
@@ -174,8 +205,13 @@ export function Sidebar() {
 						/>
 						<SidebarItem
 							href="/changelog"
-							title="No"
+							title="Changelog"
 							icon={<TbSpeakerphone />}
+						/>
+						<SidebarItem
+							href="/dashboard/kit"
+							title="Kit"
+							icon={<TbToolsKitchen2 />}
 						/>
 						<SidebarDivider />
 						<SidebarItem
