@@ -1,12 +1,15 @@
 import React from "react";
-import { Box, Typography } from "@mui/material";
+import { Box } from "@mui/material";
+import { TbCash } from "react-icons/tb";
+import { DashboardHeader } from "../../../components/DashboardHeader";
 
 export default function DashboardPayments() {
   return (
     <Box sx={{ p: 4 }}>
-      <Typography variant="h4" sx={{ mb: 2 }}>
-        Payments
-      </Typography>
+      <DashboardHeader
+        title="Payments"
+        icon={<TbCash size={24} />}
+      />
       {/* Add your dashboard widgets and content here */}
     </Box>
   );

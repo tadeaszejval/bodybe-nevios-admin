@@ -9,6 +9,6 @@ if (!supabaseUrl || !supabaseAnonKey) {
 }
 
 export const supabase = createClient(
-  supabaseUrl || 'https://your-project-url.supabase.co',
-  supabaseAnonKey || 'your-anon-key'
+  supabaseUrl,
+  supabaseAnonKey
 ); 

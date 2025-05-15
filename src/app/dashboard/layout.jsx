@@ -12,3 +12,4 @@ export default function DashboardPageLayout({ children }) {
 export const metadata = {
     title: 'Dashboard',
 };
+

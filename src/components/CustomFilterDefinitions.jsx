@@ -10,9 +10,13 @@ import * as React from "react";
 import { TbCornerDownRight } from "react-icons/tb";
 import { DatePicker } from "@mui/x-date-pickers/DatePicker";
 import dayjs from "dayjs";
-import { ColorDot } from "../components/ColorDot";
 import { ALL_STATUSES_LIST, statusMatcher } from "../components/StatusBadge";
+import { ColorDot } from "../components/ColorDot";
 import { FILTER_OPERATORS } from "../core/filters";
+import { GENDER_STATUSES_LIST, genderStatusMatcher } from "./dashboard/orders/GenderBadge";
+import { ACCOUNT_STATUSES_LIST, accountStatusMatcher } from "./dashboard/customers/AccountStatusBadge";
+import { SUBSCRIPTION_STATUSES_LIST, subscriptionStatusMatcher } from "./dashboard/customers/SubscribedBadge";
+import { PRODUCT_STATUSES_LIST, productStatusMatcher } from "./dashboard/products/ProductStatusBadge";
 function TextOperatorValueBlock({
 	selectedOperator,
 	setSelectedOperator,
@@ -314,6 +318,10 @@ export const customerNameFilterConfig = {
 	field: "customer_name",
 	operatorValueBlock: (params) => <TextOperatorValueBlock {...params} />,
 };
+export const emailFilterConfig = {
+	field: "email",
+	operatorValueBlock: (params) => <TextOperatorValueBlock {...params} />,
+};
 export const priceFilterConfig = {
 	field: "price",
 	operatorValueBlock: (params) => (
@@ -330,6 +338,10 @@ export const orderDateFilterConfig = {
 	field: "order_date",
 	operatorValueBlock: (params) => <OrderDateValueBlock {...params} />,
 };
+export const createdAtFilterConfig = {
+	field: "created_at",
+	operatorValueBlock: (params) => <OrderDateValueBlock {...params} />,
+};
 export const orderStatusFilterConfig = {
 	field: "status",
 	operatorValueBlock: (params) => (
@@ -342,4 +354,76 @@ export const orderStatusFilterConfig = {
 			{...params}
 		/>
 	),
+};
+
+// Gender filter configuration
+export const genderFilterConfig = {
+	field: "customer_gender",
+	operatorValueBlock: (params) => (
+		<SelectOptionsOperatorValueBlock
+			options={GENDER_STATUSES_LIST}
+			startAdornment={(option) => {
+				const matchingStatus = genderStatusMatcher(option.value);
+				return <ColorDot color={matchingStatus.color} />;
+			}}
+			{...params}
+		/>
+	),
+};
+
+// Account status filter
+export const accountStatusFilterConfig = {
+	field: "account_enabled",
+	operatorValueBlock: (params) => (
+		<SelectOptionsOperatorValueBlock
+			options={ACCOUNT_STATUSES_LIST}
+			startAdornment={(option) => {
+				const matchingStatus = accountStatusMatcher(option.value);
+				return <ColorDot color={matchingStatus.color} />;
+			}}
+			{...params}
+		/>
+	),
+};
+
+// Subscription status filter
+export const subscribedFilterConfig = {
+	field: "subscribed",
+	operatorValueBlock: (params) => (
+		<SelectOptionsOperatorValueBlock
+			options={SUBSCRIPTION_STATUSES_LIST}
+			startAdornment={(option) => {
+				const matchingStatus = subscriptionStatusMatcher(option.value);
+				return <ColorDot color={matchingStatus.color} />;
+			}}
+			{...params}
+		/>
+	),
+};
+
+// Product status filter
+export const productStatusFilterConfig = {
+	field: "status",
+	operatorValueBlock: (params) => (
+		<SelectOptionsOperatorValueBlock
+			options={PRODUCT_STATUSES_LIST}
+			startAdornment={(option) => {
+				const matchingStatus = productStatusMatcher(option.value);
+				return <ColorDot color={matchingStatus.color} />;
+			}}
+			{...params}
+		/>
+	),
+};
+
+// Product vendor filter
+export const vendorFilterConfig = {
+	field: "vendor",
+	operatorValueBlock: (params) => <TextOperatorValueBlock {...params} />,
+};
+
+// Product type filter
+export const productTypeFilterConfig = {
+	field: "type",
+	operatorValueBlock: (params) => <TextOperatorValueBlock {...params} />,
 };

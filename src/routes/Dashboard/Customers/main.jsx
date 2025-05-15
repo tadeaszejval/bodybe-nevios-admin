@@ -1,14 +1,57 @@
+"use client";
 import React from "react";
-import { Box, Typography } from "@mui/material";
-
+import { Box, Button } from "@mui/material";
+import { CustomersTable } from "../../../components/dashboard/customers/CustomersTable";
+import { DashboardHeader } from "../../../components/DashboardHeader";
+import { PageContainer } from "../../../components/PageContainer";
+import { TbUserPlus, TbUsers } from "react-icons/tb";
+import { useRouter } from "next/navigation";
+import { Paper } from "@mui/material";
 export default function DashboardCustomers() {
+  const router = useRouter();
+
+  const handleNewCustomer = () => {
+    router.push("/dashboard/customers/create");
+  };
+
   return (
-    <Box sx={{ p: 4 }}>
-      <Typography variant="h4" sx={{ mb: 2 }}>
-        Customers
-      </Typography>
-      {/* Add your dashboard widgets and content here */}
-    </Box>
+    <PageContainer>
+      <DashboardHeader
+        title="Customers"
+        icon={<TbUsers size={24} />}
+        actions={
+          <Box display="flex" gap={1}>
+            <Button 
+              size="small" 
+              variant="outlined" 
+              color="secondary"
+              onClick={handleNewCustomer}
+            >
+              Export
+            </Button>
+            <Button 
+              size="small" 
+              variant="outlined" 
+              color="secondary"
+              onClick={handleNewCustomer}
+            >
+              Import
+            </Button>
+            <Button 
+              size="small" 
+              variant="contained" 
+              color="primary"
+              onClick={handleNewCustomer}
+            >
+              Add Customer
+            </Button>
+          </Box>
+        }
+      />
+      <Paper sx={{ flex: 1, display: "flex", flexDirection: "column" }}>
+        <CustomersTable tableHeight="100%" allowCheckboxSelection />
+      </Paper>
+    </PageContainer>
   );
 }
 

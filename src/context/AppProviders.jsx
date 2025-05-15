@@ -18,9 +18,9 @@ export function AppProviders({ children }) {
 					<BroadcastTourProvider>
 						<TourProvider>
 							<AuthProvider>
-								<CssBaseline />
-								<Toaster />
-								{children}
+							<CssBaseline />
+							<Toaster />
+							{children}
 							</AuthProvider>
 						</TourProvider>
 					</BroadcastTourProvider>

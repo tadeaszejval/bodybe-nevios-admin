@@ -15,6 +15,7 @@ export function DashboardLayout({ children }) {
 				height: "100%",
 				minHeight: "100vh",
 				overflowX: "hidden",
+				backgroundColor: "rgba(241, 241, 241, 1)",
 			}}
 		>
 			<Sidebar />
@@ -35,7 +36,7 @@ export function DashboardLayout({ children }) {
 					gap: 2,
 				}}
 			>
-				<Paper
+				<Box
 					sx={{
 						height: "100%",
 						width: "100%",
@@ -46,14 +47,10 @@ export function DashboardLayout({ children }) {
 						display: "flex",
 						flexDirection: "column",
 						gap: 2,
-						border: (theme) => `1px solid ${theme.palette.gray["200"]}`,
-						boxShadow: 1,
-						borderRadius: { xs: 0, sm: 1.5 },
-						backgroundColor: "background.paper",
 					}}
 				>
 					{children}
-				</Paper>
+				</Box>
 			</Box>
 		</Box>
 	);

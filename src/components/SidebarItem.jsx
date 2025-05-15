@@ -58,7 +58,7 @@ export function SidebarItem({
 					display: "flex",
 					gap: 1.5,
 					width: "100%",
-					color: customColor || (itemIsActive ? "gray.800" : "gray.500"),
+					color: customColor || (itemIsActive ? "gray.900" : "gray.600"),
 					...(deemphasized && {
 						color: "gray.500",
 						pointerEvents: "none",
@@ -94,8 +94,8 @@ export function SidebarItem({
 										? `${customHoverColor}15` // 15% opacity for light mode
 										: `${customHoverColor}25` // 25% opacity for dark mode
 									: itemIsActive
-										? "hsl(213deg 94% 18% / 5%)"
-										: "hsl(210deg 88% 21% / 3%)",
+							? "hsl(213deg 94% 18% / 5%)"
+							: "hsl(210deg 88% 21% / 3%)",
 							}),
 						cursor: "pointer",
 						color: buttonStyle ? "white" : customColor,

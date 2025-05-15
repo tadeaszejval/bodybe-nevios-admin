@@ -1,5 +1,5 @@
 "use client";
-import { Box, Divider, List } from "@mui/material";
+import { Box, Divider, List, IconButton } from "@mui/material";
 import {
 	TbHome,
 	TbSpeakerphone,
@@ -18,7 +18,10 @@ import {
 	TbFileDescription,
 	TbMail,
 	TbToolsKitchen2,
+	TbSun,
+	TbMoon,
 } from "react-icons/tb";
+import { useColorScheme } from "@mui/material";
 import { CommandBar } from "../components/CommandBar";
 import { OnboardingButton } from "../components/OnboardingButton";
 import { OrganizationSelector } from "../components/OrganizationSelector";
@@ -30,12 +33,17 @@ export const SIDEBAR_WIDTH = 250;
 const ICON_SIZE = 18;
 
 export function Sidebar() {
-	const { user, signOut } = useAuth();
+	const { signOut } = useAuth();
 	const router = useRouter();
+	const { mode, setMode } = useColorScheme();
 
 	const handleLogout = async () => {
 		await signOut();
 		router.push("/login");
+	};
+
+	const toggleColorMode = () => {
+		setMode(mode === 'light' ? 'dark' : 'light');
 	};
 
 	return (
@@ -48,6 +56,8 @@ export function Sidebar() {
 				height: "100%",
 				maxHeight: "100vh",
 				width: SIDEBAR_WIDTH,
+				backgroundColor: "rgb(238, 238, 238)",
+				borderRight: "1px solid rgb(224, 224, 224)",
 			}}
 		>
 			<Box
@@ -216,6 +226,13 @@ export function Sidebar() {
 						<SidebarDivider />
 						<SidebarItem
 							href="#"
+							title={mode === 'light' ? 'Light' : 'Dark'}
+							icon={mode === 'light' ? <TbSun /> : <TbMoon />}
+							onClick={toggleColorMode}
+						/>
+						<SidebarDivider />
+						<SidebarItem
+							href="#"
 							title="Logout"
 							icon={<TbLogout size={ICON_SIZE} />}
 							onClick={handleLogout}
@@ -240,7 +257,7 @@ export function Sidebar() {
 function SidebarDivider() {
 	return (
 		<Box sx={{ py: 1.5 }}>
-			<Divider />
+			<Divider sx={{ border: "0.3px solid rgb(224, 224, 224)" }} />
 		</Box>
 	);
 }

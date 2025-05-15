@@ -13,6 +13,9 @@ export function FiltersBar({
 			sx={{
 				display: "flex",
 				flexDirection: "row",
+				paddingLeft: 2,
+				paddingRight: 2,
+				paddingTop: 2,
 				gap: 1,
 				flexWrap: "wrap",
 				justifyContent: { xs: "unset", md: "space-between" },

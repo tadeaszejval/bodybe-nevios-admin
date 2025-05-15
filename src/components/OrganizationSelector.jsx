@@ -21,13 +21,13 @@ export function OrganizationSelector() {
 				aria-expanded={selectorDisclosure.isOpen ? "true" : undefined}
 				onClick={selectorDisclosure.onOpen}
 				color="secondary"
+				variant="outlined"
 				startIcon={
 					<Avatar
 						sx={{ height: 24, width: 24, fontSize: "sm" }}
 						src="https://botas.cz/cdn/shop/files/favicon_67fc487f-68d0-41a4-84af-004846b06ff7.svg?crop=center&height=32&v=1713705256&width=32"
 						alt="Active organization avatar"
 					>
-						Botas
 					</Avatar>
 				}
 				endIcon={<TbChevronDown size={16} />}

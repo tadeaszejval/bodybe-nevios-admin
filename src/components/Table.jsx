@@ -13,6 +13,7 @@ export function Table({
 	columns,
 	rows = [],
 	variant = "simple",
+	rowHeight,
 	...props
 }) {
 	const [sortModel, setSortModel] = React.useState(
@@ -20,6 +21,10 @@ export function Table({
 	);
 	const theme = useTheme();
 	const matchesSmBreakpoint = useMediaQuery(theme.breakpoints.up("sm"));
+	
+	// Calculate default rowHeight based on breakpoint if custom rowHeight is not provided
+	const calculatedRowHeight = rowHeight || (matchesSmBreakpoint ? 40 : 32);
+	
 	return (
 		// wrapping components to prevent tables from overflowing outside their parent containers
 		<div
@@ -38,13 +43,13 @@ export function Table({
 					maxHeight: "80vh",
 					height: tableHeight || "100%",
 					width: "100%",
-					borderTop: (theme) => `1px solid ${theme.palette.gray[200]}`,
+					borderTop: (theme) => `0.5px solid ${theme.palette.gray[200]}`,
 				}}
 			>
 				<DataGrid
 					disableRowSelectionOnClick
-					columnHeaderHeight={matchesSmBreakpoint ? 48 : 42}
-					rowHeight={matchesSmBreakpoint ? 52 : 42}
+					columnHeaderHeight={matchesSmBreakpoint ? 40 : 32}
+					rowHeight={calculatedRowHeight}
 					sortingOrder={sortingOrder}
 					sortModel={sortModel}
 					onSortModelChange={(model) => setSortModel(model)}
@@ -86,12 +91,15 @@ export function Table({
 								backgroundImage: `url("data:image/svg+xml,%3Csvg width='6' height='6' viewBox='0 0 6 6' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='%23${hslToHex(theme.palette.gray["200"])}' fill-opacity='0.75' fill-rule='evenodd'%3E%3Cpath d='M5 0h1L0 6V5zM6 5v1H5z'/%3E%3C/g%3E%3C/svg%3E")`,
 							},
 						},
+						".MuiDataGrid-row": {
+							borderTop: `0.7px solid ${theme.palette.gray[200]}`,
+						},
 						...(variant === "simple" && {
 							borderRadius: 0,
 							".MuiDataGrid-columnHeader": {
 								borderTopRightRadius: 0,
 								borderTopLeftRadius: 0,
-								backgroundColor: theme.palette.background.paper,
+								backgroundColor: theme.palette.gray["50"],
 							},
 							border: "none",
 							// remove the left padding from the first column, where aria-colindex="1"

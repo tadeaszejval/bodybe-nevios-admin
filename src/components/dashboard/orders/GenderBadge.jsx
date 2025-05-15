@@ -1,0 +1,65 @@
+"use client";
+import { Box } from "@mui/material";
+import { match } from "ts-pattern";
+import { TbGenderFemale, TbGenderMale, TbGenderNeutrois } from "react-icons/tb";
+
+const GENDER_STATUSES = {
+  MALE: {
+    value: "MALE",
+    label: "Male",
+    color: "blue",
+    icon: <TbGenderMale size={14} />
+  },
+  FEMALE: {
+    value: "FEMALE",
+    label: "Female",
+    color: "pink",
+    icon: <TbGenderFemale size={14} />
+  },
+  NOT_FOUND: {
+    value: "NOT_FOUND",
+    label: "Not Specified",
+    color: "gray",
+    icon: <TbGenderNeutrois size={14} />
+  },
+};
+
+export const GENDER_STATUSES_LIST = Object.values(GENDER_STATUSES);
+
+export const genderStatusMatcher = (value) =>
+  match(value)
+    .with("MALE", () => GENDER_STATUSES.MALE)
+    .with("FEMALE", () => GENDER_STATUSES.FEMALE)
+    .with("NOT_FOUND", () => GENDER_STATUSES.NOT_FOUND)
+    .otherwise(() => GENDER_STATUSES.NOT_FOUND); // Default fallback
+
+export function GenderBadge({ status, customSx = {} }) {
+  // Handle case sensitivity by converting to uppercase
+  const normalizedStatus = status?.toUpperCase() || "NOT_FOUND";
+  const statusMeta = genderStatusMatcher(normalizedStatus);
+  
+  return (
+    <Box
+      sx={{
+        display: "flex",
+        alignItems: "center",
+        gap: 0.5,
+        padding: 0,
+        backgroundColor: `${statusMeta.color}.50`,
+        color: `${statusMeta.color}.800`,
+        fontWeight: 500,
+        borderRadius: 1,
+        borderColor: `${statusMeta.color}.200`,
+        borderWidth: 1,
+        borderStyle: "solid",
+        px: 0.75,
+        py: 0.25,
+        fontSize: "xs",
+        ...customSx,
+      }}
+    >
+      {statusMeta.icon}
+      {statusMeta.label}
+    </Box>
+  );
+} 

@@ -3,6 +3,7 @@ import { CopyBlock } from "../components/CopyBlock";
 import {
 	formatAbbreviatedNumber,
 	formatReadableDate,
+	formatCurrencyNumber,
 } from "../core/formatters";
 /** ------------------- **/
 /*  Column Factory builders
@@ -31,7 +32,7 @@ export function currencyColumnFactory(columnParams = {}) {
 		type: "number",
 		headerName: columnParams?.headerName || "Price",
 		valueFormatter: (value) =>
-			value ? `$${formatAbbreviatedNumber(value)}` : null,
+			value ? `$${formatCurrencyNumber(value)}` : null,
 	});
 }
 export function numericColumnFactory(columnParams = {}) {

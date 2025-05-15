@@ -1,12 +1,15 @@
 import React from "react";
-import { Box, Typography } from "@mui/material";
+import { Box } from "@mui/material";
+import { TbFileDescription } from "react-icons/tb";
+import { DashboardHeader } from "../../../components/DashboardHeader";
 
 export default function DashboardDocuments() {
   return (
     <Box sx={{ p: 4 }}>
-      <Typography variant="h4" sx={{ mb: 2 }}>
-        Documents
-      </Typography>
+      <DashboardHeader
+        title="Documents"
+        icon={<TbFileDescription size={24} />}
+      />
       {/* Add your dashboard widgets and content here */}
     </Box>
   );

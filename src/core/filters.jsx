@@ -2,10 +2,22 @@
 import { Box } from "@mui/material";
 import * as React from "react";
 import { BsFileFontFill } from "react-icons/bs";
-import { TbCalendar, TbCurrencyDollar, TbStatusChange } from "react-icons/tb";
+import { 
+	TbCalendar, 
+	TbCurrencyDollar, 
+	TbStatusChange,
+	TbGenderBigender,
+	TbUsers,
+	TbMail,
+	TbUserCheck,
+	TbMailPlus,
+	TbShoppingBag,
+	TbBuilding,
+	TbCategory
+ } from "react-icons/tb";
 import { z } from "zod";
 import { StatusBadge } from "../components/StatusBadge";
-import { formatAbbreviatedNumber } from "../core/formatters";
+import { formatAbbreviatedNumber, formatCurrencyNumber } from "./formatters";
 const operatorsSchema = z.union([
 	z.literal("contains"),
 	z.literal("equals"),
@@ -27,6 +39,13 @@ export const CustomFilterSchema = z.object({
 		z.literal("order_date"),
 		z.literal("status"),
 		z.literal("earnings"),
+		z.literal("customer_gender"),
+		z.literal("email"),
+		z.literal("created_at"),
+		z.literal("account_enabled"),
+		z.literal("subscribed"),
+		z.literal("vendor"),
+		z.literal("type"),
 	]),
 	// value can be string | string[] for multi-select fields
 	value: z.union([z.string(), z.array(z.string())]),
@@ -83,12 +102,26 @@ export const FILTER_FIELDS = {
 	customer_name: {
 		displayLabel: "Customer Name",
 		value: "customer_name",
-		icon: <BsFileFontFill />,
+		icon: <TbUsers />,
 		description: "Find products whose customer name matches a search term.",
 		valueRenderer: defaultValueRenderer,
 	},
+	email: {
+		displayLabel: "Customer Email",
+		value: "email",
+		icon: <TbMail />,
+		description: "Filter customers by email address.",
+		valueRenderer: defaultValueRenderer,
+	},
+	customer_gender: {
+		displayLabel: "Gender",
+		value: "customer_gender",
+		icon: <TbGenderBigender />,
+		description: "Filter orders by customer gender.",
+		valueRenderer: defaultValueRenderer,
+	},
 	price: {
-		displayLabel: "Price",
+		displayLabel: "Total",
 		value: "price",
 		icon: <TbCurrencyDollar />,
 		description: "Find orders above or below a given price.",
@@ -96,7 +129,7 @@ export const FILTER_FIELDS = {
 			return (
 				<Box>
 					{FILTER_OPERATORS[operatorType].chipLabel} $
-					{formatAbbreviatedNumber(Number(value))}
+					{formatCurrencyNumber(Number(value))}
 				</Box>
 			);
 		},
@@ -110,23 +143,44 @@ export const FILTER_FIELDS = {
 			return (
 				<Box>
 					{FILTER_OPERATORS[operatorType].chipLabel} $
-					{formatAbbreviatedNumber(Number(value))}
+					{formatCurrencyNumber(Number(value))}
 				</Box>
 			);
 		},
 	},
 	order_date: {
-		displayLabel: "Order Date",
+		displayLabel: "Date",
 		value: "order_date",
 		icon: <TbCalendar />,
 		description: "Find orders that were made before or after a specific date.",
+		valueRenderer: defaultValueRenderer,
+	},
+	created_at: {
+		displayLabel: "Created At",
+		value: "created_at",
+		icon: <TbCalendar />,
+		description: "Find customers that registered before or after a specific date.",
+		valueRenderer: defaultValueRenderer,
+	},
+	account_enabled: {
+		displayLabel: "Has Account",
+		value: "account_enabled",
+		icon: <TbUserCheck />,
+		description: "Filter customers by account status.",
+		valueRenderer: defaultValueRenderer,
+	},
+	subscribed: {
+		displayLabel: "Subscribed",
+		value: "subscribed",
+		icon: <TbMailPlus />,
+		description: "Filter customers by email subscription status.",
 		valueRenderer: defaultValueRenderer,
 	},
 	status: {
 		displayLabel: "Status",
 		value: "status",
 		icon: <TbStatusChange />,
-		description: "Find orders that have a specific status.",
+		description: "Filter by status.",
 		valueRenderer: (value, operatorType) => {
 			return (
 				<StatusBadge
@@ -141,6 +195,20 @@ export const FILTER_FIELDS = {
 				/>
 			);
 		},
+	},
+	vendor: {
+		displayLabel: "Vendor",
+		value: "vendor",
+		icon: <TbBuilding />,
+		description: "Filter products by vendor name.",
+		valueRenderer: defaultValueRenderer,
+	},
+	type: {
+		displayLabel: "Product Type",
+		value: "type",
+		icon: <TbCategory />,
+		description: "Filter products by type.",
+		valueRenderer: defaultValueRenderer,
 	},
 };
 export const FILTER_OPERATORS = {

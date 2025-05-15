@@ -1,14 +1,20 @@
 "use client";
-import { Box, Typography } from "@mui/material";
+import { Box, IconButton } from "@mui/material";
 import * as React from "react";
+import { TbChevronRight } from "react-icons/tb";
 import { Breadcrumb } from "../components/Breadcrumb";
 import { usePageTitle } from "../framework/usePageTitle";
+import { Tooltip } from "@mui/material";
 export function DashboardHeader({
 	title,
 	subtitle,
 	actions,
-	secondaryActions,
 	breadcrumbItemList,
+	icon,
+	iconColor = "black",
+	iconTooltipTitle,
+	iconOnClick = () => {},
+	badges,
 }) {
 	usePageTitle(title);
 	return (
@@ -17,6 +23,7 @@ export function DashboardHeader({
 			sx={{
 				display: "flex",
 				flexDirection: "column",
+				gap: 1,
 			}}
 		>
 			<Box
@@ -24,8 +31,6 @@ export function DashboardHeader({
 					display: "flex",
 					alignItems: "center",
 					position: "relative",
-					// minHeight: '60px',
-					// borderBottom: (theme) => `0.5px solid ${theme.palette.gray['200']}`,
 				}}
 			>
 				<Box
@@ -42,11 +47,40 @@ export function DashboardHeader({
 						sx={{
 							display: "flex",
 							alignItems: "center",
-							gap: 1.5,
-							fontWeight: 500,
+							gap: 0.5,
+							fontWeight: 600,
 							fontSize: "xl",
 						}}
 					>
+						{icon && (
+							<Tooltip title={iconTooltipTitle}>
+								<IconButton 
+									sx={{ 
+										variant: "chip",
+										display: "flex",
+										alignItems: "center",
+										color: "black",
+								}}
+								color={iconColor}
+								onClick={iconOnClick}
+							>
+								{icon}
+							</IconButton>
+							</Tooltip>
+						)}
+						{iconOnClick && (
+							<Box
+								sx={{
+									variant: "chip",
+									display: "flex",
+									alignItems: "center",
+									color: "secondary.main",
+									padding: 0,
+								}}
+							>
+								<TbChevronRight size={15} />
+							</Box>
+						)}
 						{breadcrumbItemList ? (
 							<Breadcrumb fontSize="xl" itemList={breadcrumbItemList} />
 						) : (
@@ -66,31 +100,23 @@ export function DashboardHeader({
 			</Box>
 			<Box
 				sx={{
-					minHeight: "45px",
-					display: !subtitle && !secondaryActions ? "none" : "flex",
-					alignItems: "center",
-					py: 1,
-					borderBottom: (theme) => `0.5px solid ${theme.palette.gray["200"]}`,
+					display: "flex",
+					flexDirection: "row",
+					gap: 1,
+					color: "secondary.main",
+					fontSize: "sm",
 				}}
 			>
-				<Box
-					sx={{
-						display: "flex",
-						flexDirection: { xs: "column", md: "row" },
-						flexWrap: "wrap",
-						alignItems: { xs: "flex-start", md: "center" },
-						justifyContent: "space-between",
-						gap: 1,
-						width: "100%",
-					}}
-				>
-					{subtitle && (
-						<Typography fontSize="xs" color="gray.500">
-							{subtitle}
-						</Typography>
-					)}
-					{secondaryActions && secondaryActions}
-				</Box>
+				{subtitle}
+			</Box>
+			<Box
+				sx={{
+					display: "flex",
+					flexDirection: "row",
+					gap: 1,
+				}}
+			>
+				{badges}
 			</Box>
 		</Box>
 	);

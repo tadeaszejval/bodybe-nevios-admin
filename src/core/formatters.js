@@ -6,6 +6,16 @@ export const formatAbbreviatedNumber = (number) =>
 		notation: "compact",
 		compactDisplay: "short",
 	}).format(number);
+export const formatCurrencyNumber = (number, decimals = 2) => {
+	// Convert to number if it's a string
+	const num = typeof number === 'string' ? parseFloat(number) : number;
+	// Format with space as thousands separator and "." as decimal
+	return num.toLocaleString('en-US', {
+		minimumFractionDigits: decimals,
+		maximumFractionDigits: decimals,
+		useGrouping: true,
+	}).replace(/,/g, ' ');
+};
 export const formatShortDate = (date) => {
 	const formattableDate = typeof date === "string" ? new Date(date) : date;
 	return Intl.DateTimeFormat("us", {

@@ -309,6 +309,20 @@ const orangeColorScale = {
 	main: "hsl(31, 100%, 50%)",
 	subtle: "hsla(31, 100%, 50%, 0.1)",
 };
+const blackColorScale = {
+	50: "hsl(0, 0%, 97%)",
+	100: "hsl(0, 0%, 93%)",
+	200: "hsl(0, 0%, 85%)",
+	300: "hsl(0, 0%, 75%)",
+	400: "hsl(0, 0%, 60%)",
+	500: "hsl(0, 0%, 50%)",
+	600: "hsl(0, 0%, 40%)",
+	700: "hsl(0, 0%, 30%)",
+	800: "hsl(0, 0%, 20%)",
+	900: "hsl(0, 0%, 10%)",
+	main: "hsl(0, 0%, 0%)",
+	subtle: "hsla(0, 0.00%, 100.00%, 0.10)",
+};
 function invertColorScale(colorScale) {
 	return {
 		...colorScale,
@@ -344,6 +358,7 @@ const lightPaletteScales = {
 	fuchsia: fuchsiaColorScale,
 	violet: violetColorScale,
 	gray: grayColorScale,
+	black: blackColorScale,
 };
 const darkPaletteScales = {
 	background: {
@@ -363,12 +378,13 @@ const darkPaletteScales = {
 	fuchsia: invertColorScale(fuchsiaColorScale),
 	violet: invertColorScale(violetColorScale),
 	gray: darkGrayColorScale,
+	black: invertColorScale(blackColorScale),
 };
 // create the typography scale in pixels based on a 16px base font size
 const typographySizesPx = {
 	"2xs": 10,
 	xs: 12,
-	sm: 14,
+	sm: 13,
 	md: 16,
 	lg: 18,
 	xl: 20,
@@ -389,8 +405,8 @@ const customTheme = createTheme({
 	breakpoints: {
 		values: {
 			xs: 0,
-			sm: 720,
-			md: 960,
+			sm: 620,
+			md: 800,
 			lg: 1240,
 			xl: 1920,
 		},
@@ -435,7 +451,7 @@ const customTheme = createTheme({
 	},
 	// allow styling individual fontSizes in a component with the fontSize prop: "xs", "sm", "md", etc.
 	typography: {
-		fontSize: 14,
+		fontSize: 13,
 		"2xs": "0.625rem",
 		xs: "0.75rem",
 		sm: "0.875rem",
@@ -591,11 +607,9 @@ export const ALL_AVAIL_FONTS_LIST = Object.values(ALL_AVAIL_FONTS);
 const DARK_THEME_STRING = "*:where(.dark) &";
 export function ThemeProvider({ children }) {
 	// You can uncomment these lines and remove the useThemeCustomization() hook to use the default theme, or modify it to your liking, removing the dependence on the useThemeCustomization() hook
-	const { activeColorScale, activeRadiusScale, activeFont } =
-		useThemeCustomization();
-	// const activeColorScale = 'primary';
-	// const activeRadiusScale = 'md';
-	// const activeFont = 'Inter';
+	const activeColorScale = 'primary';
+	const activeRadiusScale = 'lg';
+	const activeFont = 'Inter';
 	const activeRadius = allRadiusScales[activeRadiusScale];
 	// step 2 to use custom theme values to modify the theme with our new defaults
 	const themeWithNewPalette = {
@@ -639,6 +653,19 @@ export function ThemeProvider({ children }) {
 			},
 			caption: {
 				fontFamily: `"${activeFont}",${customTheme.typography.fontFamily} !important`,
+			},
+			paperTitle: {
+				fontWeight: 600,
+				fontSize: "14px",
+			},
+			paperSubtitle: {
+				fontWeight: 600,
+				fontSize: "13px",
+			},
+			paperDescription: {
+				fontSize: "13px", 
+				color: "text.secondary",
+				fontWeight: 400,
 			},
 		},
 		shape: {
@@ -742,7 +769,7 @@ export function ThemeProvider({ children }) {
 						paddingTop: `6px !important `,
 					},
 					paper: {
-						borderRadius: activeRadius.amount * 1.5,
+						borderRadius: activeRadius.amount * 4,
 						transform: "translateY(4px) !important",
 						boxShadow: customTheme.shadows[2],
 					},
@@ -761,7 +788,7 @@ export function ThemeProvider({ children }) {
 			MuiButtonBase: {
 				defaultProps: {
 					// remove the infamous Material Design button ripple
-					disableRipple: true,
+					disableRipple: false,
 				},
 				styleOverrides: {
 					root: {
@@ -784,11 +811,24 @@ export function ThemeProvider({ children }) {
 						...(ownerState.variant === "contained" &&
 							ownerState.color === "primary" && {
 								transition: customTheme.transitions.create(`all`),
+								border: `1px solid ${lightPaletteScales.primary["700"]}`,
+								[`${DARK_THEME_STRING}`]: {
+									border: `1px solid ${darkPaletteScales.primary["700"]}`,
+								},
+								boxShadow: '2px 5px 23px -4px rgba(0,24,255,0.75) inset',
 								fontWeight: 600,
 								"&:hover": {
 									filter: "contrast(1.1)",
 								},
 							}),
+							...(ownerState.variant === "contained" &&
+								ownerState.color === "shadow" && {
+									transition: customTheme.transitions.create(`all`),
+									backgroundColor: "white",
+									"&:hover": {
+										filter: "contrast(1.1)",
+									},
+								}),
 						...(ownerState.variant === "outlined" &&
 							(ownerState.color === "gray" ||
 								ownerState.color === "secondary") && {
@@ -921,6 +961,7 @@ export function ThemeProvider({ children }) {
 				styleOverrides: {
 					root: {
 						borderRadius: activeRadius.amount,
+						fontSize: "13px",
 					},
 				},
 			},
@@ -975,8 +1016,9 @@ export function ThemeProvider({ children }) {
 			MuiDialog: {
 				styleOverrides: {
 					paper: {
-						borderRadius: activeRadius.amount * 2,
-						padding: customTheme.spacing(3),
+						borderRadius: activeRadius.amount,
+						border: 'none',
+						borderWidth: 0,
 					},
 				},
 			},
@@ -1163,13 +1205,13 @@ export function ThemeProvider({ children }) {
 				},
 				styleOverrides: {
 					root: {
-						borderColor: lightPaletteScales.gray["200"],
+						borderColor: lightPaletteScales.gray["300"],
 						color: lightPaletteScales.gray["800"],
 						[`${DARK_THEME_STRING}`]: {
-							borderColor: darkPaletteScales.gray["200"],
+							borderColor: darkPaletteScales.gray["300"],
 							color: darkPaletteScales.gray["800"],
 						},
-						borderWidth: 0.5,
+						borderWidth: "0.7px",
 						borderStyle: "solid",
 					},
 				},
@@ -1217,12 +1259,6 @@ export function ThemeProvider({ children }) {
 					},
 					select: {
 						minWidth: 100,
-						"&:focus": {
-							backgroundColor: lightPaletteScales.background.paper,
-							[`${DARK_THEME_STRING}`]: {
-								backgroundColor: darkPaletteScales.background.paper,
-							},
-						},
 					},
 				},
 			},

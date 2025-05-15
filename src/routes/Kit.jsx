@@ -16,7 +16,7 @@ import { FileUpload } from "../components/FileUpload";
 import { LabeledDivider } from "../components/LabeledDivider";
 import { LineChartComposition } from "../components/LineChartComposition";
 import { NpsSurvey } from "../components/NpsSurvey";
-import { OrdersTable } from "../components/OrdersTable";
+import { OrdersTable } from "../components/dashboard/orders/OrdersTable";
 import { PageContainer } from "../components/PageContainer";
 import { PieChartComposition } from "../components/PieChartComposition";
 import { ScatterChartComposition } from "../components/ScatterChartComposition";
@@ -96,12 +96,12 @@ export default function KitDemo() {
 			{/* --- Home Dashboard --- */}
 			<Divider sx={{ my: 4 }}>Home Dashboard</Divider>
 			{/* This is the Home dashboard component, inlined. */}
-			<PageContainer>
+		<PageContainer>
 				<NpsSurvey disclosure={npsDisclosure} />
-				<DashboardHeader
+			<DashboardHeader
 					title="Home"
 					subtitle="Welcome back, Ally"
-					actions={
+				actions={
 						<Stack spacing={1} direction="row">
 							<Button
 								variant="outlined"
@@ -160,7 +160,7 @@ export default function KitDemo() {
 							</Button>
 							<Button variant="contained" color="primary" onClick={() => broadcastTour("welcome")} sx={{ display: { xs: "none", md: "flex" } }}>
 								Take a Tour
-							</Button>
+					</Button>
 						</Stack>
 					}
 				/>
@@ -422,7 +422,7 @@ export default function KitDemo() {
 					function ChartGrid({ children }) {
 						return (
 							<Box
-								sx={{
+				sx={{
 									display: { xs: "grid", md: "grid" },
 									gridTemplateColumns: {
 										xs: "1fr",
@@ -1116,9 +1116,9 @@ export default function KitDemo() {
 					actions={<Button variant="contained" color="primary" endIcon={<TbDownload />}>Export</Button>}
 				/>
 				<Stack spacing={3} sx={{ flex: 1 }}>
-					<OrdersTable allowCheckboxSelection />
-				</Stack>
-			</PageContainer>
+				<OrdersTable allowCheckboxSelection />
+			</Stack>
+		</PageContainer>
 
 			{/* --- Speakers Dashboard --- */}
 			<Divider sx={{ my: 4 }}>Speakers Dashboard</Divider>
