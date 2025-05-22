@@ -1,6 +1,7 @@
 import * as React from 'react';
 import { Box, Button, Menu, MenuItem, Typography } from '@mui/material';
 import { TbChevronDown } from "react-icons/tb";
+import NeviosButtonEndIcon from './NeviosButtonEndIcon';
 
 export default function NeviosGroupButton({
   buttonText = 'Group',
@@ -30,37 +31,34 @@ export default function NeviosGroupButton({
     };
 
     return (
-        <Box>
-            <Button
+        <>
+            <NeviosButtonEndIcon
                 id='basic-button' 
                 aria-controls={open ? 'basic-menu' : undefined} 
                 aria-haspopup='true' 
-                aria-expanded={open ? 'true' : undefined} 
+                aria-expanded={open ? 'true' : undefined}
                 onClick={handleClick}
                 variant={variant} 
+                buttonText={buttonText}
+                size="small"
                 color={color}
                 sx={{
-                    display: "flex",
-                    alignItems: "center",
-                    columnGap: "7px",
                     ...buttonSx
                 }}
-            >
-                {buttonText}
-                {iconComponent}
-            </Button>
-            <Menu 
+            />
+            <Menu   
                 id='basic-menu' 
                 anchorEl={anchorEl} 
                 open={open} 
-                onClose={handleClose} 
+                onClose={handleClose}
+                autoFocus={false}
                 MenuListProps={{
                         'aria-labelledby': 'basic-button',
                     }} 
                 disablePortal={true}
                 sx={{
                     '& .MuiPaper-root': {
-                        borderRadius: "18px !important",
+                        borderRadius: "12px !important",
                     },
                     ...menuSx
                 }}
@@ -74,6 +72,6 @@ export default function NeviosGroupButton({
                     </MenuItem>
                 ))}
             </Menu>
-        </Box>
+        </>
     );
 }

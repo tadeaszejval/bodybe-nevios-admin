@@ -648,6 +648,11 @@ export function ThemeProvider({ children }) {
 			body2: {
 				fontFamily: `"${activeFont}",${customTheme.typography.fontFamily} !important`,
 			},
+			body2x: {
+				fontFamily: `"${activeFont}",${customTheme.typography.fontFamily} !important`,
+				fontWeight: 500,
+				fontSize: "13px",
+			},
 			button: {
 				fontFamily: `"${activeFont}",${customTheme.typography.fontFamily} !important`,
 			},
@@ -824,7 +829,7 @@ export function ThemeProvider({ children }) {
 							...(ownerState.variant === "contained" &&
 								ownerState.color === "shadow" && {
 									transition: customTheme.transitions.create(`all`),
-									backgroundColor: "white",
+									backgroundColor: "#E3E3E3",
 									"&:hover": {
 										filter: "contrast(1.1)",
 									},
@@ -852,6 +857,7 @@ export function ThemeProvider({ children }) {
 						textTransform: "inherit",
 						letterSpacing: 0.2,
 						borderRadius: activeRadius.amount * 1.25,
+						fontWeight: 600,
 					}),
 				},
 			},

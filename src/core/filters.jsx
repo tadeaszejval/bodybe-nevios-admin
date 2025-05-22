@@ -46,6 +46,9 @@ export const CustomFilterSchema = z.object({
 		z.literal("subscribed"),
 		z.literal("vendor"),
 		z.literal("type"),
+		z.literal("from"),
+		z.literal("to"),
+		z.literal("subject"),
 	]),
 	// value can be string | string[] for multi-select fields
 	value: z.union([z.string(), z.array(z.string())]),
@@ -208,6 +211,27 @@ export const FILTER_FIELDS = {
 		value: "type",
 		icon: <TbCategory />,
 		description: "Filter products by type.",
+		valueRenderer: defaultValueRenderer,
+	},
+	from: {
+		displayLabel: "From",
+		value: "from",
+		icon: <TbMail />,
+		description: "Filter emails by sender address",
+		valueRenderer: defaultValueRenderer,
+	},
+	to: {
+		displayLabel: "To",
+		value: "to",
+		icon: <TbMail />,
+		description: "Filter emails by recipient address",
+		valueRenderer: defaultValueRenderer,
+	},
+	subject: {
+		displayLabel: "Subject",
+		value: "subject",
+		icon: <TbMail />,
+		description: "Filter emails by subject line",
 		valueRenderer: defaultValueRenderer,
 	},
 };

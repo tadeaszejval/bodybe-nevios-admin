@@ -10,7 +10,6 @@ export default function DashboardHome() {
         title="Home"
         icon={<TbHome size={24} />}
       />
-      {/* Add your dashboard widgets and content here */}
     </Box>
   );
 }

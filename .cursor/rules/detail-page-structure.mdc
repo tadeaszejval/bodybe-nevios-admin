@@ -1,0 +1,90 @@
+---
+description: 
+globs: 
+alwaysApply: false
+---
+Page Structure
+Layout Container: PageContainer provides the base container with proper margins and width (maxWidth: "950px").
+Two-Column Layout: NeviosTwoColumnFormContainer splits the page into:
+Main content (65% width): Shows orders and activity logs
+Side content (35% width): Shows customer details, addresses, and account status
+Core Nevios Components
+NeviosFormPaper
+Creates card-like containers with consistent styling
+Props:
+title: Header text
+icon: Optional edit icon that appears in top-right
+onClick: Action when clicking the icon
+description: Optional description text
+footerDescription: Optional footer text (shows with gray background)
+gap: Controls spacing between child elements
+NeviosFormPaperBlock
+Creates sections within a FormPaper
+Props:
+title: Optional section header
+icon: Optional action icon (typically edit)
+onClick: Action when icon is clicked
+NeviosAnalyticsStripe
+Horizontal metrics display showing key statistics
+Props:
+sections: Array of objects with title and value pairs
+Shows dividers between sections automatically
+DashboardHeader
+Shows page title, subtitle, action buttons and status badges
+Props:
+title: Main header text
+subtitle: Secondary text (customer creation date)
+icon: Icon with click handler (back button)
+actions: Right-aligned buttons/menus
+badges: Status indicators (subscribed, account status)
+NeviosGroupButton
+Dropdown menu button for multiple actions
+Props:
+buttonText: Text shown on button
+menuItems: Array of options with label, onClick handler, and optional color
+Page Flow
+Data Loading:
+On mount, fetches customer data using customerId prop
+Loads related billing and shipping addresses
+Shows loading spinner during data fetch
+Popup Editing:
+Edit buttons open modal popups for:
+Contact information (ContactPopup)
+Billing address (BillingAddressPopup)
+Shipping address (ShippingAddressPopup)
+Each popup has validation and handles saving through server actions
+Status Updates:
+User actions trigger snackbar notifications
+Success/error messages shown at bottom of screen
+Customer Deletion:
+"Delete customer" action shows confirmation dialog
+On confirm, deletes customer and redirects to list view
+Special Design Patterns
+Block Organization: Content is grouped into logical blocks with consistent styling
+Badges: Visual status indicators (SubscribedBadge, AccountStatusBadge, CompanyBadge)
+Copy Values: Email/phone can be copied with NeviosCopyBlock
+Responsive Layout: Two-column layout on desktop, stacks on mobile
+Server Actions: Uses React Server Actions (modifyCustomer, deleteCustomer, etc.) for backend operations
+The page presents a detailed customer view with data split into logical sections, provides edit capabilities through modals, and maintains a consistent design system with other pages in the admin dashboard.
+
+NeviosBadge
+This component creates consistent, color-coded badges for different states:
+Props:
+badgeVariant: Color scheme (blue, green, red, yellow, orange, gray)
+icon: Optional icon displayed before text
+children: Text content inside the badge
+customSx: Optional custom styling
+Design System:
+Each variant has pre-defined colors for background, text, and border
+Consistent padding, border-radius, and font weights
+Compact design (fit-content width)
+Badge Implementation Pattern
+In your CustomerView component, you're using several badge implementations:
+SubscribedBadge: Shows email subscription status
+AccountStatusBadge: Shows account activation status
+CompanyBadge: Shows if customer is a business
+These specialized badges likely inherit from NeviosBadge with pre-configured variants and icons. For example:
+Apply to detail-page-...
+}
+This approach ensures visual consistency while making the code more readable - rather than specifying badge properties each time, you use semantic components that communicate their purpose.
+To create new state badges, follow this pattern of wrapping NeviosBadge with specific configurations for your use case.

@@ -21,6 +21,7 @@ import BillingAddressPopup from "../../../components/dashboard/customers/Billing
 import ShippingAddressPopup from "../../../components/dashboard/customers/ShippingAddressPopup";
 import NeviosCheckbox from "../../../components/nevios/NeviosCheckbox";
 import { createCustomer } from "../../../../actions/customers/create";
+import { getCountryName } from "../../../core/countryName";
 import { supabase } from "../../../utils/supabase";
 
 export function CreateCustomer() {
@@ -341,7 +342,7 @@ export function CreateCustomer() {
                                 {billingAddress.city}, {billingAddress.postalCode}
                             </Typography>
                             <Typography variant="body2">
-                                {billingAddress.country}
+                                {getCountryName(billingAddress.country)}
                             </Typography>
                             {billingAddress.phone && (
                                 <Typography variant="body2">
@@ -403,7 +404,7 @@ export function CreateCustomer() {
                                 {shippingAddress.city}, {shippingAddress.postalCode}
                             </Typography>
                             <Typography variant="body2">
-                                {shippingAddress.country}
+                                {getCountryName(shippingAddress.country)}
                             </Typography>
                             {shippingAddress.phone && (
                                 <Typography variant="body2">

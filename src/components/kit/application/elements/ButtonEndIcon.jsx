@@ -2,7 +2,14 @@ import * as React from 'react';
 import { Box, Button } from '@mui/material';
 import { TbArrowRight } from 'react-icons/tb';
 // end icon buttons
-export default function ButtonEndIcon() {
+export default function ButtonEndIcon({
+  buttonText,
+  variant = 'contained',
+  color = 'primary',
+  size = 'small',
+  endIcon = <TbArrowRight />,
+  ...props
+}) {
   return (
     <Box
       sx={{
@@ -12,14 +19,8 @@ export default function ButtonEndIcon() {
         gap: 4,
       }}
     >
-      <Button color="primary" variant="contained" size="small" endIcon={<TbArrowRight />}>
-        Get Started
-      </Button>
-      <Button color="primary" variant="contained" size="medium" endIcon={<TbArrowRight />}>
-        Get Started
-      </Button>
-      <Button color="primary" variant="contained" size="large" endIcon={<TbArrowRight />}>
-        Get Started
+      <Button color={color} variant={variant} size={size} endIcon={endIcon} {...props}>
+        {buttonText}
       </Button>
     </Box>
   );

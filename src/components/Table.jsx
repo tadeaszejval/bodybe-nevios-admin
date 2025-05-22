@@ -94,6 +94,13 @@ export function Table({
 						".MuiDataGrid-row": {
 							borderTop: `0.7px solid ${theme.palette.gray[200]}`,
 						},
+						'.MuiDataGrid-row, .MuiDataGrid-cell': {
+							cursor: 'default',
+						},
+						'.MuiDataGrid-row[role="row"]:hover': {
+							backgroundColor: theme.palette.action.hover,
+							cursor: 'pointer',
+						},
 						...(variant === "simple" && {
 							borderRadius: 0,
 							".MuiDataGrid-columnHeader": {

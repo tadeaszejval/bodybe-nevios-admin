@@ -36,6 +36,8 @@ import { modifyShippingAddress } from "../../../../actions/customers/shipping-ad
 import { deleteCustomer } from "../../../../actions/customers/delete";
 import { createBillingAddress } from "../../../../actions/customers/billing-address/create";
 import { createShippingAddress } from "../../../../actions/customers/shipping-address/create";
+import { FulfillmentStatusBadge } from "../../../components/dashboard/orders/FulfillmentStatusBadge";
+import { PaymentStatusBadge } from "../../../components/dashboard/orders/PaymentStatusBadge";
 // Sample customer activity data for testing
 const sampleCustomerActivities = [
   {
@@ -55,18 +57,6 @@ const sampleCustomerActivities = [
     description: 'Added item to cart',
     timestamp: '2023-06-15T13:40:00Z',
     details: 'Wireless Headphones - $89.99'
-  },
-  {
-    type: 'email',
-    description: 'Opened marketing email',
-    timestamp: '2023-06-14T10:15:00Z',
-    details: 'Summer Sale Campaign'
-  },
-  {
-    type: 'payment',
-    description: 'Payment processed',
-    timestamp: '2023-06-10T16:20:00Z',
-    details: 'Payment method: Credit Card'
   }
 ];
 
@@ -90,12 +80,35 @@ export function CustomerView({ customerId }) {
   const [savingShipping, setSavingShipping] = useState(false);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [deletingCustomer, setDeletingCustomer] = useState(false);
-
+  const [orders, setOrders] = useState([]);
+  const [ordersLoading, setOrdersLoading] = useState(true);
   useEffect(() => {
     if (customerId) {
       fetchCustomerData(customerId);
     }
   }, [customerId]);
+
+  useEffect(() => {
+    async function fetchCustomerOrders() {
+      if (!customer) return;
+      try {
+        setOrdersLoading(true);
+        const { data, error } = await supabase
+          .from('orders')
+          .select('id, name, created_at, fulfillment_status, payment_status, local_currency')
+          .eq('customer', customer.id)
+          .order('created_at', { ascending: false })
+          .limit(5);
+        if (error) throw error;
+        setOrders(data || []);
+      } catch (err) {
+        setOrders([]);
+      } finally {
+        setOrdersLoading(false);
+      }
+    }
+    fetchCustomerOrders();
+  }, [customer]);
 
   const fetchCustomerData = async (id) => {
     try {
@@ -529,7 +542,48 @@ export function CustomerView({ customerId }) {
         mainContent={
           <>
             <NeviosFormPaper title="Last order placed">
-              
+              {ordersLoading ? (
+                <Box sx={{ display: 'flex', justifyContent: 'center', p: 2 }}>
+                  <CircularProgress size={20} />
+                </Box>
+              ) : orders.length === 0 ? (
+                <Typography color="text.secondary">No orders found</Typography>
+              ) : (
+                <Box sx={{ display: 'flex', flexDirection: 'column', border: '0.7px solid rgba(0, 0, 0, 0.12)', borderRadius: "12px" }}>
+                  {orders.map((order, idx) => {
+                    let total = '';
+                    if (order.orders_pricing && Array.isArray(order.orders_pricing)) {
+                      const totalObj = order.orders_pricing.find(p => p.component === 'total');
+                      if (totalObj) total = `${order.local_currency} ${formatCurrencyNumber(totalObj.gross_local)}`;
+                    }
+                    return (
+                      <Box
+                        key={order.id}
+                        sx={{
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: 2,
+                          py: 1.5,
+                          px: 2,
+                          borderBottom: idx !== orders.length - 1 ? '0.7px solid rgba(0, 0, 0, 0.12)' : 'none'
+                        }}
+                      >
+                        <Box sx={{ flex: 1 }}>
+                          <Typography variant="body2" fontWeight={600} sx={{ cursor: "pointer", "&:hover": { textDecoration: "underline" } }} onClick={() => router.push(`/dashboard/orders/${order.id}`)}>{order.name || order.id}</Typography>
+                          <Typography variant="caption" color="text.secondary">{formatReadableDatetime(order.created_at)}</Typography>
+                        </Box>
+                        <Box sx={{ minWidth: 90 }}>
+                          <Typography variant="body2" fontWeight={600}>{total}</Typography>
+                        </Box>
+                        <Box sx={{ minWidth: 120, display: 'flex', gap: 1 }}>
+                          <FulfillmentStatusBadge status={order.fulfillment_status} />
+                          <PaymentStatusBadge status={order.payment_status} />
+                        </Box>
+                      </Box>
+                    );
+                  })}
+                </Box>
+              )}
             </NeviosFormPaper>
             <NeviosFormPaper title="Customer Activity" gap={2}>
               <ActivityLogs 

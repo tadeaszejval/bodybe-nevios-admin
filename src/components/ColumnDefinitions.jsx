@@ -1,10 +1,11 @@
 "use client";
 import { CopyBlock } from "../components/CopyBlock";
+import { Box } from "@mui/material";
 import {
-	formatAbbreviatedNumber,
 	formatReadableDate,
 	formatCurrencyNumber,
 } from "../core/formatters";
+import { useRouter } from "next/navigation";
 /** ------------------- **/
 /*  Column Factory builders
 /** ------------------- **/
@@ -14,6 +15,34 @@ export function genericColumnFactory(columnParams = {}) {
 		flex: 1,
 		...columnParams,
 	};
+}
+export function clickableColumnFactory(columnParams = {}) {	
+	const router = useRouter();
+	return genericColumnFactory({
+		...columnParams,
+		renderCell: (params) => {
+			let link;
+			if (typeof columnParams.link === "function") {
+				link = columnParams.link(params);
+			} else {
+				link = columnParams.link;
+			}
+			return (
+				<Box
+					sx={{
+						fontWeight: 500,
+						cursor: link ? "pointer" : "default",
+						"&:hover": link ? { textDecoration: "underline" } : {},
+					}}
+					onClick={() => {
+						if (link) router.push(link);
+					}}
+				>
+					{params.value}
+				</Box>
+			);
+		},
+	});
 }
 export function dateColumnFactory(columnParams = {}) {
 	return genericColumnFactory({

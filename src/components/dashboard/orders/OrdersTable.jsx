@@ -6,7 +6,7 @@ import {
 	currencyColumnFactory,
 	dateColumnFactory,
 	genericColumnFactory,
-	idColumnFactory,
+	clickableColumnFactory
 } from "../../../components/ColumnDefinitions";
 import {
 	customerNameFilterConfig,
@@ -211,10 +211,11 @@ export function OrdersTable({ tableHeight, allowCheckboxSelection = false }) {
 	});
 
 	const columnDefinitions = [
-		idColumnFactory({
+		clickableColumnFactory({
 			field: "order_name",
 			headerName: "Order ID",
 			minWidth: 150,
+			link: (params) => `/dashboard/orders/${params.id}`
 		}),
 		dateColumnFactory({
 			field: "order_date",
@@ -237,25 +238,6 @@ export function OrdersTable({ tableHeight, allowCheckboxSelection = false }) {
 			headerName: "Customer",
 			minWidth: 180,
 			flex: 2,
-		}),
-		genericColumnFactory({
-			field: "customer_gender",
-			headerName: "Gender",
-			minWidth: 100,
-			flex: 1,
-			renderCell: (params) => (
-				<Box
-					sx={{
-						lineHeight: 1.2,
-						width: "100%",
-						height: "100%",
-						display: "flex",
-						alignItems: "center",
-					}}
-				>
-					<GenderBadge status={params.value} />
-				</Box>
-			),
 		}),
 		currencyColumnFactory({
 			field: "total",
@@ -334,6 +316,7 @@ export function OrdersTable({ tableHeight, allowCheckboxSelection = false }) {
 
 	return (
 		<Paper
+			elevation={2}
 			sx={{
 				flex: 1,
 				display: "flex",

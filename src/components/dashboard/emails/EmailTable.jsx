@@ -2,35 +2,44 @@
 import { Box, Portal, CircularProgress } from "@mui/material";
 import { GridToolbarQuickFilter } from "@mui/x-data-grid";
 import React, { useEffect, useState } from "react";
-import { useRouter } from "next/navigation";
 import {
 	dateColumnFactory,
 	genericColumnFactory,
-	idColumnFactory,
-	clickableColumnFactory,
+    clickableColumnFactory,
 } from "../../../components/ColumnDefinitions";
-import {
-	customerNameFilterConfig,
-	genderFilterConfig,
-	emailFilterConfig,
-	createdAtFilterConfig,
-	accountStatusFilterConfig,
-	subscribedFilterConfig,
-} from "../../../components/CustomFilterDefinitions";
 import { FiltersBar } from "../../../components/FiltersBar";
 import { Table } from "../../../components/Table";
 import { clientFiltering } from "../../../core/filters";
 import { formatReadableDatetime } from "../../../core/formatters";
 import { useFilters } from "../../../hooks/useFilters";
 import { supabase } from "../../../utils/supabase";
-import { GenderBadge } from "./GenderBadge";
-import { AccountStatusBadge } from "./AccountStatusBadge";
-import { SubscribedBadge } from "./SubscribedBadge";
+import { EmailStatusBadge } from "./EmailStatusBadge";
+import { TextOperatorValueBlock, OrderDateValueBlock } from "../../../components/CustomFilterDefinitions";
 
-export function CustomersTable({ tableHeight, allowCheckboxSelection = false }) {
-	const router = useRouter();
+// Email filter configurations
+const fromFilterConfig = {
+	field: "from",
+	operatorValueBlock: (params) => <TextOperatorValueBlock {...params} />,
+};
+
+const toFilterConfig = {
+	field: "to",
+	operatorValueBlock: (params) => <TextOperatorValueBlock {...params} />,
+};
+
+const subjectFilterConfig = {
+	field: "subject",
+	operatorValueBlock: (params) => <TextOperatorValueBlock {...params} />,
+};
+
+const sentDateFilterConfig = {
+	field: "created_at",
+	operatorValueBlock: (params) => <OrderDateValueBlock {...params} />,
+};
+
+export function EmailTable({ tableHeight, allowCheckboxSelection = false }) {
 	const { filters, editFilter, removeFilter } = useFilters();
-	const [customers, setCustomers] = useState([]);
+	const [emails, setEmails] = useState([]);
 	const [loading, setLoading] = useState(true);
 	const [error, setError] = useState(null);
 	const [pagination, setPagination] = useState({
@@ -39,53 +48,45 @@ export function CustomersTable({ tableHeight, allowCheckboxSelection = false }) 
 		offset: 0
 	});
 
-	// Fetch customers from Supabase
+	// Fetch emails from Supabase
 	useEffect(() => {
-		const fetchCustomers = async () => {
+		const fetchEmails = async () => {
 			try {
 				setLoading(true);
 				
-				// Get count of total customers for pagination
+				// Get count of total emails for pagination
 				const { count, error: countError } = await supabase
-					.from('customers')
+					.from('email')
 					.select('*', { count: 'exact', head: true });
 					
 				if (countError) throw countError;
 				
-				// Fetch the customers
+				// Fetch the emails with customer information
 				const { data, error: fetchError } = await supabase
-					.from('customers')
+					.from('email')
 					.select(`
-						id, 
-						email,
-						first_name, 
-						last_name,
-						gender,
-						created_at,
-						phone,
-						country,
-						account_enabled,
-						subscribed
+						*,
+						customer:customers(id, first_name, last_name, email)
 					`)
 					.range(pagination.offset, pagination.offset + pagination.limit - 1)
 					.order('created_at', { ascending: false });
 					
 				if (fetchError) throw fetchError;
 				
-				setCustomers(data);
+				setEmails(data || []);
 				setPagination(prev => ({
 					...prev,
 					total: count || 0
 				}));
 			} catch (err) {
-				console.error("Error fetching customers:", err);
-				setError(err.message || "Failed to fetch customers");
+				console.error("Error fetching emails:", err);
+				setError(err.message || "Failed to fetch emails");
 			} finally {
 				setLoading(false);
 			}
 		};
 
-		fetchCustomers();
+		fetchEmails();
 	}, [pagination.limit, pagination.offset]);
 
 	// Handle server-side pagination change
@@ -97,32 +98,55 @@ export function CustomersTable({ tableHeight, allowCheckboxSelection = false }) 
 		});
 	};
 
-	// Transform the data to match the table structure
-	const transformedData = customers.map((customer) => {
-		return {
-			id: customer.id,
-			email: customer.email || 'N/A',
-			customer_name: `${customer.first_name || ''} ${customer.last_name || ''}`.trim() || 'Unknown',
-			gender: customer.gender || 'NOT_FOUND',
-			created_at: customer.created_at,
-			phone: customer.phone || 'N/A',
-			account_enabled: customer.account_enabled,
-			subscribed: customer.subscribed
-		};
-	});
-
 	const columnDefinitions = [
-		clickableColumnFactory({
-			field: "email",
-			headerName: "Email",
-			minWidth: 200,
-			flex: 2,
-			link: (params) => `/dashboard/customers/${params.id}`
-		}),
-		dateColumnFactory({
-			field: "created_at",
-			headerName: "Customer Since",
+        genericColumnFactory({
+			field: "to",
+			headerName: "Email to:",
+			minWidth: 150,
 			flex: 1.5,
+			renderCell: (params) => {
+				const customer = params.row.customer;
+				if (customer) {
+					const firstName = customer.first_name || '';
+					const lastName = customer.last_name || '';
+					const fullName = `${firstName} ${lastName}`.trim();
+					
+					if (fullName) {
+						return (
+							<Box
+								sx={{
+									lineHeight: 1.2,
+									display: "flex",
+									flexDirection: "column",
+									height: "100%",
+									justifyContent: "center",
+								}}
+							>
+								<Box sx={{ fontWeight: 500 }}>{fullName}</Box>
+								<Box sx={{ fontSize: "xs", color: "gray.500" }}>{params.value}</Box>
+							</Box>
+						);
+					}
+				}
+				
+				// If no customer data or name, just show the email
+				return (
+					<Box
+						sx={{
+							height: "100%",
+							display: "flex",
+							alignItems: "center",
+						}}
+					>
+						{params.value}
+					</Box>
+				);
+			},
+		}),
+        dateColumnFactory({
+			field: "created_at",
+			headerName: "Date",
+			flex: 1,
 			minWidth: 180,
 			renderCell: (params) => (
 				<Box
@@ -136,8 +160,8 @@ export function CustomersTable({ tableHeight, allowCheckboxSelection = false }) 
 			),
 		}),
         genericColumnFactory({
-			field: "subscribed",
-			headerName: "Subscribed",
+			field: "status",
+			headerName: "Status",
 			minWidth: 140,
 			flex: 1,
 			renderCell: (params) => (
@@ -150,59 +174,22 @@ export function CustomersTable({ tableHeight, allowCheckboxSelection = false }) 
 						alignItems: "center",
 					}}
 				>
-					<SubscribedBadge status={params.value} />
+					<EmailStatusBadge status={params.value} />
 				</Box>
 			),
 		}),
-		genericColumnFactory({
-			field: "customer_name",
-			headerName: "Name",
-			minWidth: 180,
-			flex: 1.5,
-		}),
-		genericColumnFactory({
-			field: "gender",
-			headerName: "Gender",
-			minWidth: 120,
-			flex: 1,
-			renderCell: (params) => (
-				<Box
-					sx={{
-						lineHeight: 1.2,
-						width: "100%",
-						height: "100%",
-						display: "flex",
-						alignItems: "center",
-					}}
-				>
-					<GenderBadge status={params.value} />
-				</Box>
-			),
-		}),
-        idColumnFactory({
-			field: "phone",
-			headerName: "Phone",
+		clickableColumnFactory({
+			field: "subject",
+			headerName: "Subject",
 			minWidth: 200,
-			flex: 1,
+			flex: 2,
+			link: (params) => `/dashboard/emails/${params.id}`
 		}),
-		genericColumnFactory({
-			field: "account_enabled",
-			headerName: "Account",
-			minWidth: 150,
-			flex: 1,
-			renderCell: (params) => (
-				<Box
-					sx={{
-						lineHeight: 1.2,
-						width: "100%",
-						height: "100%",
-						display: "flex",
-						alignItems: "center",
-					}}
-				>
-					<AccountStatusBadge status={params.value} />
-				</Box>
-			),
+        genericColumnFactory({
+			field: "from",
+			headerName: "From",
+			minWidth: 200,
+			flex: 1.5,
 		}),
 	];
 
@@ -222,12 +209,10 @@ export function CustomersTable({ tableHeight, allowCheckboxSelection = false }) 
 				editFilter={editFilter}
 				removeFilter={removeFilter}
 				availableFilters={[
-					emailFilterConfig,
-					customerNameFilterConfig,
-					genderFilterConfig,
-					accountStatusFilterConfig,
-					subscribedFilterConfig,
-					createdAtFilterConfig,
+					subjectFilterConfig,
+					fromFilterConfig,
+					toFilterConfig,
+					sentDateFilterConfig,
 				]}
 			>
 				<Box id="filter-panel" />
@@ -249,7 +234,7 @@ export function CustomersTable({ tableHeight, allowCheckboxSelection = false }) 
 				<Table
 					tableHeight={tableHeight}
 					columns={columnDefinitions}
-					rows={clientFiltering(transformedData, filters)}
+					rows={clientFiltering(emails, filters)}
 					initialState={{
 						sorting: { sortModel: [{ field: "created_at", sort: "desc" }] },
 					}}
@@ -273,7 +258,7 @@ function CustomQuickSearch(props) {
 			<Portal container={() => document.getElementById("filter-panel")}>
 				<GridToolbarQuickFilter
 					variant="filled"
-					placeholder="Search email, name..."
+					placeholder="Search emails..."
 					sx={{
 						width: 200,
 						borderColor: "gray.200",
