@@ -41,3 +41,11 @@ export const formatReadableDatetime = (date) => {
 		minute: "numeric",
 	}).format(formattableDate);
 };
+
+export const formatTime = (date) => {
+	const formattableDate = typeof date === "string" ? new Date(date) : date;
+	return Intl.DateTimeFormat("us", {
+		hour: "numeric",
+		minute: "numeric",
+	}).format(formattableDate);
+};

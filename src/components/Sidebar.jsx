@@ -22,9 +22,6 @@ import {
 	TbMoon,
 } from "react-icons/tb";
 import { useColorScheme } from "@mui/material";
-import { CommandBar } from "../components/CommandBar";
-import { OnboardingButton } from "../components/OnboardingButton";
-import { OrganizationSelector } from "../components/OrganizationSelector";
 import { SidebarItem } from "../components/SidebarItem";
 import { useAuth } from "../context/AuthProvider";
 import { useRouter } from "next/navigation";
@@ -54,57 +51,38 @@ export function Sidebar() {
 				display: { xs: "none", sm: "flex" },
 				flexDirection: "column",
 				height: "100%",
-				maxHeight: "100vh",
 				width: SIDEBAR_WIDTH,
 				backgroundColor: "rgb(238, 238, 238)",
-				borderRight: "1px solid rgb(224, 224, 224)",
+				boxShadow: "1px 1px 5px 0px rgba(112,112,112,0.75) inset",
 			}}
 		>
 			<Box
 				sx={{
 					display: "flex",
 					flexDirection: "column",
-					position: "fixed",
-					width: SIDEBAR_WIDTH,
 					height: "100%",
 					overflowY: "auto",
+					scrollbarWidth: "thin",
+					scrollbarColor: "rgba(0,0,0,0.2) transparent",
+					paddingTop: "10px",
+
 				}}
 			>
 				<Box
 					sx={{
 						display: "flex",
-						alignItems: "center",
-						gap: 1,
-						mx: 1.5,
-						mt: 1.5,
-					}}
-				>
-					<OrganizationSelector />
-				</Box>
-				<SidebarDivider />
-				<Box
-					sx={{
-						display: "flex",
 						flexDirection: "column",
 						justifyContent: "space-between",
-						flex: 1,
+						minHeight: "100%",
 					}}
 				>
 					<List
 						sx={{
 							pt: 0.5,
 							pb: 0,
+							flex: 1,
 						}}
 					>
-						<Box
-							component="li"
-							sx={{
-								px: 1.5,
-								mb: 1.5,
-							}}
-						>
-							<CommandBar />
-						</Box>
 						<SidebarItem
 							href="/dashboard/home"
 							title="Home"
@@ -191,62 +169,53 @@ export function Sidebar() {
 							icon={<TbMail size={ICON_SIZE} />}
 						/>
 					</List>
-				</Box>
-				<Box
-					sx={{
-						display: "flex",
-						flexDirection: "column",
-						justifyContent: "flex-end",
-						flex: 1,
-						mb: 1.5,
-					}}
-				>
-					<List
-						sx={{
-							pt: 0.5,
-							pb: 0,
-						}}
-					>
-						<SidebarDivider />
-						<SidebarItem
-							href="/dashboard/account"
-							title="Profile"
-							icon={<TbUser size={ICON_SIZE} />}
-						/>
-						<SidebarItem
-							href="/changelog"
-							title="Changelog"
-							icon={<TbSpeakerphone />}
-						/>
-						<SidebarItem
-							href="/dashboard/kit"
-							title="Kit"
-							icon={<TbToolsKitchen2 />}
-						/>
-						<SidebarDivider />
-						<SidebarItem
-							href="#"
-							title={mode === 'light' ? 'Light' : 'Dark'}
-							icon={mode === 'light' ? <TbSun /> : <TbMoon />}
-							onClick={toggleColorMode}
-						/>
-						<SidebarDivider />
-						<SidebarItem
-							href="#"
-							title="Logout"
-							icon={<TbLogout size={ICON_SIZE} />}
-							onClick={handleLogout}
-							customColor="error.main"
-							customHoverColor="error.main"
-						/>
-					</List>
+					
+					{/* Bottom section with profile, logout, etc. */}
 					<Box
 						sx={{
-							px: 1.5,
-							display: "flex",
-							width: "100%",
+							mt: "auto", // Push to bottom
+							pb: 1.5,
 						}}
 					>
+						<List
+							sx={{
+								pt: 0.5,
+								pb: 0,
+							}}
+						>
+							<SidebarDivider />
+							<SidebarItem
+								href="/dashboard/account"
+								title="Profile"
+								icon={<TbUser size={ICON_SIZE} />}
+							/>
+							<SidebarItem
+								href="/changelog"
+								title="Changelog"
+								icon={<TbSpeakerphone />}
+							/>
+							<SidebarItem
+								href="/dashboard/kit"
+								title="Kit"
+								icon={<TbToolsKitchen2 />}
+							/>
+							<SidebarDivider />
+							<SidebarItem
+								href="#"
+								title={mode === 'light' ? 'Light' : 'Dark'}
+								icon={mode === 'light' ? <TbSun /> : <TbMoon />}
+								onClick={toggleColorMode}
+							/>
+							<SidebarDivider />
+							<SidebarItem
+								href="#"
+								title="Logout"
+								icon={<TbLogout size={ICON_SIZE} />}
+								onClick={handleLogout}
+								customColor="error.main"
+								customHoverColor="error.main"
+							/>
+						</List>
 					</Box>
 				</Box>
 			</Box>

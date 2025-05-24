@@ -1,0 +1,991 @@
+---
+description: 
+globs: 
+alwaysApply: false
+---
+# Create Fulfillment
+
+Creates a new fulfillment for an order. Supports fulfilling the entire order or specific order items.
+
+## Endpoint
+
+**URL**: `/server/fulfilment/create`
+**Method**: `POST`
+
+## Description
+
+This endpoint creates a new fulfillment record for an order. It can fulfill either the entire order or specific order items within the order. When a fulfillment is created, it is initially in the `UNFULFILLED` status with `PENDING` delivery status.
+
+The shipping address and shipping type are automatically retrieved from the order, so you don't need to provide them unless you want to override the defaults. By default, the system uses the existing shipping address from the order without creating a new one.
+
+The system supports partial fulfillments - you can fulfill only some items or only part of the quantity for each item. The system tracks how many of each item have been fulfilled using a `fulfilled_quantity` field, and only allows fulfilling the remaining quantity.
+
+When a fulfillment is created, the system automatically logs the initial delivery status to the `fulfillment_tracking_history` table for tracking purposes.
+
+## Request Body
+
+| Field | Type | Required | Description |
+|-------|------|----------|-------------|
+| order | string (UUID) | Yes | The order ID to create the fulfillment for |
+| shipping_type | string | No | Override shipping type (HOME, POINT, STORE) |
+| shipping_address | string (UUID) or object | No | Override shipping address ID or new shipping address data |
+| customer | string (UUID) | No | Customer ID (retrieved from order if not provided) |
+| type | string | No | Fulfillment type |
+| name | string | No | Fulfillment name |
+| tracking | string | No | Tracking number (if already available) |
+| tracking_link | string | No | Tracking link (if already available) |
+| carrier_name | string | No | Carrier name (if already available) |
+| carrier_status | string | No | Native status from carrier (if already available) |
+| fulfill_all | boolean | No | If true, fulfill all remaining unfulfilled quantities for all items in the order |
+| items | array | No | Order items to fulfill (required if fulfill_all is false) |
+
+### Shipping Address Object (if creating a new address)
+
+| Field | Type | Required | Description |
+|-------|------|----------|-------------|
+| first_name | string | No | First name |
+| last_name | string | No | Last name |
+| company | string | No | Company name |
+| address | string | No | Address line 1 |
+| additional_address | string | No | Address line 2 |
+| zip | string | No | ZIP code |
+| province | string | No | Province/state |
+| city | string | No | City |
+| country | string | No | Country |
+| customer | string (UUID) | No | Customer ID |
+| type | string | No | Shipping type (HOME, POINT, STORE) |
+| point_id | string | No | Pickup point ID (for POINT type) |
+| point_name | string | No | Pickup point name (for POINT type) |
+| point_carrier | string | No | Pickup point carrier (for POINT type) |
+| store | string (UUID) | No | Store ID (for STORE type) |
+
+### Items Array (for specific order items)
+
+| Field | Type | Required | Description |
+|-------|------|----------|-------------|
+| order_item | string (UUID) | Yes | Order item ID |
+| shipped_quantity | number | Yes | Quantity to ship (must be positive and not exceed the remaining unfulfilled quantity) |
+
+## Example Requests
+
+### Fulfill Entire Order
+
+This will fulfill all remaining unfulfilled quantities for all items in the order:
+
+```json
+{
+  "order": "123e4567-e89b-12d3-a456-426614174000",
+  "fulfill_all": true
+}
+```
+
+### Fulfill Specific Items (Partial Fulfillment)
+
+This will fulfill only the specified quantities for the specified items:
+
+```json
+{
+  "order": "123e4567-e89b-12d3-a456-426614174000",
+  "items": [
+    {
+      "order_item": "123e4567-e89b-12d3-a456-426614174003",
+      "shipped_quantity": 2
+    },
+    {
+      "order_item": "123e4567-e89b-12d3-a456-426614174004",
+      "shipped_quantity": 1
+    }
+  ]
+}
+```
+
+### Fulfill Order with Custom Shipping Address
+
+```json
+{
+  "order": "123e4567-e89b-12d3-a456-426614174000",
+  "shipping_address": {
+    "first_name": "John",
+    "last_name": "Doe",
+    "address": "123 Main St",
+    "city": "New York",
+    "zip": "10001",
+    "country": "US",
+    "type": "POINT",
+    "point_id": "point-123",
+    "point_name": "Local Pickup Point",
+    "point_carrier": "DHL"
+  },
+  "fulfill_all": true
+}
+```
+
+## Response
+
+### Success Response
+
+**Code**: `201 CREATED`
+
+```json
+{
+  "success": true,
+  "data": {
+    "id": "123e4567-e89b-12d3-a456-426614174005",
+    "order": "123e4567-e89b-12d3-a456-426614174000",
+    "shipping_type": "HOME",
+    "shipping_address": "123e4567-e89b-12d3-a456-426614174001",
+    "status": "UNFULFILLED",
+    "delivery_status": "PENDING",
+    "customer": "123e4567-e89b-12d3-a456-426614174002",
+    "created_at": "2023-08-15T14:30:00Z",
+    "fulfillment_items": [
+      {
+        "id": "123e4567-e89b-12d3-a456-426614174006",
+        "fulfillment": "123e4567-e89b-12d3-a456-426614174005",
+        "order_item": "123e4567-e89b-12d3-a456-426614174003",
+        "shipped_quantity": 2,
+        "shipped_at": "2023-08-15T14:30:00Z"
+      },
+      {
+        "id": "123e4567-e89b-12d3-a456-426614174007",
+        "fulfillment": "123e4567-e89b-12d3-a456-426614174005",
+        "order_item": "123e4567-e89b-12d3-a456-426614174004",
+        "shipped_quantity": 1,
+        "shipped_at": "2023-08-15T14:30:00Z"
+      }
+    ]
+  }
+}
+```
+
+### Error Responses
+
+**Code**: `400 BAD REQUEST`
+
+```json
+{
+  "success": false,
+  "error": "Missing required field: order is required"
+}
+```
+
+**Code**: `400 BAD REQUEST`
+
+```json
+{
+  "success": false,
+  "error": "Order does not have a shipping address"
+}
+```
+
+**Code**: `400 BAD REQUEST`
+
+```json
+{
+  "success": false,
+  "error": "Some order items do not belong to the specified order"
+}
+```
+
+**Code**: `400 BAD REQUEST`
+
+```json
+{
+  "success": false,
+  "error": "No items with unfulfilled quantity found for this order"
+}
+```
+
+**Code**: `400 BAD REQUEST`
+
+```json
+{
+  "success": false,
+  "error": "Invalid fulfillment requests: 123e4567-e89b-12d3-a456-426614174003: Requested 5, but only 3 available"
+}
+```
+
+**Code**: `404 NOT FOUND`
+
+```json
+{
+  "success": false,
+  "error": "Order with ID 123e4567-e89b-12d3-a456-426614174000 not found"
+}
+```
+
+**Code**: `500 INTERNAL SERVER ERROR`
+
+```json
+{
+  "success": false,
+  "error": "Server error while creating fulfillment"
+}
+```
+
+## Tracking History
+
+When a fulfillment is created, the system automatically logs the initial delivery status ("PENDING") to the `fulfillment_tracking_history` table. This creates a complete history of all delivery status changes over time, starting from creation.
+
+## Partial Fulfillment Example Flow
+
+This API supports creating multiple partial fulfillments for the same order:
+
+1. First partial fulfillment (1 out of 3 units):
+```json
+{
+  "order": "123e4567-e89b-12d3-a456-426614174000",
+  "items": [
+    {
+      "order_item": "123e4567-e89b-12d3-a456-426614174003",
+      "shipped_quantity": 1
+    }
+  ]
+}
+```
+
+2. Second partial fulfillment (1 more unit):
+```json
+{
+  "order": "123e4567-e89b-12d3-a456-426614174000",
+  "items": [
+    {
+      "order_item": "123e4567-e89b-12d3-a456-426614174003",
+      "shipped_quantity": 1
+    }
+  ]
+}
+```
+
+3. Final fulfillment (remaining quantities for all items):
+```json
+{
+  "order": "123e4567-e89b-12d3-a456-426614174000",
+  "fulfill_all": true
+}
+```
+
+The system keeps track of how many units have been fulfilled for each item and prevents overfulfillment.
+
+# Update Fulfillment
+
+This document describes the various endpoints for updating fulfillment records.
+
+## Table of Contents
+1. [Update Tracking](#update-tracking)
+2. [Update Delivery Status](#update-delivery-status)
+3. [Mark as Delivered](#mark-as-delivered)
+4. [Get Tracking History](#get-tracking-history)
+
+## Update Tracking
+
+Updates a fulfillment with tracking information and marks it as fulfilled.
+
+### Endpoint
+
+**URL**: `/server/fulfilment/update/tracking/:id`
+**Method**: `PUT`
+
+### Description
+
+This endpoint updates a fulfillment with tracking information and changes its status from UNFULFILLED to FULFILLED. It also sets the delivery status to LABEL_CREATED.
+
+### URL Parameters
+
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| id | string | Yes | The ID of the fulfillment to update |
+
+### Request Body
+
+| Field | Type | Required | Description |
+|-------|------|----------|-------------|
+| tracking | string | Yes | Tracking number |
+| tracking_link | string | No | Link to tracking page |
+| carrier_name | string | No | Name of the carrier |
+| carrier_status | string | No | Raw carrier status |
+
+### Example Request
+
+```
+PUT /server/fulfilment/update/tracking/123e4567-e89b-12d3-a456-426614174000
+```
+
+```json
+{
+  "tracking": "1Z999AA10123456784",
+  "tracking_link": "https://www.ups.com/track?tracknum=1Z999AA10123456784",
+  "carrier_name": "UPS",
+  "carrier_status": "Label Created"
+}
+```
+
+### Response
+
+#### Success Response
+
+**Code**: `200 OK`
+
+```json
+{
+  "success": true,
+  "data": {
+    "id": "123e4567-e89b-12d3-a456-426614174000",
+    "order": "123e4567-e89b-12d3-a456-426614174001",
+    "shipping_type": "HOME",
+    "shipping_address": "123e4567-e89b-12d3-a456-426614174002",
+    "status": "FULFILLED",
+    "delivery_status": "LABEL_CREATED",
+    "tracking": "1Z999AA10123456784",
+    "tracking_link": "https://www.ups.com/track?tracknum=1Z999AA10123456784",
+    "carrier_name": "UPS",
+    "carrier_status": "Label Created",
+    "customer": "123e4567-e89b-12d3-a456-426614174003",
+    "created_at": "2023-08-15T14:30:00Z",
+    "updated_at": "2023-08-15T15:30:00Z"
+  }
+}
+```
+
+#### Error Responses
+
+**Code**: `400 BAD REQUEST`
+
+```json
+{
+  "success": false,
+  "error": "Tracking number is required to fulfill an order"
+}
+```
+
+**Code**: `404 NOT FOUND`
+
+```json
+{
+  "success": false,
+  "error": "Fulfillment with ID 123e4567-e89b-12d3-a456-426614174000 not found"
+}
+```
+
+**Code**: `500 INTERNAL SERVER ERROR`
+
+```json
+{
+  "success": false,
+  "error": "Server error while updating fulfillment tracking"
+}
+```
+
+### Events
+
+This endpoint triggers the following events:
+
+1. `fulfillment.tracking_updated` - When tracking information is updated
+2. `fulfillment.status_changed` - If the status changes from UNFULFILLED to FULFILLED
+
+### Notes
+
+- This endpoint automatically changes the fulfillment status to FULFILLED
+- It sets the delivery status to LABEL_CREATED
+- A history record is created in the fulfillment_tracking_history table
+
+---
+
+## Update Delivery Status
+
+Updates the delivery status of a fulfillment.
+
+### Endpoint
+
+**URL**: `/server/fulfilment/update/status/:id`
+**Method**: `PUT`
+
+### Description
+
+This endpoint updates the delivery status of a fulfillment. It is typically used to reflect the current state of the shipment as reported by the carrier.
+
+### URL Parameters
+
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| id | string | Yes | The ID of the fulfillment to update |
+
+### Request Body
+
+| Field | Type | Required | Description |
+|-------|------|----------|-------------|
+| delivery_status | string | Yes | New delivery status |
+| carrier_status | string | No | Raw carrier status |
+| notes | string | No | Additional notes about this status update |
+
+### Delivery Status Values
+
+Commonly used delivery status values:
+
+- `PENDING` - Initial state before shipping
+- `LABEL_CREATED` - Shipping label has been created
+- `PICKED_UP` - Package has been picked up by carrier
+- `IN_TRANSIT` - Package is in transit
+- `OUT_FOR_DELIVERY` - Package is out for delivery
+- `DELIVERY_ATTEMPTED` - Delivery was attempted but not completed
+- `DELIVERED` - Package has been delivered
+- `EXCEPTION` - There is a problem with the delivery
+- `RETURNED` - Package is being returned to sender
+
+### Example Request
+
+```
+PUT /server/fulfilment/update/status/123e4567-e89b-12d3-a456-426614174000
+```
+
+```json
+{
+  "delivery_status": "IN_TRANSIT",
+  "carrier_status": "In Transit",
+  "notes": "Package has left the carrier facility"
+}
+```
+
+### Response
+
+#### Success Response
+
+**Code**: `200 OK`
+
+```json
+{
+  "success": true,
+  "data": {
+    "id": "123e4567-e89b-12d3-a456-426614174000",
+    "order": "123e4567-e89b-12d3-a456-426614174001",
+    "shipping_type": "HOME",
+    "shipping_address": "123e4567-e89b-12d3-a456-426614174002",
+    "status": "FULFILLED",
+    "delivery_status": "IN_TRANSIT",
+    "tracking": "1Z999AA10123456784",
+    "tracking_link": "https://www.ups.com/track?tracknum=1Z999AA10123456784",
+    "carrier_name": "UPS",
+    "carrier_status": "In Transit",
+    "customer": "123e4567-e89b-12d3-a456-426614174003",
+    "created_at": "2023-08-15T14:30:00Z",
+    "updated_at": "2023-08-15T16:45:00Z"
+  }
+}
+```
+
+#### Error Responses
+
+**Code**: `400 BAD REQUEST`
+
+```json
+{
+  "success": false,
+  "error": "Delivery status is required"
+}
+```
+
+**Code**: `404 NOT FOUND`
+
+```json
+{
+  "success": false,
+  "error": "Fulfillment with ID 123e4567-e89b-12d3-a456-426614174000 not found"
+}
+```
+
+**Code**: `500 INTERNAL SERVER ERROR`
+
+```json
+{
+  "success": false,
+  "error": "Server error while updating fulfillment status"
+}
+```
+
+### Events
+
+This endpoint triggers the following event:
+
+- `fulfillment.delivery_status_updated` - When the delivery status is updated
+
+### Notes
+
+- This endpoint only updates the delivery status, not the main fulfillment status
+- A history record is created in the fulfillment_tracking_history table for auditing
+- If the new status is the same as the current status, no update is performed
+
+---
+
+## Mark as Delivered
+
+Marks a fulfillment as delivered.
+
+### Endpoint
+
+**URL**: `/server/fulfilment/update/deliver/:id`
+**Method**: `PUT`
+
+### Description
+
+This endpoint marks a fulfillment as delivered by setting its delivery status to DELIVERED. This is typically used for manual confirmation of delivery when automatic tracking updates are not available or need to be overridden.
+
+### URL Parameters
+
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| id | string | Yes | The ID of the fulfillment to mark as delivered |
+
+### Request Body
+
+| Field | Type | Required | Description |
+|-------|------|----------|-------------|
+| notes | string | No | Additional notes about this delivery |
+
+### Example Request
+
+```
+PUT /server/fulfilment/update/deliver/123e4567-e89b-12d3-a456-426614174000
+```
+
+```json
+{
+  "notes": "Customer confirmed receipt by phone"
+}
+```
+
+### Response
+
+#### Success Response
+
+**Code**: `200 OK`
+
+```json
+{
+  "success": true,
+  "data": {
+    "id": "123e4567-e89b-12d3-a456-426614174000",
+    "order": "123e4567-e89b-12d3-a456-426614174001",
+    "shipping_type": "HOME",
+    "shipping_address": "123e4567-e89b-12d3-a456-426614174002",
+    "status": "FULFILLED",
+    "delivery_status": "DELIVERED",
+    "tracking": "1Z999AA10123456784",
+    "tracking_link": "https://www.ups.com/track?tracknum=1Z999AA10123456784",
+    "carrier_name": "UPS",
+    "carrier_status": "DELIVERED",
+    "customer": "123e4567-e89b-12d3-a456-426614174003",
+    "created_at": "2023-08-15T14:30:00Z",
+    "updated_at": "2023-08-18T12:15:00Z"
+  }
+}
+```
+
+#### Error Responses
+
+**Code**: `404 NOT FOUND`
+
+```json
+{
+  "success": false,
+  "error": "Fulfillment with ID 123e4567-e89b-12d3-a456-426614174000 not found"
+}
+```
+
+**Code**: `500 INTERNAL SERVER ERROR`
+
+```json
+{
+  "success": false,
+  "error": "Server error while marking fulfillment as delivered"
+}
+```
+
+### Events
+
+This endpoint triggers the following event:
+
+- `fulfillment.delivered` - When the fulfillment is marked as delivered
+
+### Notes
+
+- This endpoint sets both the delivery_status and carrier_status to DELIVERED
+- If the fulfillment is already in DELIVERED status, no change is made
+- A history record is created in the fulfillment_tracking_history table for auditing
+
+---
+
+## Get Tracking History
+
+Retrieves the history of delivery status changes for a fulfillment.
+
+### Endpoint
+
+**URL**: `/server/fulfilment/update/tracking-history/:id`
+**Method**: `GET`
+
+### Description
+
+This endpoint retrieves the tracking history for a fulfillment, showing all delivery status changes in chronological order. The history includes previous and new delivery statuses, carrier statuses, and timestamps for each change.
+
+### URL Parameters
+
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| id | string | Yes | The ID of the fulfillment to retrieve history for |
+
+### Query Parameters
+
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| limit | integer | No | Maximum number of records to return (default: 100) |
+| offset | integer | No | Number of records to skip for pagination (default: 0) |
+
+### Example Request
+
+```
+GET /server/fulfilment/update/tracking-history/123e4567-e89b-12d3-a456-426614174000?limit=10&offset=0
+```
+
+### Response
+
+#### Success Response
+
+**Code**: `200 OK`
+
+```json
+{
+  "success": true,
+  "data": [
+    {
+      "id": "123e4567-e89b-12d3-a456-426614174010",
+      "fulfillment": "123e4567-e89b-12d3-a456-426614174000",
+      "order": "123e4567-e89b-12d3-a456-426614174001",
+      "previous_delivery_status": "OUT_FOR_DELIVERY",
+      "new_delivery_status": "DELIVERED",
+      "previous_carrier_status": "Out For Delivery",
+      "new_carrier_status": "DELIVERED",
+      "created_at": "2023-08-16T10:15:00Z"
+    },
+    {
+      "id": "123e4567-e89b-12d3-a456-426614174011",
+      "fulfillment": "123e4567-e89b-12d3-a456-426614174000",
+      "order": "123e4567-e89b-12d3-a456-426614174001",
+      "previous_delivery_status": "IN_TRANSIT",
+      "new_delivery_status": "OUT_FOR_DELIVERY",
+      "previous_carrier_status": "In Transit",
+      "new_carrier_status": "Out For Delivery",
+      "created_at": "2023-08-16T08:30:00Z"
+    },
+    {
+      "id": "123e4567-e89b-12d3-a456-426614174012",
+      "fulfillment": "123e4567-e89b-12d3-a456-426614174000",
+      "order": "123e4567-e89b-12d3-a456-426614174001",
+      "previous_delivery_status": "LABEL_CREATED",
+      "new_delivery_status": "IN_TRANSIT",
+      "previous_carrier_status": "Label Created",
+      "new_carrier_status": "In Transit",
+      "created_at": "2023-08-15T14:45:00Z"
+    },
+    {
+      "id": "123e4567-e89b-12d3-a456-426614174013",
+      "fulfillment": "123e4567-e89b-12d3-a456-426614174000",
+      "order": "123e4567-e89b-12d3-a456-426614174001",
+      "previous_delivery_status": "PENDING",
+      "new_delivery_status": "LABEL_CREATED",
+      "previous_carrier_status": null,
+      "new_carrier_status": "Label Created",
+      "created_at": "2023-08-15T14:30:00Z"
+    }
+  ],
+  "count": 4,
+  "limit": 10,
+  "offset": 0
+}
+```
+
+#### Error Responses
+
+**Code**: `404 NOT FOUND`
+
+```json
+{
+  "success": false,
+  "error": "Fulfillment with ID 123e4567-e89b-12d3-a456-426614174000 not found"
+}
+```
+
+**Code**: `500 INTERNAL SERVER ERROR`
+
+```json
+{
+  "success": false,
+  "error": "Server error while retrieving tracking history"
+}
+```
+
+### Notes
+
+- The history records are returned in reverse chronological order (newest first)
+- The count field indicates the total number of history records available
+- Use the limit and offset parameters for pagination
+
+# Modify Fulfillment API
+
+## Endpoint
+
+```
+PUT /server/fulfilment/modify/:id
+```
+
+## Description
+
+Updates an existing fulfillment record with new values.
+
+## Request
+
+### URL Parameters
+
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| id | UUID | Yes | ID of the fulfillment to modify |
+
+### Headers
+
+```
+Content-Type: application/json
+```
+
+### Body Parameters
+
+All parameters are optional. Only the parameters that are included will be updated.
+
+| Parameter | Type | Description |
+|-----------|------|-------------|
+| shipping_type | String | Type of shipping (HOME, POINT, STORE) |
+| shipping_address | String | Shipping address ID |
+| order | String | Order ID (UUID) |
+| type | String | Fulfillment type |
+| name | String | Fulfillment name |
+| status | String | Fulfillment status |
+| tracking | String | Tracking number |
+| tracking_link | String | Tracking link URL |
+| carrier_name | String | Name of the carrier |
+| carrier_status | String | Native status from carrier |
+| delivery_status | String | Delivery status of the fulfillment |
+
+## Example Request
+
+```json
+{
+  "name": "Updated Shipment Name",
+  "tracking": "TRK123456789",
+  "carrier_name": "FedEx"
+}
+```
+
+## Response
+
+### Success (200 OK)
+
+```json
+{
+  "success": true,
+  "data": {
+    "id": "123e4567-e89b-12d3-a456-426614174000",
+    "shipping_type": "HOME",
+    "shipping_address": "123e4567-e89b-12d3-a456-426614174001",
+    "status": "FULFILLED",
+    "delivery_status": "PENDING",
+    "order": "123e4567-e89b-12d3-a456-426614174002",
+    "type": "standard",
+    "name": "Updated Shipment Name",
+    "tracking": "TRK123456789",
+    "tracking_link": null,
+    "carrier_name": "FedEx",
+    "carrier_status": null
+  }
+}
+```
+
+### Error (500 Internal Server Error)
+
+```json
+{
+  "success": false,
+  "error": "Error message details"
+}
+```
+
+### Error (400 Bad Request)
+
+```json
+{
+  "success": false,
+  "error": "At least one field must be provided to update"
+}
+```
+
+### Error (404 Not Found)
+
+```json
+{
+  "success": false,
+  "error": "Fulfillment not found"
+}
+```
+
+# Cancel Fulfillment
+
+Cancels an existing fulfillment.
+
+## Endpoint
+
+**URL**: `/server/fulfilment/cancel/:id`
+**Method**: `PUT`
+
+## Description
+
+This endpoint cancels a fulfillment record by ID. Once cancelled, the fulfillment status will be set to `CANCELLED` and its delivery status will be set to `CANCELLED`. You cannot cancel a fulfillment that has already been delivered.
+
+## URL Parameters
+
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| id | string | Yes | The ID of the fulfillment to cancel |
+
+## Request Body
+
+| Field | Type | Required | Description |
+|-------|------|----------|-------------|
+| reason | string | No | Reason for cancellation |
+
+## Example Request
+
+```json
+{
+  "reason": "Customer requested cancellation"
+}
+```
+
+## Response
+
+### Success Response
+
+**Code**: `200 OK`
+
+```json
+{
+  "success": true,
+  "data": {
+    "id": "123e4567-e89b-12d3-a456-426614174000",
+    "order": "123e4567-e89b-12d3-a456-426614174001",
+    "status": "CANCELLED",
+    "delivery_status": "CANCELLED",
+    "shipping_type": "HOME",
+    "shipping_address": "123e4567-e89b-12d3-a456-426614174002",
+    "tracking": "123456789",
+    "tracking_link": "https://tracking.carrier.com/123456789",
+    "carrier_name": "DHL",
+    "carrier_status": null,
+    "customer": "123e4567-e89b-12d3-a456-426614174003",
+    "created_at": "2023-08-15T14:30:00Z"
+  }
+}
+```
+
+### Error Responses
+
+**Code**: `404 NOT FOUND`
+
+```json
+{
+  "success": false,
+  "error": "Fulfillment with ID 123e4567-e89b-12d3-a456-426614174000 not found"
+}
+```
+
+**Code**: `400 BAD REQUEST`
+
+```json
+{
+  "success": false,
+  "error": "Cannot cancel a fulfillment that has already been delivered"
+}
+```
+
+**Code**: `500 INTERNAL SERVER ERROR`
+
+```json
+{
+  "success": false,
+  "error": "Server error while canceling fulfillment"
+}
+``` 
+
+# Delete Fulfillment API
+
+## Endpoint
+
+```
+DELETE /server/fulfilment/delete/:id
+```
+
+## Description
+
+Deletes a fulfillment record by its ID.
+
+## Request
+
+### URL Parameters
+
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| id | UUID | Yes | ID of the fulfillment to delete |
+
+## Example Request
+
+```
+DELETE /server/fulfilment/delete/123e4567-e89b-12d3-a456-426614174000
+```
+
+## Response
+
+### Success (200 OK)
+
+```json
+{
+  "success": true,
+  "data": {
+    "id": "123e4567-e89b-12d3-a456-426614174000",
+    "shipping_type": "HOME",
+    "shipping_address": "123e4567-e89b-12d3-a456-426614174001",
+    "status": "FULFILLED",
+    "delivery_status": "PENDING",
+    "order": "123e4567-e89b-12d3-a456-426614174002",
+    "type": "standard",
+    "name": "Primary Shipment",
+    "tracking": null,
+    "tracking_link": null,
+    "carrier_name": null,
+    "carrier_status": null
+  }
+}
+```
+
+### Error (500 Internal Server Error)
+
+```json
+{
+  "success": false,
+  "error": "Error message details"
+}
+```
+
+### Error (404 Not Found)
+
+```json
+{
+  "success": false,
+  "error": "Fulfillment not found"
+}
+```

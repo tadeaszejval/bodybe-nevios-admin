@@ -7,9 +7,6 @@ import { PageContainer } from "../../../components/PageContainer";
 import { EmailTable } from "../../../components/dashboard/emails/EmailTable";
 
 export default function DashboardEmails() {
-  const handleRefresh = () => {
-    // Refresh emails data
-  };
 
   return (
     <PageContainer>
@@ -18,7 +15,12 @@ export default function DashboardEmails() {
         icon={<TbMail size={24} />}
         actions={
           <Box display="flex" gap={1}>
-            
+            <Button size="small" variant="contained" color="shadow" startIcon={<TbRefresh />}>
+              Refresh
+            </Button>
+            <Button size="small" variant="contained">
+              Send email to customer
+            </Button>
           </Box>
         }
       />

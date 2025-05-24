@@ -437,7 +437,6 @@ const customTheme = createTheme({
 		"0 1px 2px 0 rgb(0 0 0 / 0.05)",
 		"0 1px 2px 0 rgb(0 0 0 / 0.05)",
 		"0 1px 2px 0 rgb(0 0 0 / 0.05)",
-		"0 1px 2px 0 rgb(0 0 0 / 0.05)",
 	],
 	transitions: {
 		duration: {
@@ -1416,22 +1415,28 @@ export function ThemeProvider({ children }) {
 			},
 			MuiTooltip: {
 				defaultProps: {
-					arrow: true,
+					arrow: false,
 				},
 				styleOverrides: {
 					tooltip: {
-						color: lightPaletteScales.gray["50"],
-						background: lightPaletteScales.gray["900"],
+						color: lightPaletteScales.gray["900"],
+						background: lightPaletteScales.gray["200"],
 						[`${DARK_THEME_STRING}`]: {
-							color: darkPaletteScales.gray["50"],
-							background: darkPaletteScales.gray["900"],
+							color: darkPaletteScales.primary["500"],
+							background: darkPaletteScales.primary["500"],
 						},
 					},
-					arrow: {
-						color: lightPaletteScales.gray["900"],
-						[`${DARK_THEME_STRING}`]: {
-							color: darkPaletteScales.gray["900"],
-						},
+				},
+				slotProps: {
+					popper: {
+						modifiers: [
+							{
+								name: 'offset',
+								options: {
+									offset: [0, -14],
+								},
+							},
+						],
 					},
 				},
 			},

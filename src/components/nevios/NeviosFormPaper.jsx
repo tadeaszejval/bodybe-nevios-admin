@@ -1,6 +1,6 @@
 import { Paper, Typography, IconButton, Box } from "@mui/material";
 
-export function NeviosFormPaper({ children, title, icon, onClick, description, footerDescription, gap = 1.5 }) {
+export function NeviosFormPaper({ children, title, titleIcon, icon, onClick, description, footerDescription, gap = 1.5 }) {
   return (
     <Paper 
       elevation={2} 
@@ -15,18 +15,25 @@ export function NeviosFormPaper({ children, title, icon, onClick, description, f
         sx={{ 
             display: "flex", 
             flexDirection: "row", 
-            justifyContent: "space-between", 
             alignItems: "center", 
+            justifyContent: "space-between",
             paddingLeft: 2, 
             paddingRight: 2,
             paddingBottom: 1
           }}
         >
-        {title && (
-          <Typography variant="paperTitle">
-            {title}
-          </Typography>
-        )}
+        <Box sx={{ display: "flex", flexDirection: "row", alignItems: "center", gap: 1 }}>
+          {titleIcon && (
+            <Box sx={{ display: "flex", alignItems: "center", justifyContent: "center" }}>
+              {titleIcon}
+            </Box>
+          )}
+          {title && (
+            <Typography variant="paperTitle">
+              {title}
+            </Typography>
+          )}
+        </Box>
         {icon && (
           <IconButton color="secondary" onClick={onClick}>
             {icon}

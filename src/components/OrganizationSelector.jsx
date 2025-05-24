@@ -20,11 +20,10 @@ export function OrganizationSelector() {
 				aria-haspopup="true"
 				aria-expanded={selectorDisclosure.isOpen ? "true" : undefined}
 				onClick={selectorDisclosure.onOpen}
-				color="secondary"
-				variant="outlined"
 				startIcon={
 					<Avatar
-						sx={{ height: 24, width: 24, fontSize: "sm" }}
+						sx={{ height: 30, width: 30, fontSize: "sm" }}
+						variant="rounded"
 						src="https://botas.cz/cdn/shop/files/favicon_67fc487f-68d0-41a4-84af-004846b06ff7.svg?crop=center&height=32&v=1713705256&width=32"
 						alt="Active organization avatar"
 					>
@@ -34,8 +33,10 @@ export function OrganizationSelector() {
 				sx={{
 					px: 1.5,
 					fontWeight: 600,
-					color: "gray.800",
+					color: "white",
 					width: "100%",
+					backgroundColor: "rgba(255, 255, 255, 0.1)",
+					boxShadow: "0px 0px 3px 0px rgb(0, 0, 0) inset",
 					justifyContent: "flex-start",
 					fontSize: "base",
 				}}
@@ -43,7 +44,7 @@ export function OrganizationSelector() {
 				<Box
 					sx={{
 						textAlign: "left",
-						width: "100%",
+						width: "100%"
 					}}
 				>
 					Botas

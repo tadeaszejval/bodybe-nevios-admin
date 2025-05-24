@@ -47,6 +47,7 @@ const ActivityLogs = ({ activities = [] }) => {
               px: 2,
               py: 1,
               pl: 3,
+              boxShadow: "0px 0px 5px 0px rgb(236, 236, 236) inset"
             }}
           >
             {/* Timeline dot */}

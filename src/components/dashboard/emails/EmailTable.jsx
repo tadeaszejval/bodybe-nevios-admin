@@ -15,6 +15,8 @@ import { useFilters } from "../../../hooks/useFilters";
 import { supabase } from "../../../utils/supabase";
 import { EmailStatusBadge } from "./EmailStatusBadge";
 import { TextOperatorValueBlock, OrderDateValueBlock } from "../../../components/CustomFilterDefinitions";
+import { useRouter } from "next/navigation";
+
 
 // Email filter configurations
 const fromFilterConfig = {
@@ -47,6 +49,7 @@ export function EmailTable({ tableHeight, allowCheckboxSelection = false }) {
 		limit: 100,
 		offset: 0
 	});
+	const router = useRouter();
 
 	// Fetch emails from Supabase
 	useEffect(() => {
@@ -235,6 +238,13 @@ export function EmailTable({ tableHeight, allowCheckboxSelection = false }) {
 					tableHeight={tableHeight}
 					columns={columnDefinitions}
 					rows={clientFiltering(emails, filters)}
+					onRowClick={(params, event) => {
+						if (event.ctrlKey || event.metaKey) {
+							window.open(`/dashboard/emails/${params.id}`, '_blank');
+						} else {
+							router.push(`/dashboard/emails/${params.id}`);
+						}
+					}}
 					initialState={{
 						sorting: { sortModel: [{ field: "created_at", sort: "desc" }] },
 					}}
@@ -246,6 +256,11 @@ export function EmailTable({ tableHeight, allowCheckboxSelection = false }) {
 					disableColumnFilter
 					slots={{ toolbar: CustomQuickSearch }}
 					checkboxSelection={allowCheckboxSelection}
+					sx={{
+						"& .MuiDataGrid-row": {
+							cursor: "pointer",
+						},
+					}}
 				/>
 			)}
 		</Box>
