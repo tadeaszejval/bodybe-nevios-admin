@@ -1,213 +1,65 @@
 "use client";
-import { Box, Portal, CircularProgress } from "@mui/material";
-import { GridToolbarQuickFilter } from "@mui/x-data-grid";
-import React, { useEffect, useState } from "react";
+import { Box } from "@mui/material";
+import React, { useCallback } from "react";
 import {
 	currencyColumnFactory,
 	dateColumnFactory,
 	genericColumnFactory,
 	clickableColumnFactory
 } from "../../../components/ColumnDefinitions";
-import {
-	customerNameFilterConfig,
-	orderDateFilterConfig,
-	orderStatusFilterConfig,
-	priceFilterConfig,
-	genderFilterConfig,
-} from "../../../components/CustomFilterDefinitions";
-import { FiltersBar } from "../../../components/FiltersBar";
-import { Table } from "../../../components/Table";
-import { clientFiltering } from "../../../core/filters";
+import { NeviosEnhancedTable } from "../../nevios/NeviosEnhancedTable";
 import { formatReadableDatetime, formatCurrencyNumber } from "../../../core/formatters";
-import { useFilters } from "../../../hooks/useFilters";
-import { supabase } from "../../../utils/supabase";
 import { FulfillmentStatusBadge } from "./FulfillmentStatusBadge";
 import { PaymentStatusBadge } from "./PaymentStatusBadge";
-import { GenderBadge } from "./GenderBadge";
-import { Paper } from "@mui/material";
+import { useModuleQuery } from "../../../hooks/useModuleQuery";
+import { ORDERS_FILTER_CONFIG } from "../../nevios/NeviosFilters/OrdersFilterConfig";
 
-export function OrdersTable({ tableHeight, allowCheckboxSelection = false }) {
-	const { filters, editFilter, removeFilter } = useFilters();
-	const [orders, setOrders] = useState([]);
-	const [loading, setLoading] = useState(true);
-	const [error, setError] = useState(null);
-	const [pagination, setPagination] = useState({
-		total: 0,
-		limit: 100,
-		offset: 0
-	});
-	const [orderItems, setOrderItems] = useState({});
-
-	// Fetch orders from Supabase
-	useEffect(() => {
-		const fetchOrders = async () => {
-			try {
-				setLoading(true);
-				
-				// Get count of total orders for pagination
-				const { count, error: countError } = await supabase
-					.from('orders')
-					.select('*', { count: 'exact', head: true });
-					
-				if (countError) throw countError;
-				
-				// Fetch the orders with joined customer data and pricing
-				const { data, error: fetchError } = await supabase
-					.from('orders')
-					.select(`
-						id, 
-						name, 
-						created_at,
-						fulfillment_status,
-						payment_status,
-						shipping_method,
-						local_currency,
-						customers (
-							first_name,
-							last_name,
-							gender
-						),
-						orders_pricing (
-							component,
-							gross_local
-						)
-					`)
-					.range(pagination.offset, pagination.offset + pagination.limit - 1)
-					.order('created_at', { ascending: false });
-					
-				if (fetchError) throw fetchError;
-				
-				// Fetch all order items
-				if (data && data.length > 0) {
-					try {
-						// Collect all order IDs
-						const orderIds = data.map(order => order.id);
-						
-						// Fetch all order items at once
-						const { data: allItems, error: itemsError } = await supabase
-							.from('order_item')
-							.select('*')
-							.limit(1000); // Set a reasonable limit
-							
-						if (itemsError) {
-							console.error('Error fetching order items:', itemsError);
-						} else if (allItems && allItems.length > 0) {
-							// Create a map of order ID to items
-							const itemsMap = {};
-							
-							// Process each item and organize by order ID
-							allItems.forEach(item => {
-								const orderId = item.order;
-								if (orderId) {
-									// Initialize array if it doesn't exist
-									if (!itemsMap[orderId]) {
-										itemsMap[orderId] = [];
-									}
-									
-									// Add the item
-									itemsMap[orderId].push(item);
-								}
-							});
-							
-							// Set the order items state
-							setOrderItems(itemsMap);
-						}
-					} catch (itemsErr) {
-						console.error('Error processing order items:', itemsErr);
-					}
-				}
-				
-				setOrders(data);
-				setPagination(prev => ({
-					...prev,
-					total: count || 0
-				}));
-			} catch (err) {
-				console.error("Error fetching orders:", err);
-				setError(err.message || "Failed to fetch orders");
-			} finally {
-				setLoading(false);
-			}
-		};
-
-		fetchOrders();
-	}, [pagination.limit, pagination.offset]);
-
-	// Handle server-side pagination change
-	const handlePaginationChange = (params) => {
-		setPagination({
-			limit: params.pageSize,
-			offset: params.page * params.pageSize,
-			total: pagination.total
-		});
-	};
-
-	// Transform the data to match the table structure
-	const transformedData = orders.map((order) => {
-		// Find the total pricing component if it exists
-		const totalAmount = (() => {
-			try {
-				if (!order.orders_pricing || !Array.isArray(order.orders_pricing) || order.orders_pricing.length === 0) {
-					return 0;
-				}
-				
-				// The pricing component name should be uppercase 'TOTAL'
-				const totalPricing = order.orders_pricing.find(p => p.component === 'total');
-				return totalPricing?.gross_local || 0;
-			} catch (err) {
-				console.warn('Error processing order pricing:', err);
-				return 0;
-			}
-		})();
-		
-		// Calculate total item count by summing quantities
-		const itemCount = (() => {
-			try {
-				const items = orderItems[order.id] || [];
-				return items.reduce((total, item) => {
-					// Add the quantity of this item (default to 1 if quantity is missing)
-					return total + (item.quantity || 1);
-				}, 0);
-			} catch (err) {
-				console.warn('Error calculating item count:', err);
-				return 0;
-			}
-		})();
-		
-		// Format shipping method from JSON
-		const shippingMethod = (() => {
-			try {
-				if (!order.shipping_method) return 'N/A';
-				
-				if (typeof order.shipping_method === 'string') {
-					const parsed = JSON.parse(order.shipping_method);
-					return parsed.name || 'Standard Shipping';
-				}
-				
-				return order.shipping_method.name || 'Standard Shipping';
-			} catch (err) {
-				console.warn('Error parsing shipping method:', err);
-				return 'Standard Shipping';
-			}
-		})();
-
-		return {
+export function OrdersTable({ 
+	tableHeight,
+	initialFilters = {},
+	initialSearch = ""
+}) {
+	// Transform raw order data to table format
+	const transformOrderData = useCallback((orders) => {
+		return orders.map(order => ({
 			id: order.id,
-			order_name: order.name || order.id,
+			order_name: order.name,
 			order_date: order.created_at,
-			customer_name: order.customers ? 
-				`${order.customers.first_name || ''} ${order.customers.last_name || ''}`.trim() : 
-				'Unknown',
-			customer_gender: order.customers?.gender || 'NOT_FOUND',
+			customer_name: order.customer?.full_name || 'Unknown Customer',
 			total: {
-				amount: totalAmount,
-				currency: order.local_currency
+				currency: order.local_currency,
+				amount: order.total_amount || 0
 			},
-			fulfillment_status: order.fulfillment_status || 'UNFULFILLED',
-			payment_status: order.payment_status || 'UNPAID',
-			item_count: itemCount,
-			shipping_method: shippingMethod
-		};
+			fulfillment_status: order.fulfillment_status,
+			payment_status: order.payment_status,
+			item_count: order.items?.length || 0,
+			shipping_method: order.shipping_method?.name || 'Not specified',
+			// Keep original data for reference
+			_original: order
+		}));
+	}, []);
+
+	// Use the module query hook
+	const {
+		data,
+		loading,
+		error,
+		totalCount,
+		pagination,
+		sortModel,
+		filters,
+		searchTerm,
+		handlePaginationChange,
+		handleSortChange,
+		refreshData,
+		updateFilters,
+		updateSearch
+	} = useModuleQuery('order', {
+		expand: ["customer", "shipping_method", "items"],
+		initialFilters,
+		initialSearch,
+		enableSearch: true,
+		transformData: transformOrderData
 	});
 
 	const columnDefinitions = [
@@ -315,100 +167,51 @@ export function OrdersTable({ tableHeight, allowCheckboxSelection = false }) {
 	];
 
 	return (
-		<Paper
-			elevation={2}
+		<Box
 			sx={{
 				flex: 1,
 				display: "flex",
 				height: "100%",
 				width: "100%",
 				flexDirection: "column",
-				gap: 1.5,
 			}}
 		>
-			<FiltersBar
+			<NeviosEnhancedTable
+				columns={columnDefinitions}
+				data={data}
+				loading={loading}
+				error={error}
+				totalCount={totalCount}
+				pagination={pagination}
+				onPaginationChange={handlePaginationChange}
+				sortModel={sortModel}
+				onSortChange={handleSortChange}
+				tableHeight={tableHeight}
+				hideFooter={false}
+				enableFilters={true}
+				filterConfigs={ORDERS_FILTER_CONFIG}
 				activeFilters={filters}
-				editFilter={editFilter}
-				removeFilter={removeFilter}
-				availableFilters={[
-					customerNameFilterConfig,
-					orderStatusFilterConfig,
-					priceFilterConfig,
-					orderDateFilterConfig,
-					genderFilterConfig,
-				]}
-			>
-				<Box id="filter-panel" />
-			</FiltersBar>
-			
-			{loading && (
-				<Box sx={{ display: 'flex', justifyContent: 'center', p: 3 }}>
-					<CircularProgress />
-				</Box>
-			)}
-			
-			{error && (
-				<Box sx={{ color: 'error.main', p: 2, textAlign: 'center' }}>
-					Error: {error}
-				</Box>
-			)}
-			
-			{!loading && !error && (
-				<Table
-					tableHeight={tableHeight}
-					columns={columnDefinitions}
-					rows={clientFiltering(transformedData, filters)}
-					initialState={{
-						sorting: { sortModel: [{ field: "order_date", sort: "desc" }] },
-					}}
-					pagination
-					paginationMode="server"
-					rowCount={pagination.total}
-					onPaginationModelChange={handlePaginationChange}
-					hideFooter={false}
-					disableColumnFilter
-					slots={{ toolbar: CustomQuickSearch }}
-					checkboxSelection={allowCheckboxSelection}
-					getRowClassName={(params) => {
-						if (
-							params.row.payment_status === "REFUNDED"
-						) {
-							return "datagrid-row-error";
-						}
-						return "";
-					}}
-				/>
-			)}
-		</Paper>
-	);
-}
-
-function CustomQuickSearch(props) {
-	return (
-		<React.Fragment>
-			<Portal container={() => document.getElementById("filter-panel")}>
-				<GridToolbarQuickFilter
-					variant="filled"
-					placeholder="Search order ID, customer name..."
-					sx={{
-						width: 200,
-						borderColor: "gray.200",
-						paddingBottom: 0,
-						".MuiInputBase-root": {
-							fontSize: "xs",
-							height: 30,
-							paddingX: 0.5,
-						},
-						".MuiInputBase-input": {
-							paddingY: 0,
-						},
-						".MuiSvgIcon-root": {
-							height: 16,
-							width: 16,
-						},
-					}}
-				/>
-			</Portal>
-		</React.Fragment>
+				onFiltersChange={updateFilters}
+				enableSearch={true}
+				searchTerm={searchTerm}
+				onSearchChange={updateSearch}
+				searchPlaceholder="Search orders by customer, order ID, or details..."
+				emptyStateProps={{
+					title: 'No orders found',
+					description: 'There are no orders to display',
+				}}
+				sx={{
+					"& .MuiDataGrid-row": {
+						cursor: "pointer",
+					},
+				}}
+				getRowClassName={(params) => {
+					if (params.row.payment_status === "REFUNDED") {
+						return "datagrid-row-error";
+					}
+					return "";
+				}}
+			/>
+		</Box>
 	);
 }

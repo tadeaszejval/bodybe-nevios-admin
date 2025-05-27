@@ -1,6 +1,6 @@
-import { Box, Button } from "@mui/material";
+import { Box, Tooltip } from "@mui/material";
 import { TbChevronLeft, TbChevronRight } from "react-icons/tb";
-
+import { NeviosSecondaryIconButton } from "./NeviosButtons";
 export default function NeviosPaginationButtons({
     previousButtonOnClick = () => {},
     nextButtonOnClick = () => {},
@@ -9,32 +9,18 @@ export default function NeviosPaginationButtons({
 }) {
     return (
         <Box sx={{ display: 'flex', gap: 1 }}>
-            <Button
-                variant="contained"
-                color="shadow"
-                sx={{
-                    borderRadius: "12px",
-                    width: "32px",
-                    height: "32px",
-                    minWidth: "32px",
-                    padding: 0,
-                }}
-                onClick={previousButtonOnClick}>
-                {previousButtonIcon}
-            </Button>
-            <Button
-                variant="contained"
-                color="shadow"
-                sx={{
-                    borderRadius: "12px",
-                    width: "32px",
-                    height: "32px",
-                    minWidth: "32px",
-                    padding: 0,
-                }}
-                onClick={nextButtonOnClick}>
-                {nextButtonIcon}
-            </Button>
+            <Tooltip title="Previous" placement="top">
+                <NeviosSecondaryIconButton
+                    onClick={previousButtonOnClick}>
+                    {previousButtonIcon}
+                </NeviosSecondaryIconButton>
+            </Tooltip>
+            <Tooltip title="Next" placement="top">
+                <NeviosSecondaryIconButton
+                    onClick={nextButtonOnClick}>
+                    {nextButtonIcon}
+                </NeviosSecondaryIconButton>
+            </Tooltip>
         </Box>
     )
 }

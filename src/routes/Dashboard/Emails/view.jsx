@@ -2,18 +2,16 @@
 import React, { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { 
-  Button,
   Box,
   Typography,
   Alert,
-  Snackbar,
   CircularProgress,
   Tooltip
 } from "@mui/material";
 import { DashboardHeader } from "../../../components/DashboardHeader";
 import { PageContainer } from "../../../components/PageContainer";
 import { NeviosFormPaper } from "../../../components/nevios/NeviosFormPaper";
-import { TbMail, TbRefreshDot, TbSettings } from "react-icons/tb";
+import { TbMail } from "react-icons/tb";
 import { NeviosTwoColumnFormContainer } from "../../../components/nevios/NeviosFormContainer";
 import { supabase } from "../../../utils/supabase";
 import { formatReadableDatetime } from "../../../core/formatters";
@@ -21,7 +19,6 @@ import { NeviosCopyBlock } from "../../../components/nevios/NeviosCopyBlock";
 import { NeviosFormPaperBlock } from "../../../components/nevios/NeviosFormPaperBlock";
 import { EmailStatusBadge } from "../../../components/dashboard/emails/EmailStatusBadge";
 import NeviosPaginationButtons from "../../../components/nevios/NeviosPaginationButtons";
-import NeviosConfirmDialog from "../../../components/nevios/NeviosConfirmDialog";
 import { EmailActivityBar } from "../../../components/dashboard/emails/EmailActivityBar";
 
 export function EmailView({ emailId }) {
@@ -30,9 +27,6 @@ export function EmailView({ emailId }) {
   const [logs, setLogs] = useState([]);
   const [loading, setLoading] = useState(true);
   const [logsLoading, setLogsLoading] = useState(true);
-  const [snackbar, setSnackbar] = useState({ open: false, message: "", severity: "success" });
-  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
-  const [resendDialogOpen, setResendDialogOpen] = useState(false);
 
   // Fetch email and its logs
   useEffect(() => {
@@ -93,73 +87,6 @@ export function EmailView({ emailId }) {
     fetchLogs();
   }, [emailId]);
 
-  // Handle delete confirmation
-  const handleOpenDeleteDialog = () => {
-    setDeleteDialogOpen(true);
-  };
-
-  const handleCloseDeleteDialog = () => {
-    setDeleteDialogOpen(false);
-  };
-
-  const handleDeleteEmail = async () => {
-    try {
-      const { error } = await supabase
-        .from('email')
-        .delete()
-        .eq('id', emailId);
-        
-      if (error) throw error;
-      
-      setSnackbar({
-        open: true,
-        message: "Email deleted successfully",
-        severity: "success"
-      });
-      
-      // Navigate back to emails list
-      router.push('/dashboard/emails');
-    } catch (err) {
-      console.error("Error deleting email:", err);
-      setSnackbar({
-        open: true,
-        message: "Failed to delete email: " + (err.message || "Unknown error"),
-        severity: "error"
-      });
-    } finally {
-      setDeleteDialogOpen(false);
-    }
-  };
-
-  // Handle resend confirmation
-  const handleOpenResendDialog = () => {
-    setResendDialogOpen(true);
-  };
-
-  const handleCloseResendDialog = () => {
-    setResendDialogOpen(false);
-  };
-
-  const handleResendEmail = async () => {
-    try {
-      // In a real app, you would call an API endpoint to resend the email
-      // For now, let's just show a success message
-      setSnackbar({
-        open: true,
-        message: "Email resent successfully",
-        severity: "success"
-      });
-    } catch (err) {
-      console.error("Error resending email:", err);
-      setSnackbar({
-        open: true,
-        message: "Failed to resend email: " + (err.message || "Unknown error"),
-        severity: "error"
-      });
-    } finally {
-      setResendDialogOpen(false);
-    }
-  };
 
   // Format logs for email activity bar
   const formatLogsForActivityBar = () => {
@@ -242,15 +169,6 @@ export function EmailView({ emailId }) {
         iconTooltipTitle="Back to emails"
         actions={
           <Box sx={{ display: 'flex', gap: 1 }}>
-            <Button 
-              variant="contained" 
-              color="primary" 
-              size="small"
-              startIcon={<TbRefreshDot />}
-              onClick={handleOpenResendDialog}
-            >
-              Resend
-            </Button>
             <NeviosPaginationButtons
               previousButtonOnClick={() => {}}
               nextButtonOnClick={() => {}}
@@ -339,40 +257,6 @@ export function EmailView({ emailId }) {
           </>
         }
       />
-      
-      {/* Delete Confirmation Dialog */}
-      <NeviosConfirmDialog
-        open={deleteDialogOpen}
-        onClose={handleCloseDeleteDialog}
-        onConfirm={handleDeleteEmail}
-        title="Delete Email"
-        content="Are you sure you want to delete this email? This action cannot be undone."
-        confirmButtonText="Delete"
-        confirmButtonColor="error"
-      />
-      
-      {/* Resend Confirmation Dialog */}
-      <NeviosConfirmDialog
-        open={resendDialogOpen}
-        onClose={handleCloseResendDialog}
-        onConfirm={handleResendEmail}
-        title="Resend Email"
-        content="Are you sure you want to resend this email to the recipient?"
-        confirmButtonText="Resend"
-        confirmButtonColor="primary"
-      />
-      
-      {/* Snackbar for notifications */}
-      <Snackbar
-        open={snackbar.open}
-        autoHideDuration={6000}
-        onClose={handleCloseSnackbar}
-        anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }}
-      >
-        <Alert onClose={handleCloseSnackbar} severity={snackbar.severity}>
-          {snackbar.message}
-        </Alert>
-      </Snackbar>
     </PageContainer>
   );
 }

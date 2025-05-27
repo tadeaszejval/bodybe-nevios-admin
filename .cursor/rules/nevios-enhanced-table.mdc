@@ -1,0 +1,1117 @@
+---
+description: 
+globs: 
+alwaysApply: false
+---
+# NeviosEnhancedTable System Documentation
+
+## Overview
+
+The `NeviosEnhancedTable` is a comprehensive, feature-rich table component system designed for the Nevios admin application. It provides a unified interface for displaying, filtering, searching, and managing tabular data with backend integration through the unified query system.
+
+## Core Architecture
+
+### Component Structure
+```
+NeviosEnhancedTable (Main Component)
+├── NeviosSearchBar (Search functionality)
+├── NeviosEnhancedTableFilters (Filter management)
+│   ├── FilterSelect (Single selection filter)
+│   ├── FilterMultipleSelect (Multiple selection filter)
+│   └── [Custom filter components]
+├── DataGrid (MUI X DataGrid)
+├── Bulk Actions Bar (Selection-based actions)
+└── Custom Sticky Pagination Footer
+```
+
+### Integration Components
+- **useModuleQuery Hook**: Handles data fetching, pagination, sorting, filtering, and search
+- **Column Factories**: Standardized column definitions for consistent table layouts
+- **Filter Configuration System**: Modular filter definitions for reusable filtering logic
+- **Bulk Actions System**: Configurable actions for selected rows
+
+## Key Features
+
+### ✅ Data Management
+- **Server-side pagination** (50 records per page)
+- **Server-side sorting** with multiple column support
+- **Real-time filtering** with backend integration
+- **Debounced search** (300ms delay) across multiple fields
+- **Data transformation** pipeline for custom data processing
+
+### ✅ User Interface
+- **Responsive design** with mobile-optimized layouts
+- **Sticky pagination footer** that becomes fixed when scrolled out of view
+- **Auto-height DataGrid** without internal scrolling
+- **Loading states** with custom loading overlay
+- **Error handling** with user-friendly error messages
+- **Empty state** customization with actions
+
+### ✅ Row Selection & Bulk Actions
+- **Multi-row selection** with checkboxes (enabled by default)
+- **Visual selection feedback** with proper state management
+- **Bulk action bar** that appears when rows are selected
+- **Configurable bulk actions** with custom icons, labels, and handlers
+- **Selection count display** showing number of selected items
+- **Automatic row identification** with flexible ID field support
+
+### ✅ Filter System
+- **Multiple filter types**: Single select, multiple select, custom components
+- **Dynamic filter buttons** with active count indicators
+- **Popover-based filter UI** with apply/clear actions
+- **Filter state management** with automatic API integration
+- **Extensible filter architecture** for custom filter types
+
+### ✅ Search Functionality
+- **Cross-table search** across related data
+- **Real-time search** with debouncing
+- **Search state management** integrated with pagination
+- **Custom search placeholders** for better UX
+- **Loading indicators** during search operations
+
+### ✅ Advanced UI Features
+- **Sticky footer behavior**: Footer becomes fixed at bottom when scrolled out of view
+- **Intersection Observer**: Efficient viewport detection for sticky behavior
+- **Dynamic positioning**: Sticky footer matches exact width and position of table
+- **Responsive footer**: Adapts to window resize and scroll events
+
+## Implementation Guide
+
+### Step 1: Basic Table Setup
+
+#### 1.1 Create Table Component
+```jsx
+// src/components/dashboard/[module]/[Module]Table.jsx
+"use client";
+import { Box } from "@mui/material";
+import React, { useCallback } from "react";
+import { NeviosEnhancedTable } from "../../nevios/NeviosEnhancedTable";
+import { useModuleQuery } from "../../../hooks/useModuleQuery";
+
+export function ModuleTable({ 
+  tableHeight,
+  initialFilters = {},
+  initialSearch = ""
+}) {
+  // Data transformation function (optional)
+  const transformData = useCallback((rawData) => {
+    return rawData.map(item => ({
+      id: item.id,
+      // Transform fields as needed
+      display_name: item.name || 'Unknown',
+      // Keep original data for reference
+      _original: item
+    }));
+  }, []);
+
+  // Use the module query hook
+  const {
+    data,
+    loading,
+    error,
+    totalCount,
+    pagination,
+    sortModel,
+    filters,
+    searchTerm,
+    handlePaginationChange,
+    handleSortChange,
+    updateFilters,
+    updateSearch
+  } = useModuleQuery('your_module_name', {
+    expand: ["related_field1", "related_field2"], // Optional
+    initialFilters,
+    initialSearch,
+    enableSearch: true, // Enable search functionality
+    transformData // Optional data transformation
+  });
+
+  return (
+    <Box sx={{ flex: 1, display: "flex", height: "100%", width: "100%", flexDirection: "column" }}>
+      <NeviosEnhancedTable
+        columns={columnDefinitions} // Define your columns
+        data={data}
+        loading={loading}
+        error={error}
+        totalCount={totalCount}
+        pagination={pagination}
+        onPaginationChange={handlePaginationChange}
+        sortModel={sortModel}
+        onSortChange={handleSortChange}
+        tableHeight={tableHeight}
+        hideFooter={false}
+        enableSearch={true}
+        searchTerm={searchTerm}
+        onSearchChange={updateSearch}
+        searchPlaceholder="Search your module..."
+        enableFilters={true}
+        filterConfigs={MODULE_FILTER_CONFIG} // Define your filters
+        activeFilters={filters}
+        onFiltersChange={updateFilters}
+        // Row selection and bulk actions
+        checkboxSelection={true} // Enable row selection (default: true)
+        rowSelectionModel={[]} // Optional: control selection externally
+        onRowSelectionModelChange={(newSelection) => {
+          console.log('Selected rows:', newSelection);
+        }}
+        getRowId={(row) => row.id} // Optional: custom ID field
+        bulkActions={[
+          {
+            key: 'delete',
+            label: 'Delete Selected',
+            icon: 'DeleteIcon',
+            variant: 'outlined',
+            color: 'error'
+          },
+          {
+            key: 'export',
+            label: 'Export',
+            icon: 'DownloadIcon',
+            variant: 'contained',
+            color: 'primary'
+          }
+        ]}
+        onBulkAction={(actionKey, selectedData, selectedIds) => {
+          console.log('Bulk action:', actionKey, selectedData, selectedIds);
+        }}
+        emptyStateProps={{
+          title: 'No records found',
+          description: 'There are no records to display',
+        }}
+      />
+    </Box>
+  );
+}
+```
+
+#### 1.2 Define Column Structure
+```jsx
+// Column definitions using factory functions
+import {
+  currencyColumnFactory,
+  dateColumnFactory,
+  genericColumnFactory,
+  clickableColumnFactory
+} from "../../../components/ColumnDefinitions";
+
+const columnDefinitions = [
+  clickableColumnFactory({
+    field: "id",
+    headerName: "ID",
+    minWidth: 150,
+    link: (params) => `/dashboard/module/${params.id}` // Optional navigation
+  }),
+  genericColumnFactory({
+    field: "display_name",
+    headerName: "Name",
+    minWidth: 180,
+    flex: 2,
+  }),
+  dateColumnFactory({
+    field: "created_at",
+    headerName: "Created",
+    flex: 1.5,
+    minWidth: 180,
+    renderCell: (params) => (
+      <Box sx={{ fontSize: "s", color: "gray.600" }}>
+        {formatReadableDatetime(params.value)}
+      </Box>
+    ),
+  }),
+  currencyColumnFactory({
+    field: "amount",
+    headerName: "Amount",
+    minWidth: 120,
+    flex: 1,
+    renderCell: (params) => (
+      <Box>
+        {params.value.currency} {formatCurrencyNumber(params.value.amount)}
+      </Box>
+    ),
+  }),
+];
+```
+
+### Step 2: Filter System Implementation
+
+#### 2.1 Create Filter Configuration
+```jsx
+// src/components/nevios/NeviosFilters/[Module]FilterConfig.js
+"use client";
+import { FilterSelect } from './FilterSelect';
+import { FilterMultipleSelect } from './FilterMultipleSelect';
+
+// Define filter options
+const STATUS_OPTIONS = [
+  { value: 'ACTIVE', label: 'Active' },
+  { value: 'INACTIVE', label: 'Inactive' },
+  { value: 'PENDING', label: 'Pending' }
+];
+
+const CATEGORY_OPTIONS = [
+  { value: 'PREMIUM', label: 'Premium' },
+  { value: 'STANDARD', label: 'Standard' },
+  { value: 'BASIC', label: 'Basic' }
+];
+
+// Filter configuration array
+export const MODULE_FILTER_CONFIG = [
+  {
+    id: 'status', // Must match API filter key
+    label: 'Status',
+    component: FilterMultipleSelect, // or FilterSelect for single selection
+    options: STATUS_OPTIONS,
+    props: {
+      placeholder: 'All statuses',
+      maxDisplayChips: 2 // For FilterMultipleSelect only
+    }
+  },
+  {
+    id: 'category',
+    label: 'Category',
+    component: FilterSelect,
+    options: CATEGORY_OPTIONS,
+    props: {
+      placeholder: 'All categories'
+    }
+  }
+];
+
+// Export options for reuse
+export { STATUS_OPTIONS, CATEGORY_OPTIONS };
+```
+
+#### 2.2 Update Filter Index File
+```jsx
+// src/components/nevios/NeviosFilters/index.js
+// Add your new filter config to exports
+export { MODULE_FILTER_CONFIG } from './ModuleFilterConfig';
+```
+
+#### 2.3 Filter Component Types
+
+##### FilterSelect (Single Selection)
+```jsx
+// Usage in filter config
+{
+  id: 'single_field',
+  label: 'Single Field',
+  component: FilterSelect,
+  options: [
+    { value: 'option1', label: 'Option 1' },
+    { value: 'option2', label: 'Option 2' }
+  ],
+  props: {
+    placeholder: 'Select option...'
+  }
+}
+```
+
+##### FilterMultipleSelect (Multiple Selection)
+```jsx
+// Usage in filter config
+{
+  id: 'multiple_field',
+  label: 'Multiple Field',
+  component: FilterMultipleSelect,
+  options: [
+    { value: 'option1', label: 'Option 1' },
+    { value: 'option2', label: 'Option 2' },
+    { value: 'option3', label: 'Option 3' }
+  ],
+  props: {
+    placeholder: 'Select options...',
+    maxDisplayChips: 2 // Show max 2 chips before showing count
+  }
+}
+```
+
+#### 2.4 Custom Filter Components
+```jsx
+// Create custom filter component
+export function CustomDateRangeFilter({ value, onChange, ...props }) {
+  const [startDate, endDate] = value || [null, null];
+  
+  const handleChange = (newStartDate, newEndDate) => {
+    if (newStartDate || newEndDate) {
+      onChange([newStartDate, newEndDate]);
+    } else {
+      onChange(null);
+    }
+  };
+
+  return (
+    <Box sx={{ display: 'flex', gap: 1 }}>
+      <DatePicker
+        value={startDate}
+        onChange={(date) => handleChange(date, endDate)}
+        placeholder="Start date"
+      />
+      <DatePicker
+        value={endDate}
+        onChange={(date) => handleChange(startDate, date)}
+        placeholder="End date"
+      />
+    </Box>
+  );
+}
+
+// Use in filter config
+{
+  id: 'date_range',
+  label: 'Date Range',
+  component: CustomDateRangeFilter,
+  props: {
+    // Custom props for your component
+  }
+}
+```
+
+### Step 3: Search Configuration
+
+#### 3.1 Enable Search in useModuleQuery
+```jsx
+const {
+  // ... other returns
+  searchTerm,
+  updateSearch
+} = useModuleQuery('module_name', {
+  enableSearch: true, // Enable search functionality
+  initialSearch: "", // Optional initial search term
+  // ... other options
+});
+```
+
+#### 3.2 Connect Search to Table
+```jsx
+<NeviosEnhancedTable
+  // ... other props
+  enableSearch={true}
+  searchTerm={searchTerm}
+  onSearchChange={updateSearch}
+  searchPlaceholder="Search records by name, email, or ID..."
+/>
+```
+
+#### 3.3 Search Behavior
+- **Debouncing**: 300ms delay before API call
+- **Cross-table**: Searches across expanded related data
+- **Case-insensitive**: All searches ignore case
+- **Partial matching**: Finds partial matches within fields
+- **Pagination reset**: Automatically resets to page 1 on search
+
+### Step 4: Row Selection & Bulk Actions
+
+#### 4.1 Enable Row Selection
+```jsx
+<NeviosEnhancedTable
+  // ... other props
+  checkboxSelection={true} // Enable checkboxes (default: true)
+  getRowId={(row) => row.id} // Optional: specify ID field (supports id, _id, key)
+  rowSelectionModel={selectedRows} // Optional: control selection externally
+  onRowSelectionModelChange={(newSelection) => {
+    setSelectedRows(newSelection);
+    console.log('Selected row IDs:', newSelection);
+  }}
+/>
+```
+
+#### 4.2 Configure Bulk Actions
+```jsx
+const bulkActions = [
+  {
+    key: 'delete', // Unique identifier for the action
+    label: 'Delete Selected', // Button text
+    icon: 'DeleteIcon', // MUI icon name (optional)
+    variant: 'outlined', // MUI button variant
+    color: 'error', // MUI button color
+    disabled: false // Optional: disable action (default: false)
+  },
+  {
+    key: 'export',
+    label: 'Export to CSV',
+    icon: 'DownloadIcon',
+    variant: 'contained',
+    color: 'primary'
+  },
+  {
+    key: 'archive',
+    label: 'Archive',
+    icon: 'ArchiveIcon',
+    variant: 'outlined',
+    color: 'warning'
+  }
+];
+
+<NeviosEnhancedTable
+  // ... other props
+  bulkActions={bulkActions}
+  onBulkAction={(actionKey, selectedData, selectedIds) => {
+    switch (actionKey) {
+      case 'delete':
+        handleDeleteSelected(selectedIds);
+        break;
+      case 'export':
+        handleExportSelected(selectedData);
+        break;
+      case 'archive':
+        handleArchiveSelected(selectedIds);
+        break;
+    }
+  }}
+/>
+```
+
+#### 4.3 Bulk Action Handler Implementation
+```jsx
+const handleBulkAction = useCallback((actionKey, selectedData, selectedIds) => {
+  console.log('Action:', actionKey);
+  console.log('Selected IDs:', selectedIds); // Array of row IDs
+  console.log('Selected Data:', selectedData); // Array of full row objects
+  
+  switch (actionKey) {
+    case 'delete':
+      // Confirm deletion
+      if (window.confirm(`Delete ${selectedIds.length} items?`)) {
+        // Call API to delete items
+        deleteMultipleItems(selectedIds)
+          .then(() => {
+            // Refresh table data
+            refetch();
+            // Clear selection
+            setSelectedRows([]);
+          })
+          .catch(error => {
+            console.error('Delete failed:', error);
+          });
+      }
+      break;
+      
+    case 'export':
+      // Export selected data to CSV
+      const csvData = selectedData.map(row => ({
+        id: row.id,
+        name: row.display_name,
+        created: row.created_at
+      }));
+      exportToCsv(csvData, 'selected-items.csv');
+      break;
+      
+    case 'archive':
+      // Archive selected items
+      archiveMultipleItems(selectedIds)
+        .then(() => {
+          refetch();
+          setSelectedRows([]);
+        });
+      break;
+  }
+}, [refetch]);
+```
+
+#### 4.4 Bulk Actions UI Behavior
+- **Dynamic appearance**: Bulk action bar replaces search bar when rows are selected
+- **Selection count**: Shows "X items selected" with action buttons
+- **Loading states**: Actions are disabled during table loading
+- **Responsive design**: Adapts to different screen sizes
+- **Clear selection**: Automatically clears selection after successful actions
+
+### Step 5: Advanced UI Features
+
+#### 5.1 Sticky Footer Configuration
+The table footer automatically becomes sticky when scrolled out of view:
+
+```jsx
+<NeviosEnhancedTable
+  // ... other props
+  hideFooter={false} // Must be false to show footer
+  tableHeight="auto" // Use auto height for sticky behavior
+/>
+```
+
+**Sticky Footer Behavior:**
+- **Triggers when**: Footer scrolls below viewport (not when scrolled past upward)
+- **Positioning**: Matches exact width and horizontal position of table
+- **Responsive**: Adjusts on window resize and scroll events
+- **Performance**: Uses Intersection Observer for efficient detection
+
+#### 5.2 Auto-Height DataGrid
+The table uses auto-height instead of internal scrolling:
+
+```jsx
+// DataGrid automatically configured with:
+// - autoHeight={true}
+// - No fixed height constraints
+// - Expands to show all rows without scrollable container
+```
+
+**Benefits:**
+- **Better UX**: No nested scrollbars
+- **Sticky footer**: Works properly with page-level scrolling
+- **Responsive**: Adapts to content size
+- **Accessibility**: Easier keyboard navigation
+
+### Step 6: Advanced Configuration
+
+#### 6.1 Complete Props Reference
+
+##### Core Data Props
+```jsx
+{
+  // Required props
+  columns: Array,              // Column definitions
+  data: Array,                 // Table data
+  
+  // Data state props
+  loading: boolean,            // Loading state (default: false)
+  error: string,               // Error message (default: null)
+  totalCount: number,          // Total records count (default: 0)
+  
+  // Pagination props
+  pagination: Object,          // { page: 0, pageSize: 50 }
+  onPaginationChange: Function, // Pagination change handler
+  hideFooter: boolean,         // Hide pagination footer (default: true)
+  
+  // Sorting props
+  sortModel: Array,            // [{ field: 'column', sort: 'asc' }]
+  onSortChange: Function,      // Sort change handler
+  sortingOrder: Array,         // ['asc', 'desc', null]
+}
+```
+
+##### Row Selection & Bulk Actions Props
+```jsx
+{
+  // Row selection
+  checkboxSelection: boolean,  // Enable row selection checkboxes (default: true)
+  rowSelectionModel: Array,    // Selected row IDs (controlled)
+  onRowSelectionModelChange: Function, // Selection change handler
+  getRowId: Function,          // Custom row ID extractor (default: row => row.id)
+  
+  // Bulk actions
+  bulkActions: Array,          // Bulk action configuration
+  onBulkAction: Function,      // Bulk action handler
+}
+```
+
+##### Bulk Action Configuration
+```jsx
+// Each bulk action object:
+{
+  key: string,                 // Unique action identifier
+  label: string,               // Button text
+  icon: string,                // MUI icon name (optional)
+  variant: string,             // MUI button variant ('contained', 'outlined', 'text')
+  color: string,               // MUI button color ('primary', 'secondary', 'error', etc.)
+  disabled: boolean,           // Disable action (optional, default: false)
+}
+```
+
+##### Filter System Props
+```jsx
+{
+  // Filter configuration
+  enableFilters: boolean,      // Enable filter system (default: true)
+  filterConfigs: Array,        // Filter configuration array
+  activeFilters: Object,       // Current active filters
+  onFiltersChange: Function,   // Filter change handler
+}
+```
+
+##### Search System Props
+```jsx
+{
+  // Search configuration
+  enableSearch: boolean,       // Enable search (default: false)
+  searchTerm: string,          // Current search term
+  onSearchChange: Function,    // Search change handler
+  searchPlaceholder: string,   // Search placeholder text
+}
+```
+
+##### UI Customization Props
+```jsx
+{
+  // Appearance
+  tableHeight: string,         // Custom table height ('auto' for sticky footer)
+  variant: string,             // Table variant ('simple')
+  rowHeight: number,           // Custom row height
+  
+  // Interaction
+  onRowClick: Function,        // Row click handler
+  
+  // Empty state
+  emptyStateProps: {
+    title: string,             // Empty state title
+    description: string,       // Empty state description
+    action: Function,          // Optional action button handler
+    buttonText: string         // Action button text
+  }
+}
+```
+
+#### 6.2 useModuleQuery Hook Options
+```jsx
+useModuleQuery('module_name', {
+  // Data expansion
+  expand: Array,               // Related records to expand
+  
+  // Initial state
+  initialFilters: Object,      // Initial filter values
+  initialSearch: string,       // Initial search term
+  
+  // Search configuration
+  enableSearch: boolean,       // Enable search functionality
+  
+  // Sorting configuration
+  defaultOrderBy: string,      // Default sort column ('created_at')
+  defaultAscending: boolean,   // Default sort order (false)
+  
+  // Behavior
+  autoFetch: boolean,          // Auto-fetch on mount (true)
+  transformData: Function,     // Custom data transformation
+});
+```
+
+#### 6.3 API Integration Details
+
+##### Request Format
+```json
+{
+  "page": 1,
+  "limit": 50,
+  "orderBy": "created_at",
+  "ascending": false,
+  "expand": ["customer", "addresses"],
+  "filters": {
+    "status": ["ACTIVE", "PENDING"],
+    "category": "PREMIUM"
+  },
+  "search": "search term"
+}
+```
+
+##### Response Format
+```json
+{
+  "success": true,
+  "data": [...],
+  "pagination": {
+    "currentPage": 1,
+    "totalPages": 5,
+    "totalRecords": 247,
+    "recordsPerPage": 50,
+    "hasNextPage": true,
+    "hasPreviousPage": false
+  }
+}
+```
+
+### Step 7: Real-World Example (Orders Table)
+
+#### 7.1 Complete Orders Implementation
+```jsx
+// src/components/dashboard/orders/OrdersTable.jsx
+"use client";
+import { Box } from "@mui/material";
+import React, { useCallback } from "react";
+import {
+  currencyColumnFactory,
+  dateColumnFactory,
+  genericColumnFactory,
+  clickableColumnFactory
+} from "../../../components/ColumnDefinitions";
+import { NeviosEnhancedTable } from "../../nevios/NeviosEnhancedTable";
+import { formatReadableDatetime, formatCurrencyNumber } from "../../../core/formatters";
+import { FulfillmentStatusBadge } from "./FulfillmentStatusBadge";
+import { PaymentStatusBadge } from "./PaymentStatusBadge";
+import { useModuleQuery } from "../../../hooks/useModuleQuery";
+import { ORDERS_FILTER_CONFIG } from "../../nevios/NeviosFilters/OrdersFilterConfig";
+
+export function OrdersTable({ 
+  tableHeight,
+  initialFilters = {},
+  initialSearch = ""
+}) {
+  // Transform raw order data to table format
+  const transformOrderData = useCallback((orders) => {
+    return orders.map(order => ({
+      id: order.id,
+      order_name: order.name,
+      order_date: order.created_at,
+      customer_name: order.customer?.full_name || 'Unknown Customer',
+      total: {
+        currency: order.local_currency,
+        amount: order.total_amount || 0
+      },
+      fulfillment_status: order.fulfillment_status,
+      payment_status: order.payment_status,
+      item_count: order.items?.length || 0,
+      shipping_method: order.shipping_method?.name || 'Not specified',
+      _original: order
+    }));
+  }, []);
+
+  // Use the module query hook
+  const {
+    data,
+    loading,
+    error,
+    totalCount,
+    pagination,
+    sortModel,
+    filters,
+    searchTerm,
+    handlePaginationChange,
+    handleSortChange,
+    updateFilters,
+    updateSearch,
+    refetch
+  } = useModuleQuery('order', {
+    expand: ["customer", "shipping_method", "items"],
+    initialFilters,
+    initialSearch,
+    enableSearch: true,
+    transformData: transformOrderData
+  });
+
+  // Bulk actions configuration
+  const bulkActions = [
+    {
+      key: 'fulfill',
+      label: 'Mark as Fulfilled',
+      icon: 'CheckCircleIcon',
+      variant: 'contained',
+      color: 'success'
+    },
+    {
+      key: 'export',
+      label: 'Export Orders',
+      icon: 'DownloadIcon',
+      variant: 'outlined',
+      color: 'primary'
+    },
+    {
+      key: 'archive',
+      label: 'Archive',
+      icon: 'ArchiveIcon',
+      variant: 'outlined',
+      color: 'warning'
+    }
+  ];
+
+  // Handle bulk actions
+  const handleBulkAction = useCallback((actionKey, selectedData, selectedIds) => {
+    switch (actionKey) {
+      case 'fulfill':
+        // Update fulfillment status for selected orders
+        updateOrdersFulfillment(selectedIds, 'FULFILLED')
+          .then(() => {
+            refetch();
+            console.log(`Fulfilled ${selectedIds.length} orders`);
+          })
+          .catch(error => {
+            console.error('Fulfillment update failed:', error);
+          });
+        break;
+        
+      case 'export':
+        // Export selected orders to CSV
+        const csvData = selectedData.map(order => ({
+          order_id: order.order_name,
+          customer: order.customer_name,
+          total: `${order.total.currency} ${order.total.amount}`,
+          status: order.fulfillment_status,
+          date: order.order_date
+        }));
+        exportToCsv(csvData, 'selected-orders.csv');
+        break;
+        
+      case 'archive':
+        if (window.confirm(`Archive ${selectedIds.length} orders?`)) {
+          archiveOrders(selectedIds)
+            .then(() => {
+              refetch();
+              console.log(`Archived ${selectedIds.length} orders`);
+            });
+        }
+        break;
+    }
+  }, [refetch]);
+
+  const columnDefinitions = [
+    clickableColumnFactory({
+      field: "order_name",
+      headerName: "Order ID",
+      minWidth: 150,
+      link: (params) => `/dashboard/orders/${params.id}`
+    }),
+    dateColumnFactory({
+      field: "order_date",
+      headerName: "Date",
+      flex: 1.5,
+      minWidth: 180,
+      renderCell: (params) => (
+        <Box sx={{ fontSize: "s", color: "gray.600" }}>
+          {formatReadableDatetime(params.value)}
+        </Box>
+      ),
+    }),
+    genericColumnFactory({
+      field: "customer_name",
+      headerName: "Customer",
+      minWidth: 180,
+      flex: 2,
+    }),
+    currencyColumnFactory({
+      field: "total",
+      headerName: "Total",
+      minWidth: 120,
+      flex: 1,
+      renderCell: (params) => (
+        <Box>
+          {params.value.currency} {formatCurrencyNumber(params.value.amount)}
+        </Box>
+      ),
+    }),
+    genericColumnFactory({
+      field: "fulfillment_status",
+      headerName: "Fulfillment",
+      flex: 1.5,
+      minWidth: 140,
+      renderCell: (params) => (
+        <Box sx={{ lineHeight: 1.2, width: "100%", height: "100%", display: "flex", alignItems: "center" }}>
+          <FulfillmentStatusBadge status={params.value} />
+        </Box>
+      ),
+    }),
+    genericColumnFactory({
+      field: "payment_status",
+      headerName: "Payment",
+      flex: 1.5,
+      minWidth: 140,
+      renderCell: (params) => (
+        <Box sx={{ lineHeight: 1.2, width: "100%", height: "100%", display: "flex", alignItems: "center" }}>
+          <PaymentStatusBadge status={params.value} />
+        </Box>
+      ),
+    }),
+  ];
+
+  return (
+    <Box sx={{ flex: 1, display: "flex", height: "100%", width: "100%", flexDirection: "column" }}>
+      <NeviosEnhancedTable
+        columns={columnDefinitions}
+        data={data}
+        loading={loading}
+        error={error}
+        totalCount={totalCount}
+        pagination={pagination}
+        onPaginationChange={handlePaginationChange}
+        sortModel={sortModel}
+        onSortChange={handleSortChange}
+        tableHeight={tableHeight}
+        hideFooter={false}
+        enableFilters={true}
+        filterConfigs={ORDERS_FILTER_CONFIG}
+        activeFilters={filters}
+        onFiltersChange={updateFilters}
+        enableSearch={true}
+        searchTerm={searchTerm}
+        onSearchChange={updateSearch}
+        searchPlaceholder="Search orders by customer, order ID, or details..."
+        emptyStateProps={{
+          title: 'No orders found',
+          description: 'There are no orders to display',
+        }}
+        getRowClassName={(params) => {
+          if (params.row.payment_status === "REFUNDED") {
+            return "datagrid-row-error";
+          }
+          return "";
+        }}
+        bulkActions={bulkActions}
+        onBulkAction={handleBulkAction}
+        checkboxSelection={true}
+        getRowId={(row) => row.id}
+      />
+    </Box>
+  );
+}
+```
+
+#### 7.2 Orders Filter Configuration
+```jsx
+// src/components/nevios/NeviosFilters/OrdersFilterConfig.js
+"use client";
+import { FilterSelect } from './FilterSelect';
+import { FilterMultipleSelect } from './FilterMultipleSelect';
+
+const PAYMENT_STATUS_OPTIONS = [
+  { value: 'PAID', label: 'Paid' },
+  { value: 'UNPAID', label: 'Unpaid' },
+  { value: 'PENDING', label: 'Pending' },
+  { value: 'REFUNDED', label: 'Refunded' }
+];
+
+const FULFILLMENT_STATUS_OPTIONS = [
+  { value: 'FULFILLED', label: 'Fulfilled' },
+  { value: 'UNFULFILLED', label: 'Unfulfilled' },
+  { value: 'PARTIAL', label: 'Partial' }
+];
+
+const CURRENCY_OPTIONS = [
+  { value: 'USD', label: 'USD' },
+  { value: 'EUR', label: 'EUR' },
+  { value: 'CZK', label: 'CZK' }
+];
+
+export const ORDERS_FILTER_CONFIG = [
+  {
+    id: 'payment_status',
+    label: 'Payment Status',
+    component: FilterMultipleSelect,
+    options: PAYMENT_STATUS_OPTIONS,
+    props: {
+      placeholder: 'All payment statuses',
+      maxDisplayChips: 2
+    }
+  },
+  {
+    id: 'fulfillment_status',
+    label: 'Fulfillment Status',
+    component: FilterMultipleSelect,
+    options: FULFILLMENT_STATUS_OPTIONS,
+    props: {
+      placeholder: 'All fulfillment statuses',
+      maxDisplayChips: 2
+    }
+  },
+  {
+    id: 'local_currency',
+    label: 'Currency',
+    component: FilterSelect,
+    options: CURRENCY_OPTIONS,
+    props: {
+      placeholder: 'All currencies'
+    }
+  }
+];
+
+export { PAYMENT_STATUS_OPTIONS, FULFILLMENT_STATUS_OPTIONS, CURRENCY_OPTIONS };
+```
+
+## Best Practices
+
+### 1. Performance Optimization
+- **Use data transformation** only when necessary
+- **Limit expanded relations** to what you actually need
+- **Implement proper column widths** to avoid layout shifts
+- **Use React.memo** for custom cell renderers if they're complex
+
+### 2. User Experience
+- **Provide meaningful search placeholders** that indicate what can be searched
+- **Use appropriate filter types** (single vs multiple selection)
+- **Implement proper loading states** for all async operations
+- **Add empty state actions** when appropriate
+
+### 3. Code Organization
+- **Keep filter configurations** in separate files
+- **Use consistent naming** for filter IDs that match API fields
+- **Document custom filter components** with proper JSDoc
+- **Export filter options** for reuse across components
+
+### 4. Error Handling
+- **Implement proper error boundaries** around table components
+- **Provide user-friendly error messages** instead of technical errors
+- **Add retry mechanisms** for failed API calls
+- **Log errors** for debugging purposes
+
+### 5. Accessibility
+- **Use semantic HTML** in custom cell renderers
+- **Provide proper ARIA labels** for interactive elements
+- **Ensure keyboard navigation** works properly
+- **Test with screen readers** when possible
+
+## Troubleshooting
+
+### Common Issues
+
+#### 1. Filters Not Working
+- **Check filter ID**: Must match API field name exactly
+- **Verify filter configuration**: Ensure proper structure and component
+- **Check API response**: Verify backend is processing filters correctly
+- **Debug filter values**: Log `activeFilters` to see current state
+
+#### 2. Search Not Triggering
+- **Verify enableSearch**: Must be `true` in both hook and table
+- **Check search term**: Ensure it's being passed correctly
+- **Debug API calls**: Check network tab for search parameter
+- **Verify backend search**: Ensure API supports search for the module
+
+#### 3. Pagination Issues
+- **Check totalCount**: Must be provided from API response
+- **Verify pagination state**: Ensure page numbers are correct (0-based vs 1-based)
+- **Debug pagination handlers**: Log pagination changes
+- **Check API pagination**: Verify backend pagination implementation
+
+#### 4. Performance Problems
+- **Reduce data transformation**: Minimize complex operations in transformData
+- **Limit expansions**: Only expand necessary related data
+- **Optimize renders**: Use React.memo for expensive components
+- **Check network requests**: Ensure no duplicate API calls
+
+#### 5. Row Selection Issues
+- **Check getRowId**: Ensure it returns unique identifiers for each row
+- **Verify data structure**: Rows must have consistent ID fields (id, _id, or key)
+- **Debug selection state**: Log `rowSelectionModel` to see current selection
+- **Check checkboxSelection**: Must be `true` to enable selection
+
+#### 6. Bulk Actions Not Working
+- **Verify bulkActions array**: Check structure and required fields (key, label)
+- **Check onBulkAction handler**: Ensure it's properly connected
+- **Debug action data**: Log `selectedData` and `selectedIds` in handler
+- **Verify selection**: Bulk actions only appear when rows are selected
+
+#### 7. Sticky Footer Issues
+- **Check hideFooter**: Must be `false` to show footer
+- **Verify tableHeight**: Use 'auto' for proper sticky behavior
+- **Debug intersection observer**: Check browser console for observer errors
+- **Test scroll behavior**: Footer should stick only when scrolled below viewport
+
+### Debug Tips
+- **Use React DevTools** to inspect component state
+- **Monitor network requests** in browser dev tools
+- **Add console.logs** to track data flow
+- **Test with small datasets** first
+- **Verify API responses** match expected format
+
+## Migration Guide
+
+### From Legacy Tables
+1. **Replace table component** with NeviosEnhancedTable
+2. **Migrate column definitions** to factory functions
+3. **Convert filters** to new configuration format
+4. **Update data fetching** to use useModuleQuery hook
+5. **Test all functionality** thoroughly
+
+### Adding to Existing Modules
+1. **Create filter configuration** file
+2. **Update table component** to use new system
+3. **Add search functionality** if needed
+4. **Test with existing data** and edge cases
+5. **Update documentation** for the module
+
+## Conclusion
+
+The NeviosEnhancedTable system provides a powerful, flexible, and consistent way to implement data tables across the Nevios admin application. Its modular design ensures that once you understand the pattern, you can quickly implement feature-rich tables for any module with minimal code duplication.
+
+The combination of server-side operations, flexible filtering, real-time search, row selection with bulk actions, and responsive design with sticky footer behavior makes it suitable for everything from simple data display to complex data management interfaces with batch operations.
+
+**Key Capabilities:**
+- **Data Management**: Server-side pagination, sorting, filtering, and search
+- **User Interaction**: Row selection, bulk actions, and intuitive UI controls
+- **Advanced UI**: Sticky footer, auto-height tables, and responsive design
+- **Developer Experience**: Modular configuration, reusable components, and comprehensive error handling
+
+For questions or issues, refer to the existing implementations in the orders module or consult the query system documentation for backend integration details.

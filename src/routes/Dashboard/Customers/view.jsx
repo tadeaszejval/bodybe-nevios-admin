@@ -506,8 +506,6 @@ export function CustomerView({ customerId }) {
           <Box sx={{ display: 'flex', gap: 1 }}>
             <NeviosGroupButton
               buttonText="Actions"
-              variant="contained"
-              color="shadow"
               menuItems={[
                 { label: 'Email customer', onClick: () => {} },
                 { label: 'Send account invite', onClick: () => {} },

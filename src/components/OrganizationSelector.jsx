@@ -62,7 +62,7 @@ export function OrganizationSelector() {
 					paper: {
 						sx: {
 							minWidth: 250,
-							fontSize: "sm",
+							fontSize: "sm"
 						},
 					},
 				}}

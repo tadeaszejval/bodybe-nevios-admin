@@ -1,9 +1,8 @@
 import React, { useState, useEffect } from 'react';
-import { Button, Box, CircularProgress } from '@mui/material';
+import { Box } from '@mui/material';
 import NeviosPopupForm from '../../nevios/NeviosPopupForm';
 import { NeviosInput } from '../../nevios/NeviosInput';
-import { NeviosSelectCountry } from '../../nevios/NeviosSelect';
-import NeviosFormPaper from '../../nevios/NeviosFormPaper';
+import { NeviosSecondaryButton, NeviosPrimaryButton } from '../../nevios/NeviosButtons';
 
 /**
  * ContactPopup - Component for editing customer contact information
@@ -57,18 +56,17 @@ export default function ContactPopup({ open, onClose, onSave, initialData = {}, 
 
   const ContactFormActions = (
     <>
-      <Button size="small" variant="outlined" color="secondary" onClick={onClose} disabled={loading}>
+      <NeviosSecondaryButton size="small" onClick={onClose} disabled={loading}>
         Cancel
-      </Button>
-      <Button 
-        size="small" 
-        variant="contained" 
+      </NeviosSecondaryButton>
+      <NeviosPrimaryButton 
+        size="small"
         onClick={handleSaveContact} 
         disabled={!isDirty && loading !== undefined || loading}
-        startIcon={loading ? <CircularProgress size={16} color="inherit" /> : null}
+        loading={loading}
       >
-        {loading ? 'Saving...' : 'Save'}
-      </Button>
+        Save
+      </NeviosPrimaryButton>
     </>
   );
 

@@ -14,7 +14,6 @@ export function SidebarItem({
 	onClick,
 	customColor,
 	customHoverColor,
-	buttonStyle,
 	sx,
 	...rest
 }) {
@@ -34,7 +33,7 @@ export function SidebarItem({
 			sx={{
 				display: "flex",
 				py: 0,
-				px: buttonStyle ? 0 : 1.5,
+				px: 1.5,
 				mb: 0,
 				...sx,
 			}}
@@ -47,29 +46,23 @@ export function SidebarItem({
 				color="info"
 				onClick={handleClick}
 				sx={{
-					borderRadius: buttonStyle ? 1 : 1,
+					borderRadius: "8px",
 					alignItems: "center",
-					justifyContent: buttonStyle ? "center" : "flex-start",
+					justifyContent: "flex-start",
 					letterSpacing: 0,
-					py: buttonStyle ? 1 : 0.5,
-					px: buttonStyle ? 2 : 1.25,
+					backgroundColor: itemIsActive ? "gray.50" : "transparent",
+					py: 0.5,
+					paddingLeft: 1.5,
+					paddingRight: 0.5,
 					textDecoration: "none",
 					textTransform: "none",
 					display: "flex",
 					gap: 1.5,
 					width: "100%",
-					color: customColor || (itemIsActive ? "gray.900" : "gray.600"),
+					color: customColor || (itemIsActive ? "gray.900" : "gray.800"),
 					...(deemphasized && {
 						color: "gray.500",
 						pointerEvents: "none",
-					}),
-					...(buttonStyle && {
-						backgroundColor: customColor || "primary.main",
-						color: "white",
-						fontWeight: 500,
-						transition: "all 0.2s ease-in-out",
-						border: "none",
-						boxShadow: (theme) => theme.shadows[1],
 					}),
 					"&::before": {
 						content: "''",
@@ -78,34 +71,16 @@ export function SidebarItem({
 						bottom: 3,
 						left: -3,
 						width: 6,
-						backgroundColor: (!buttonStyle && itemIsActive) ? "gray.700" : "transparent",
+						backgroundColor: itemIsActive ? "gray.700" : "transparent",
 						borderRadius: 2,
 					},
 					"&:hover": {
-						...(buttonStyle 
-							? {
-								backgroundColor: customHoverColor || "primary.dark",
-								boxShadow: (theme) => theme.shadows[2],
-								transform: "translateY(-1px)",
-							}
-							: {
-								bgcolor: customHoverColor 
-									? (theme) => theme.palette.mode === 'light' 
-										? `${customHoverColor}15` // 15% opacity for light mode
-										: `${customHoverColor}25` // 25% opacity for dark mode
-									: itemIsActive
-							? "hsl(213deg 94% 18% / 5%)"
-							: "hsl(210deg 88% 21% / 3%)",
-							}),
+						bgcolor: customHoverColor || (itemIsActive
+							? "gray.100"
+							: "gray.100"),
 						cursor: "pointer",
-						color: buttonStyle ? "white" : customColor,
-					},
-					"&:active": {
-						...(buttonStyle && {
-							transform: "translateY(0px)",
-							boxShadow: (theme) => theme.shadows[1],
-						}),
-					},
+						color: customColor,
+					}
 				}}
 			>
 				<Box
@@ -125,10 +100,10 @@ export function SidebarItem({
 						display: "flex",
 						width: "100%",
 						alignItems: "center",
-						justifyContent: buttonStyle ? "center" : "space-between",
+						justifyContent: "space-between",
 						textOverflow: "ellipsis",
-						fontSize: buttonStyle ? "sm" : "sm",
-						fontWeight: buttonStyle ? "500" : (itemIsActive ? "600" : "medium"),
+						fontSize: "sm",
+						fontWeight: itemIsActive ? "600" : "medium",
 					}}
 				>
 					{title}

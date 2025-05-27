@@ -1,129 +1,133 @@
 "use client";
-import { Box, Portal, CircularProgress } from "@mui/material";
-import { GridToolbarQuickFilter } from "@mui/x-data-grid";
-import React, { useEffect, useState } from "react";
-import { useRouter } from "next/navigation";
+import { Box } from "@mui/material";
+import React from "react";
 import {
 	dateColumnFactory,
 	genericColumnFactory,
-	idColumnFactory,
-	clickableColumnFactory,
+	clickableColumnFactory
 } from "../../../components/ColumnDefinitions";
-import {
-	customerNameFilterConfig,
-	genderFilterConfig,
-	emailFilterConfig,
-	createdAtFilterConfig,
-	accountStatusFilterConfig,
-	subscribedFilterConfig,
-} from "../../../components/CustomFilterDefinitions";
-import { FiltersBar } from "../../../components/FiltersBar";
-import { Table } from "../../../components/Table";
-import { clientFiltering } from "../../../core/filters";
+import { NeviosEnhancedTable } from "../../nevios/NeviosEnhancedTable";
 import { formatReadableDatetime } from "../../../core/formatters";
-import { useFilters } from "../../../hooks/useFilters";
-import { supabase } from "../../../utils/supabase";
 import { GenderBadge } from "./GenderBadge";
 import { AccountStatusBadge } from "./AccountStatusBadge";
 import { SubscribedBadge } from "./SubscribedBadge";
+import { useRouter } from "next/navigation";
 
-export function CustomersTable({ tableHeight, allowCheckboxSelection = false }) {
+// Transform function for customer data
+const transformCustomers = (customers) => {
+	return customers.map((customer) => ({
+		id: customer.id,
+		email: customer.email || 'No Email',
+		first_name: customer.first_name || '',
+		last_name: customer.last_name || '',
+		full_name: `${customer.first_name || ''} ${customer.last_name || ''}`.trim() || 'Unknown',
+		gender: customer.gender || 'NOT_SPECIFIED',
+		account_enabled: customer.account_enabled || false,
+		subscribed: customer.subscribed || false,
+		created_at: customer.created_at,
+		phone: customer.phone || 'N/A',
+		country: customer.country || 'N/A'
+	}));
+};
+
+export function CustomersTable({ 
+	tableHeight, 
+	allowCheckboxSelection = false,
+	data = [],
+	loading = false,
+	error = null,
+	totalCount = 0,
+	pagination = { page: 0, pageSize: 100 },
+	onPaginationChange,
+	sortModel = [],
+	onSortChange
+}) {
 	const router = useRouter();
-	const { filters, editFilter, removeFilter } = useFilters();
-	const [customers, setCustomers] = useState([]);
-	const [loading, setLoading] = useState(true);
-	const [error, setError] = useState(null);
-	const [pagination, setPagination] = useState({
-		total: 0,
-		limit: 100,
-		offset: 0
-	});
-
-	// Fetch customers from Supabase
-	useEffect(() => {
-		const fetchCustomers = async () => {
-			try {
-				setLoading(true);
-				
-				// Get count of total customers for pagination
-				const { count, error: countError } = await supabase
-					.from('customers')
-					.select('*', { count: 'exact', head: true });
-					
-				if (countError) throw countError;
-				
-				// Fetch the customers
-				const { data, error: fetchError } = await supabase
-					.from('customers')
-					.select(`
-						id, 
-						email,
-						first_name, 
-						last_name,
-						gender,
-						created_at,
-						phone,
-						country,
-						account_enabled,
-						subscribed
-					`)
-					.range(pagination.offset, pagination.offset + pagination.limit - 1)
-					.order('created_at', { ascending: false });
-					
-				if (fetchError) throw fetchError;
-				
-				setCustomers(data);
-				setPagination(prev => ({
-					...prev,
-					total: count || 0
-				}));
-			} catch (err) {
-				console.error("Error fetching customers:", err);
-				setError(err.message || "Failed to fetch customers");
-			} finally {
-				setLoading(false);
-			}
-		};
-
-		fetchCustomers();
-	}, [pagination.limit, pagination.offset]);
-
-	// Handle server-side pagination change
-	const handlePaginationChange = (params) => {
-		setPagination({
-			limit: params.pageSize,
-			offset: params.page * params.pageSize,
-			total: pagination.total
-		});
-	};
-
-	// Transform the data to match the table structure
-	const transformedData = customers.map((customer) => {
-		return {
-			id: customer.id,
-			email: customer.email || 'N/A',
-			customer_name: `${customer.first_name || ''} ${customer.last_name || ''}`.trim() || 'Unknown',
-			gender: customer.gender || 'NOT_FOUND',
-			created_at: customer.created_at,
-			phone: customer.phone || 'N/A',
-			account_enabled: customer.account_enabled,
-			subscribed: customer.subscribed
-		};
-	});
 
 	const columnDefinitions = [
 		clickableColumnFactory({
-			field: "email",
-			headerName: "Email",
-			minWidth: 200,
+			field: "full_name",
+			headerName: "Customer",
+			minWidth: 180,
 			flex: 2,
-			link: (params) => `/dashboard/customers/${params.id}`
+			link: (params) => `/dashboard/customers/${params.id}`,
+			renderCell: (params) => (
+				<Box
+					sx={{
+						lineHeight: 1.2,
+						display: "flex",
+						flexDirection: "column",
+						height: "100%",
+						justifyContent: "center",
+					}}
+				>
+					<Box sx={{ fontWeight: 500 }}>{params.value || 'Unknown'}</Box>
+					<Box sx={{ fontSize: "xs", color: "gray.500" }}>{params.row.email}</Box>
+				</Box>
+			),
+		}),
+		genericColumnFactory({
+			field: "gender",
+			headerName: "Gender",
+			flex: 1,
+			minWidth: 100,
+			renderCell: (params) => (
+				<Box
+					sx={{
+						lineHeight: 1.2,
+						width: "100%",
+						height: "100%",
+						display: "flex",
+						alignItems: "center",
+					}}
+				>
+					<GenderBadge gender={params.value} />
+				</Box>
+			),
+		}),
+		genericColumnFactory({
+			field: "account_enabled",
+			headerName: "Account Status",
+			flex: 1.2,
+			minWidth: 120,
+			renderCell: (params) => (
+				<Box
+					sx={{
+						lineHeight: 1.2,
+						width: "100%",
+						height: "100%",
+						display: "flex",
+						alignItems: "center",
+					}}
+				>
+					<AccountStatusBadge enabled={params.value} />
+				</Box>
+			),
+		}),
+		genericColumnFactory({
+			field: "subscribed",
+			headerName: "Subscribed",
+			flex: 1,
+			minWidth: 100,
+			renderCell: (params) => (
+				<Box
+					sx={{
+						lineHeight: 1.2,
+						width: "100%",
+						height: "100%",
+						display: "flex",
+						alignItems: "center",
+					}}
+				>
+					<SubscribedBadge subscribed={params.value} />
+				</Box>
+			),
 		}),
 		dateColumnFactory({
 			field: "created_at",
-			headerName: "Customer Since",
+			headerName: "Created",
 			flex: 1.5,
-			minWidth: 180,
+			minWidth: 140,
 			renderCell: (params) => (
 				<Box
 					sx={{
@@ -135,76 +139,21 @@ export function CustomersTable({ tableHeight, allowCheckboxSelection = false }) 
 				</Box>
 			),
 		}),
-        genericColumnFactory({
-			field: "subscribed",
-			headerName: "Subscribed",
-			minWidth: 140,
-			flex: 1,
-			renderCell: (params) => (
-				<Box
-					sx={{
-						lineHeight: 1.2,
-						width: "100%",
-						height: "100%",
-						display: "flex",
-						alignItems: "center",
-					}}
-				>
-					<SubscribedBadge status={params.value} />
-				</Box>
-			),
-		}),
-		genericColumnFactory({
-			field: "customer_name",
-			headerName: "Name",
-			minWidth: 180,
-			flex: 1.5,
-		}),
-		genericColumnFactory({
-			field: "gender",
-			headerName: "Gender",
-			minWidth: 120,
-			flex: 1,
-			renderCell: (params) => (
-				<Box
-					sx={{
-						lineHeight: 1.2,
-						width: "100%",
-						height: "100%",
-						display: "flex",
-						alignItems: "center",
-					}}
-				>
-					<GenderBadge status={params.value} />
-				</Box>
-			),
-		}),
-        idColumnFactory({
-			field: "phone",
-			headerName: "Phone",
-			minWidth: 200,
-			flex: 1,
-		}),
-		genericColumnFactory({
-			field: "account_enabled",
-			headerName: "Account",
-			minWidth: 150,
-			flex: 1,
-			renderCell: (params) => (
-				<Box
-					sx={{
-						lineHeight: 1.2,
-						width: "100%",
-						height: "100%",
-						display: "flex",
-						alignItems: "center",
-					}}
-				>
-					<AccountStatusBadge status={params.value} />
-				</Box>
-			),
-		}),
 	];
+
+	// Handle row clicks
+	const handleRowClick = (params, event) => {
+		if (event.ctrlKey || event.metaKey) {
+			window.open(`/dashboard/customers/${params.id}`, '_blank');
+		} else {
+			router.push(`/dashboard/customers/${params.id}`);
+		}
+	};
+
+	// Transform the data
+	const transformedData = React.useMemo(() => {
+		return transformCustomers(data);
+	}, [data]);
 
 	return (
 		<Box
@@ -214,85 +163,32 @@ export function CustomersTable({ tableHeight, allowCheckboxSelection = false }) 
 				height: "100%",
 				width: "100%",
 				flexDirection: "column",
-				gap: 1.5,
 			}}
 		>
-			<FiltersBar
-				activeFilters={filters}
-				editFilter={editFilter}
-				removeFilter={removeFilter}
-				availableFilters={[
-					emailFilterConfig,
-					customerNameFilterConfig,
-					genderFilterConfig,
-					accountStatusFilterConfig,
-					subscribedFilterConfig,
-					createdAtFilterConfig,
-				]}
-			>
-				<Box id="filter-panel" />
-			</FiltersBar>
-			
-			{loading && (
-				<Box sx={{ display: 'flex', justifyContent: 'center', p: 3 }}>
-					<CircularProgress />
-				</Box>
-			)}
-			
-			{error && (
-				<Box sx={{ color: 'error.main', p: 2, textAlign: 'center' }}>
-					Error: {error}
-				</Box>
-			)}
-			
-			{!loading && !error && (
-				<Table
-					tableHeight={tableHeight}
-					columns={columnDefinitions}
-					rows={clientFiltering(transformedData, filters)}
-					initialState={{
-						sorting: { sortModel: [{ field: "created_at", sort: "desc" }] },
-					}}
-					pagination
-					paginationMode="server"
-					rowCount={pagination.total}
-					onPaginationModelChange={handlePaginationChange}
-					hideFooter={false}
-					disableColumnFilter
-					slots={{ toolbar: CustomQuickSearch }}
-					checkboxSelection={allowCheckboxSelection}
-				/>
-			)}
+			<NeviosEnhancedTable
+				columns={columnDefinitions}
+				data={transformedData}
+				loading={loading}
+				error={error}
+				totalCount={totalCount}
+				pagination={pagination}
+				onPaginationChange={onPaginationChange}
+				sortModel={sortModel}
+				onSortChange={onSortChange}
+				onRowClick={handleRowClick}
+				tableHeight={tableHeight}
+				enableFilters={true}
+				hideFooter={false}
+				emptyStateProps={{
+					title: 'No customers found',
+					description: 'There are no customers to display',
+				}}
+				sx={{
+					"& .MuiDataGrid-row": {
+						cursor: "pointer",
+					},
+				}}
+			/>
 		</Box>
-	);
-}
-
-function CustomQuickSearch(props) {
-	return (
-		<React.Fragment>
-			<Portal container={() => document.getElementById("filter-panel")}>
-				<GridToolbarQuickFilter
-					variant="filled"
-					placeholder="Search email, name..."
-					sx={{
-						width: 200,
-						borderColor: "gray.200",
-						paddingBottom: 0,
-						".MuiInputBase-root": {
-							fontSize: "xs",
-							height: 30,
-							paddingX: 0.5,
-						},
-						".MuiInputBase-input": {
-							paddingY: 0,
-						},
-						".MuiSvgIcon-root": {
-							height: 16,
-							width: 16,
-						},
-					}}
-				/>
-			</Portal>
-		</React.Fragment>
 	);
 }

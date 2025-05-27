@@ -1,12 +1,10 @@
 import * as React from 'react';
-import { Box, Button, Menu, MenuItem, Typography } from '@mui/material';
+import { Menu, MenuItem, Typography } from '@mui/material';
 import { TbChevronDown } from "react-icons/tb";
-import NeviosButtonEndIcon from './NeviosButtonEndIcon';
+import { NeviosShadowButton } from './NeviosButtons';
 
 export default function NeviosGroupButton({
   buttonText = 'Group',
-  variant = 'outlined',
-  color = 'secondary',
   menuItems = [
     { label: 'Archive', onClick: () => {}, color: 'secondary' },
     { label: 'Edit', onClick: () => {}, color: 'secondary' },
@@ -32,20 +30,26 @@ export default function NeviosGroupButton({
 
     return (
         <>
-            <NeviosButtonEndIcon
+            <NeviosShadowButton
                 id='basic-button' 
                 aria-controls={open ? 'basic-menu' : undefined} 
                 aria-haspopup='true' 
                 aria-expanded={open ? 'true' : undefined}
                 onClick={handleClick}
-                variant={variant} 
-                buttonText={buttonText}
                 size="small"
-                color={color}
+                iconAfter={iconComponent}
                 sx={{
+                    ...(open && {
+                        boxShadow: "0rem -.0625rem .1rem .002rem hsl(0, 0.00%, 65.00%) inset, 0rem 0rem .08rem .0625rem hsl(0, 0.00%, 65.00%) inset, 0rem .09rem .08rem .0625rem hsl(0, 0.00%, 65.00%) inset",
+                        "& .nevios-button-content": {
+                            transform: "translateY(1px)"
+                        }
+                    }),
                     ...buttonSx
                 }}
-            />
+            >
+                {buttonText}
+            </NeviosShadowButton>
             <Menu   
                 id='basic-menu' 
                 anchorEl={anchorEl} 

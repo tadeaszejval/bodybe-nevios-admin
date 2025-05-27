@@ -6,8 +6,9 @@ import {
 	extendTheme,
 } from "@mui/material/styles";
 import * as React from "react";
+import { MdLabelImportant } from "react-icons/md";
 import { TbCircleCheckFilled } from "react-icons/tb";
-import { useThemeCustomization } from "./context/ThemeCustomizationProvider";
+
 // -------------------------------
 // Define some custom JSX elements
 // -------------------------------
@@ -166,22 +167,23 @@ function CustomStepConnector(props) {
 		/>
 	);
 }
+
 // -------------------------------
 // Define shared tokens/constants
 // -------------------------------
 const primaryColorScale = {
-	50: "hsl(214, 100%, 97%)",
-	100: "hsl(214, 95%, 93%)",
-	200: "hsl(213, 97%, 87%)",
-	300: "hsl(213, 96%, 78%)",
-	400: "hsl(213, 94%, 68%)",
-	500: "hsl(217, 91%, 60%)",
-	600: "hsl(221, 84%, 54%)",
-	700: "hsl(224, 76%, 48%)",
-	800: "hsl(226, 71%, 40%)",
-	900: "hsl(226, 65%, 34%)",
-	main: "hsl(221, 84%, 54%)",
-	subtle: "hsla(217, 83%, 70%, 0.1)",
+	50: "hsl(236, 100%, 97%)",
+	100: "hsl(236, 95%, 93%)",
+	200: "hsl(236, 97%, 87%)",
+	300: "hsl(236, 96%, 78%)",
+	400: "hsl(236, 94%, 68%)",
+	500: "hsl(236, 91%, 60%)",
+	600: "hsl(236, 84%, 54%)",
+	700: "hsl(236, 76%, 48%)",
+	800: "hsl(236, 71%, 40%)",
+	900: "hsl(236, 65%, 34%)",
+	main: "hsl(236, 99.10%, 45.50%)",
+	subtle: "hsla(236, 83%, 70%, 0.1)",
 };
 const yellowColorScale = {
 	50: "hsl(55, 92%, 95%)",
@@ -198,18 +200,18 @@ const yellowColorScale = {
 	subtle: "hsla(45, 93%, 47%, 0.1)",
 };
 const greenColorScale = {
-	50: "hsl(152, 81%, 96%)",
+	50: "hsl(140, 93.50%, 96.00%)",
 	100: "hsl(149, 80%, 90%)",
-	200: "hsl(152, 76%, 80%)",
-	300: "hsl(156, 72%, 67%)",
-	400: "hsl(158, 64%, 52%)",
-	500: "hsl(160, 84%, 39%)",
-	600: "hsl(161, 94%, 30%)",
-	700: "hsl(163, 94%, 24%)",
-	800: "hsl(163, 88%, 20%)",
-	900: "hsl(164, 86%, 16%)",
-	main: "hsl(161, 94%, 30%)",
-	subtle: "hsla(160, 84%, 39%, 0.1)",
+	200: "hsl(140, 76%, 80%)",
+	300: "hsl(140, 72%, 67%)",
+	400: "hsl(140, 64%, 52%)",
+	500: "hsl(140, 84%, 39%)",
+	600: "hsl(140, 94%, 30%)",
+	700: "hsl(140, 94%, 24%)",
+	800: "hsl(140, 88%, 20%)",
+	900: "hsl(140, 86%, 16%)",
+	main: "hsl(140, 93.50%, 30.00%)",
+	subtle: "hsla(140, 84%, 39%, 0.1)",
 };
 const redColorScale = {
 	50: "hsl(0, 86%, 97%)",
@@ -222,7 +224,7 @@ const redColorScale = {
 	700: "hsl(0, 74%, 42%)",
 	800: "hsl(0, 70%, 35%)",
 	900: "hsl(0, 63%, 31%)",
-	main: "hsl(0, 72%, 51%)",
+	main: "hsl(0, 100.00%, 38.20%)",
 	subtle: "hsla(0, 84%, 60%, 0.1)",
 };
 const fuchsiaColorScale = {
@@ -268,32 +270,20 @@ const blueColorScale = {
 	subtle: "hsla(199, 89%, 48%, 0.1)",
 };
 const grayColorScale = {
-	50: "hsl(210, 20%, 98%)",
-	100: "hsl(218, 14%, 96%)",
-	200: "hsl(218, 13%, 90%)",
-	300: "hsl(217, 12%, 84%)",
-	400: "hsl(218, 11%, 65%)",
-	500: "hsl(220, 10%, 46%)",
-	600: "hsl(216, 14%, 34%)",
-	700: "hsl(217, 18%, 26%)",
-	800: "hsl(215, 27%, 17%)",
-	900: "hsl(218, 39%, 10%)",
-	main: "hsl(216, 14%, 34%)",
-	subtle: "hsla(220, 11%, 94%, 0.75)",
-};
-const darkGrayColorScale = {
-	50: "hsl(210, 20%, 12%)",
-	100: "hsl(218, 14%, 14%)",
-	200: "hsl(218, 13%, 20%)",
-	300: "hsl(217, 12%, 26%)",
-	400: "hsl(218, 11%, 45%)",
-	500: "hsl(220, 10%, 64%)",
-	600: "hsl(216, 14%, 76%)",
-	700: "hsl(217, 18%, 84%)",
-	800: "hsl(215, 27%, 93%)",
-	900: "hsl(218, 39%, 100%)",
-	main: "hsl(216, 14%, 76%)",
-	subtle: "hsla(220, 11%, 94%, 0.75)",
+	50: "hsl(0, 0.00%, 98.00%)",
+	100: "hsl(0, 0.00%, 96.00%)",
+	200: "hsl(0, 0.00%, 90.00%)",
+	250: "hsl(0, 0.00%, 87.00%)",
+	300: "hsl(0, 0.00%, 84.00%)",
+	350: "hsl(0, 0.00%, 75.00%)",
+	400: "hsl(0, 0.00%, 65.00%)",
+	500: "hsl(0, 0.00%, 46.00%)",
+	600: "hsl(0, 0.00%, 34.00%)",
+	700: "hsl(0, 0.00%, 26.00%)",
+	800: "hsl(0, 0.00%, 20.00%)",
+	900: "hsl(0, 0.00%, 10.00%)",
+	main: "hsl(0, 0.00%, 38.00%)",
+	subtle: "hsla(0, 0.00%, 94.50%, 0.75)",
 };
 const orangeColorScale = {
 	50: "hsl(31, 100%, 97%)",
@@ -342,14 +332,16 @@ function invertColorScale(colorScale) {
 }
 const lightPaletteScales = {
 	background: {
-		default: "hsla(210, 20%, 99%, 1)",
+		default: "rgba(241, 241, 241, 1)",
+		defaultDark: "rgb(238, 238, 238)",
+		defaultDarker: "rgb(217, 217, 217)",
 		paper: "#fff",
+
 	},
 	// built in MUI color scales
 	primary: primaryColorScale,
 	secondary: grayColorScale,
 	warning: yellowColorScale,
-	// custom color scales
 	red: redColorScale,
 	orange: orangeColorScale,
 	yellow: yellowColorScale,
@@ -367,7 +359,7 @@ const darkPaletteScales = {
 	},
 	// built in MUI color scales
 	primary: invertColorScale(primaryColorScale),
-	secondary: darkGrayColorScale,
+	secondary: grayColorScale,
 	warning: yellowColorScale,
 	// custom color scales
 	red: invertColorScale(redColorScale),
@@ -377,7 +369,7 @@ const darkPaletteScales = {
 	blue: invertColorScale(blueColorScale),
 	fuchsia: invertColorScale(fuchsiaColorScale),
 	violet: invertColorScale(violetColorScale),
-	gray: darkGrayColorScale,
+	gray: grayColorScale,
 	black: invertColorScale(blackColorScale),
 };
 // create the typography scale in pixels based on a 16px base font size
@@ -420,8 +412,6 @@ const customTheme = createTheme({
 		"0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06)", // md
 		"0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05)", // lg
 		"0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04)", // xl
-		"0 1px 2px 0 rgb(0 0 0 / 0.05)",
-		"0 1px 2px 0 rgb(0 0 0 / 0.05)",
 		"0 1px 2px 0 rgb(0 0 0 / 0.05)",
 		"0 1px 2px 0 rgb(0 0 0 / 0.05)",
 		"0 1px 2px 0 rgb(0 0 0 / 0.05)",
@@ -773,7 +763,7 @@ export function ThemeProvider({ children }) {
 						paddingTop: `6px !important `,
 					},
 					paper: {
-						borderRadius: activeRadius.amount * 4,
+						borderRadius: activeRadius.amount,
 						transform: "translateY(4px) !important",
 						boxShadow: customTheme.shadows[2],
 					},
@@ -792,7 +782,7 @@ export function ThemeProvider({ children }) {
 			MuiButtonBase: {
 				defaultProps: {
 					// remove the infamous Material Design button ripple
-					disableRipple: false,
+					disableRipple: true,
 				},
 				styleOverrides: {
 					root: {
@@ -804,6 +794,7 @@ export function ThemeProvider({ children }) {
 			},
 			MuiButton: {
 				defaultProps: {
+					size: "small",
 					disableElevation: true,
 				},
 				styleOverrides: {
@@ -815,11 +806,6 @@ export function ThemeProvider({ children }) {
 						...(ownerState.variant === "contained" &&
 							ownerState.color === "primary" && {
 								transition: customTheme.transitions.create(`all`),
-								border: `1px solid ${lightPaletteScales.primary["700"]}`,
-								[`${DARK_THEME_STRING}`]: {
-									border: `1px solid ${darkPaletteScales.primary["700"]}`,
-								},
-								boxShadow: '2px 5px 23px -4px rgba(0,24,255,0.75) inset',
 								fontWeight: 600,
 								"&:hover": {
 									filter: "contrast(1.1)",
@@ -838,24 +824,16 @@ export function ThemeProvider({ children }) {
 								ownerState.color === "secondary") && {
 								background: lightPaletteScales.background.paper,
 								borderColor: lightPaletteScales.gray["300"],
-								[`${DARK_THEME_STRING}`]: {
-									background: darkPaletteScales.gray["200"],
-									borderColor: darkPaletteScales.gray["300"],
-								},
 								"&:hover": {
 									background: lightPaletteScales.gray["50"],
 									borderColor: lightPaletteScales.gray["300"],
-									[`${DARK_THEME_STRING}`]: {
-										background: darkPaletteScales.gray["300"],
-										borderColor: darkPaletteScales.gray["300"],
-									},
 									boxShadow: customTheme.shadows[1],
 								},
 							}),
 						cursor: "pointer",
 						textTransform: "inherit",
 						letterSpacing: 0.2,
-						borderRadius: activeRadius.amount * 1.25,
+						borderRadius: activeRadius.amount,
 						fontWeight: 600,
 					}),
 				},
@@ -982,15 +960,46 @@ export function ThemeProvider({ children }) {
 			},
 			MuiDataGrid: {
 				styleOverrides: {
+					root: {
+						border: "none",
+						p: 0,
+						borderRadius: 0,
+					},
+					columnSeparator: {
+						color: lightPaletteScales.gray["200"],
+						[`${DARK_THEME_STRING}`]: {
+							color: darkPaletteScales.gray["200"],
+						},
+					},
+					columnHeader: {
+						outline: 'none',
+						'&:focus': {
+							outline: 'none !important',
+						},
+						'&:focus-within': {
+							outline: 'none !important',
+						},
+					},
+					cell: {
+						outline: 'none !important',
+						'&:focus': {
+							outline: 'none !important',
+						},
+						'&:focus-within': {
+							outline: 'none !important',
+						},
+					},
 					row: {
-						borderTopColor: lightPaletteScales.gray["200"],
+						borderTop: 'none',
+						borderBottom: '1px solid',
+						borderBottomColor: lightPaletteScales.gray["200"],
 						backgroundColor: lightPaletteScales.background.paper,
 						[`${DARK_THEME_STRING}`]: {
-							borderTopColor: darkPaletteScales.gray["200"],
+							borderBottomColor: darkPaletteScales.gray["200"],
 							backgroundColor: darkPaletteScales.background.paper,
 						},
 						"&:hover": {
-							backgroundColor: lightPaletteScales.gray["50"],
+							backgroundColor: lightPaletteScales.gray["100"],
 							[`${DARK_THEME_STRING}`]: {
 								backgroundColor: darkPaletteScales.gray["100"],
 							},
@@ -1103,30 +1112,21 @@ export function ThemeProvider({ children }) {
 				},
 				styleOverrides: {
 					root: {
-						backgroundColor: lightPaletteScales.background.paper,
-						[`${DARK_THEME_STRING}`]: {
-							backgroundColor: darkPaletteScales.background.paper,
+						borderWidth: "0px",
+						boxShadow: "none",
+						backgroundColor: "transparent",
+						"&:focus": {
+							backgroundColor: "transparent",
 						},
-						borderRadius: activeRadius.amount,
-						"&.Mui-focused": {
-							backgroundColor: lightPaletteScales.background.paper,
-							[`${DARK_THEME_STRING}`]: {
-								backgroundColor: darkPaletteScales.background.paper,
-							},
-							borderColor: lightPaletteScales.primary["400"],
+						"&:hover": {
+							backgroundColor: "transparent",
 						},
-						"&:hover:not(.Mui-disabled)": {
-							backgroundColor: lightPaletteScales.background.paper,
-							[`${DARK_THEME_STRING}`]: {
-								backgroundColor: darkPaletteScales.background.paper,
-							},
+						"&:active": {
+							backgroundColor: "transparent",
 						},
-						"&.Mui-disabled": {
-							backgroundColor: lightPaletteScales.gray["100"],
-							[`${DARK_THEME_STRING}`]: {
-								backgroundColor: darkPaletteScales.gray["100"],
-							},
-						},
+						"&:focus-within": {
+							backgroundColor: "transparent",
+						}
 					},
 				},
 			},
@@ -1164,7 +1164,7 @@ export function ThemeProvider({ children }) {
 						gap: "2px",
 					},
 					paper: {
-						borderRadius: `${activeRadius.amount * 2}px !important`,
+						borderRadius: `${activeRadius.amount}px !important`,
 					},
 				},
 			},
@@ -1287,6 +1287,9 @@ export function ThemeProvider({ children }) {
 								backgroundColor: darkPaletteScales.background.paper,
 							},
 							borderRadius: activeRadius.amount,
+						},
+						"& .MuiCheckbox-root": {
+							padding: 0,
 						},
 					},
 				},
@@ -1415,17 +1418,30 @@ export function ThemeProvider({ children }) {
 			},
 			MuiTooltip: {
 				defaultProps: {
-					arrow: false,
+					arrow: true,
 				},
 				styleOverrides: {
 					tooltip: {
 						color: lightPaletteScales.gray["900"],
-						background: lightPaletteScales.gray["200"],
+						fontSize: "12px",
+						borderRadius: "8px",
+						background: "white",
+						boxShadow: "0rem -.065rem 0rem 0rem #b5b5b5 inset, 0rem 0rem 0rem .065rem rgba(0, 0, 0, .1) inset, 0rem .03125rem 0rem .09375rem #FFF inset",
 						[`${DARK_THEME_STRING}`]: {
 							color: darkPaletteScales.primary["500"],
 							background: darkPaletteScales.primary["500"],
 						},
 					},
+					arrow: ({ ownerState }) => ({
+						color: ownerState?.placement === 'bottom' 
+							? "rgba(181, 181, 181)" 
+							: "rgba(0, 0, 0, .1)",
+						[`${DARK_THEME_STRING}`]: {
+							color: ownerState?.placement === 'bottom' 
+								? "lightgray" 
+								: "white",
+						},
+					}),
 				},
 				slotProps: {
 					popper: {

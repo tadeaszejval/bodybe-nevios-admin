@@ -10,17 +10,16 @@ import {
   Avatar,
   TableRow,
   Paper,
-  Tooltip,
-  Button
+  Tooltip
 } from "@mui/material";
 import { DashboardHeader } from "../../../components/DashboardHeader";
 import { PageContainer } from "../../../components/PageContainer";
 import { NeviosFormPaper } from "../../../components/nevios/NeviosFormPaper";
-import { TbPencil, TbCheck, TbPackage, TbShoppingCart } from "react-icons/tb";
+import { TbPencil, TbPackage, TbShoppingCart } from "react-icons/tb";
 import { NeviosTwoColumnFormContainer } from "../../../components/nevios/NeviosFormContainer";
 import { formatReadableDatetime, formatCurrencyNumber } from "../../../core/formatters";
-import { NeviosBadge } from "../../../components/nevios/NeviosBadge";
 import NeviosGroupButton from "../../../components/nevios/NeviosGroupButton";
+import { NeviosShadowButton, NeviosDangerButton } from "../../../components/nevios/NeviosButtons";
 import NeviosPaginationButtons from "../../../components/nevios/NeviosPaginationButtons";
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
@@ -244,8 +243,8 @@ export function OrderView({ orderId }) {
             actions={
               <Box sx={{ display: 'flex', gap: 1 }}>
 
-                <Button size="small" variant="contained" color="shadow">Return</Button>
-                <Button size="small" variant="contained" color="shadow">Cancel</Button>
+                <NeviosShadowButton>Return</NeviosShadowButton>
+                <NeviosShadowButton>Cancel</NeviosShadowButton>
                 <NeviosGroupButton
                   buttonText="Documents"
                   variant="contained"
@@ -257,7 +256,7 @@ export function OrderView({ orderId }) {
                     { label: 'Delivery note', onClick: () => {} },
                   ]}
                 /> 
-                <Button size="small" variant="contained" color="shadow" sx={{ color: '#b50000' }}>Delete</Button>
+                <NeviosDangerButton>Delete</NeviosDangerButton>
                 <NeviosPaginationButtons
                   previousButtonOnClick={() => {}}
                   nextButtonOnClick={() => {}}
@@ -265,12 +264,6 @@ export function OrderView({ orderId }) {
               </Box>
             }
             subtitle={order.created_at ? `Created ${formatReadableDatetime(order.created_at)}` : ''}
-            badges={
-              <Box sx={{ display: 'flex', gap: 1 }}>
-                <NeviosBadge badgeVariant="green" icon={<TbCheck />}>Paid</NeviosBadge>
-                <NeviosBadge badgeVariant="blue" icon={<TbPackage />}>Unfulfilled</NeviosBadge>
-              </Box>
-            }
           />
           <NeviosTwoColumnFormContainer
             mainContent={

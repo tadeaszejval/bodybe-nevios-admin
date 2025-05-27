@@ -15,18 +15,10 @@ export default function DashboardEmails() {
         icon={<TbMail size={24} />}
         actions={
           <Box display="flex" gap={1}>
-            <Button size="small" variant="contained" color="shadow" startIcon={<TbRefresh />}>
-              Refresh
-            </Button>
-            <Button size="small" variant="contained">
-              Send email to customer
-            </Button>
           </Box>
         }
       />
-      <Paper sx={{ flex: 1, display: "flex", flexDirection: "column" }}>
         <EmailTable tableHeight="100%" allowCheckboxSelection />
-      </Paper>
     </PageContainer>
   );
 }

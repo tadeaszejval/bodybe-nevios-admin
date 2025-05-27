@@ -1,5 +1,6 @@
 "use client";
 import { Box, Divider, List, IconButton } from "@mui/material";
+import { darken, alpha } from "@mui/material/styles";
 import {
 	TbHome,
 	TbSpeakerphone,
@@ -52,8 +53,8 @@ export function Sidebar() {
 				flexDirection: "column",
 				height: "100%",
 				width: SIDEBAR_WIDTH,
-				backgroundColor: "rgb(238, 238, 238)",
-				boxShadow: "1px 1px 5px 0px rgba(112,112,112,0.75) inset",
+				backgroundColor: "background.defaultDark",
+				boxShadow: (theme) => `1px 1px 5px 0px ${darken(theme.palette.background.defaultDark, 0.2)} inset`,
 			}}
 		>
 			<Box
@@ -109,14 +110,14 @@ export function Sidebar() {
 										alignItems: "center",
 										justifyContent: "center",
 										fontSize: "xs",
-										color: "primary.50",
-										bgcolor: "primary.600",
-										borderRadius: 999,
-										height: 18,
-										width: 18,
+										fontWeight: "600",
+										color: "gray.600",
+										bgcolor: "background.defaultDarker",
+										borderRadius: "8px",
+										padding: "1px 5px",
 									}}
 								>
-									4
+									1,225
 								</Box>
 							}
 						/>

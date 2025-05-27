@@ -1,12 +1,11 @@
 "use client";
-import { Box, Paper } from "@mui/material";
-import { HelpMenu } from "../components/HelpMenu";
+import { Box } from "@mui/material";
+import { darken } from "@mui/material/styles";
 import { MobileNav } from "../components/MobileNav";
 import { Sidebar, SIDEBAR_WIDTH } from "../components/Sidebar";
 import { useRegisterTours } from "../context/TourProvider";
 import { NavigationBackButton } from "./NavigationBackButton";
 import { OrganizationSelector } from "./OrganizationSelector";
-import { CommandBar } from "./CommandBar";
 export function DashboardLayout({ children }) {
 	useRegisterTours();
 	return (
@@ -64,14 +63,13 @@ export function DashboardLayout({ children }) {
 					borderRadius: "12px 12px 0 0",
 					height: "calc(100vh - 60px)",
 					overflow: "hidden",
-					backgroundColor: "rgba(241, 241, 241, 1)",
+					backgroundColor: "background.default",
 					flex: 1,
-					boxShadow: "1px 1px 5px 0px rgba(112,112,112,0.75) inset",
+					boxShadow: (theme) => `1px 1px 5px 0px ${darken(theme.palette.background.default, 0.2)} inset`,
 				}}
 			>
 				<Sidebar />
 				<MobileNav />
-				<HelpMenu />
 				<Box
 					sx={{
 						py: 0,
@@ -92,8 +90,6 @@ export function DashboardLayout({ children }) {
 							width: "100%",
 							overflowY: "auto",
 							scrollbarWidth: "thin",
-							scrollbarColor: (theme) =>
-								`${theme.palette.primary.main} transparent`,
 							display: "flex",
 							flexDirection: "column",
 							gap: 2,

@@ -12,10 +12,9 @@ export default function DashboardProducts() {
       <DashboardHeader
         title="Products"
         icon={<TbPackage size={24} />}
-        actions={<Button variant="contained" color="primary" endIcon={<TbDownload />}>Export</Button>}
       />
       <Box sx={{ flex: 1 }}>
-        <ProductsTable allowCheckboxSelection />
+          <ProductsTable allowCheckboxSelection />
       </Box>
     </PageContainer>
   );

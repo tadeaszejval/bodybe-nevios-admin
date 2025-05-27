@@ -1,0 +1,686 @@
+---
+description: 
+globs: 
+alwaysApply: false
+---
+# Query & Search API System Documentation
+
+## Overview
+
+The Query & Search API System provides a unified, flexible interface for querying and searching data across all modules in the application. It offers consistent endpoints with powerful filtering, pagination, sorting, expansion, and multi-field search capabilities.
+
+## Core Concepts
+
+### Unified Endpoint Design
+- **Single Query Endpoint**: `POST /server/{module}/query` for all query operations
+- **Dedicated Search Endpoint**: `POST /server/{module}/search` for search-focused operations
+- **Flexible Parameters**: Accept parameters from both URL and request body
+- **Parameter Precedence**: Request body parameters override URL parameters
+
+### Key Features
+- ✅ **Pagination**: Configurable with 50 records default, 100 max
+- ✅ **Filtering**: Exact match, pattern matching, and array filters
+- ✅ **Sorting**: Any column, ascending/descending
+- ✅ **Column Selection**: Choose specific fields to return
+- ✅ **Record Expansion**: Expand related records (customer, addresses, items, etc.)
+- ✅ **Multi-field Search**: Search across related tables and fields
+- ✅ **Flexible Parameters**: URL and/or request body
+- ✅ **Consistent Responses**: Standardized response format
+- ✅ **No Events**: Read-only operations that don't trigger events
+
+## API Endpoints
+
+### Unified Query Endpoint
+**POST** `/server/{module}/query`
+
+The primary endpoint for all query operations with maximum flexibility, including search functionality.
+
+#### Parameter Sources
+Parameters can be provided via:
+1. **URL Query Parameters** (optional)
+2. **Request Body** (optional)
+3. **Mixed Approach** (URL + body)
+
+**Note**: Request body parameters always take precedence over URL parameters.
+
+#### URL Parameters (Optional)
+| Parameter | Type | Default | Description |
+|-----------|------|---------|-------------|
+| `page` | integer | 1 | Page number (1-based) |
+| `limit` | integer | 50 | Records per page (max: 100) |
+| `orderBy` | string | 'created_at' | Column to sort by |
+| `ascending` | boolean | false | Sort order (true = ascending, false = descending) |
+| `select` | string | '*' | Columns to select (comma-separated) |
+| `expand` | string | '' | Related records to expand (comma-separated) |
+
+#### Request Body (Optional)
+```json
+{
+  "page": 1,
+  "limit": 50,
+  "orderBy": "created_at",
+  "ascending": false,
+  "select": "*",
+  "expand": ["customer", "addresses"],
+  "filters": {
+    "status": "active",
+    "category": "premium"
+  },
+  "search": "search term"
+}
+```
+
+## Record Expansion System
+
+### Overview
+The expansion system allows you to include related records in the response instead of just their IDs. This reduces the need for multiple API calls to fetch related data.
+
+### Expansion Parameter Formats
+
+#### URL Parameter (Comma-separated)
+```bash
+POST /server/orders/query?expand=customer,addresses,items
+```
+
+#### Request Body (Array)
+```json
+{
+  "expand": ["customer", "shipping_address", "billing_address"]
+}
+```
+
+#### Request Body (String)
+```json
+{
+  "expand": "customer,addresses"
+}
+```
+
+### Common Expansion Options
+
+#### Orders Module
+| Expansion | Description | Returns |
+|-----------|-------------|---------|
+| `customer` | Full customer details | Complete customer object with email, name, phone, etc. |
+| `shipping_address` | Complete shipping address | Full address object with street, city, country, etc. |
+| `billing_address` | Complete billing address | Full address object with street, city, country, etc. |
+| `addresses` | Both shipping and billing addresses | Both address objects expanded |
+| `items` | All order items | Array of order items with product details |
+
+#### Customers Module
+| Expansion | Description | Returns |
+|-----------|-------------|---------|
+| `addresses` | Customer addresses | Array of address objects |
+| `orders` | Customer orders | Array of order objects |
+
+#### Products Module
+| Expansion | Description | Returns |
+|-----------|-------------|---------|
+| `variants` | Product variants | Array of variant objects |
+| `category` | Product category | Complete category object |
+| `inventory` | Inventory data | Inventory levels and tracking |
+
+### Expansion Examples
+
+#### Without Expansion (Default)
+```json
+{
+  "data": [
+    {
+      "id": "order_123",
+      "customer": "customer_456",
+      "shipping_address": "addr_789"
+    }
+  ]
+}
+```
+
+#### With Customer Expansion
+```json
+{
+  "data": [
+    {
+      "id": "order_123",
+      "customer": {
+        "id": "customer_456",
+        "email": "john@example.com",
+        "first_name": "John",
+        "last_name": "Doe"
+      },
+      "shipping_address": "addr_789"
+    }
+  ]
+}
+```
+
+#### With Multiple Expansions
+```json
+{
+  "data": [
+    {
+      "id": "order_123",
+      "customer": {
+        "id": "customer_456",
+        "email": "john@example.com",
+        "first_name": "John",
+        "last_name": "Doe"
+      },
+      "shipping_address": {
+        "id": "addr_789",
+        "street": "123 Main St",
+        "city": "New York",
+        "country": "US"
+      }
+    }
+  ]
+}
+```
+
+## Parameter Handling
+
+### Parameter Precedence
+When the same parameter is provided in both URL and request body:
+
+| Parameter | URL Value | Body Value | Final Value | Winner |
+|-----------|-----------|------------|-------------|---------|
+| `page` | `1` | `2` | `2` | Body |
+| `limit` | `25` | `50` | `50` | Body |
+| `orderBy` | `"name"` | `"created_at"` | `"created_at"` | Body |
+| `expand` | `"customer"` | `["customer", "addresses"]` | `["customer", "addresses"]` | Body |
+
+### Usage Patterns
+
+#### 1. URL-Only (Simple Queries)
+```bash
+POST /server/customers/query?page=1&limit=25&orderBy=name&ascending=true&expand=addresses
+Body: {}
+```
+
+#### 2. Body-Only (Complex Queries)
+```bash
+POST /server/customers/query
+Body: {
+  "page": 2,
+  "limit": 25,
+  "orderBy": "created_at",
+  "ascending": false,
+  "expand": ["addresses", "orders"],
+  "filters": {"status": "active"},
+  "search": "john"
+}
+```
+
+#### 3. Mixed Approach (Recommended)
+```bash
+POST /server/customers/query?page=1&limit=25&expand=addresses
+Body: {
+  "filters": {"status": "active"},
+  "search": "premium customer"
+}
+```
+
+#### 4. Override Pattern
+```bash
+POST /server/customers/query?page=1&limit=25&orderBy=name&expand=addresses
+Body: {
+  "page": 3,        # Overrides URL page=1
+  "orderBy": "email", # Overrides URL orderBy=name
+  "expand": ["addresses", "orders"] # Overrides URL expand=addresses
+}
+# Result: page=3, limit=25, orderBy=email, expand=["addresses", "orders"]
+```
+
+## Filtering System
+
+### Filter Types
+
+#### 1. Exact Match
+```json
+{
+  "filters": {
+    "status": "active",
+    "category_id": "cat_123"
+  }
+}
+```
+
+#### 2. Pattern Matching (LIKE)
+Use `%` for wildcard matching:
+```json
+{
+  "filters": {
+    "email": "%@gmail.com",     # Ends with @gmail.com
+    "name": "John%",            # Starts with John
+    "description": "%premium%"   # Contains premium
+  }
+}
+```
+
+#### 3. Array Values (IN)
+```json
+{
+  "filters": {
+    "status": ["active", "pending", "processing"],
+    "category": ["electronics", "clothing"]
+  }
+}
+```
+
+#### 4. Numeric Comparisons
+```json
+{
+  "filters": {
+    "price": 99.99,
+    "quantity": 10
+  }
+}
+```
+
+### Filter Examples
+
+```json
+{
+  "filters": {
+    "status": "active",                    # Exact match
+    "email": "%@company.com",              # Pattern match
+    "category": ["premium", "standard"],    # Array match
+    "created_at": "2024-01%",              # Date pattern
+    "price": 100                           # Numeric match
+  }
+}
+```
+
+## Search System
+
+### Search Capabilities
+- **Multi-field**: Search across multiple columns simultaneously
+- **Case-insensitive**: All searches ignore case
+- **Partial matching**: Finds partial matches within fields
+- **Cross-table**: Search across related tables via expansion and client-side filtering
+- **Automatic inclusion**: Related data included for search filtering
+- **Expansion compatible**: Works with record expansion system
+- **Hybrid approach**: Combines database queries with client-side filtering for complex searches
+
+### Search Implementation Approaches
+
+#### Simple Search (Database-Level)
+For modules with straightforward search requirements:
+- Uses `executeSearchQuery()` utility
+- Searches only main table fields
+- Optimized database-level search
+- Best for single-table searches
+
+#### Complex Search (Hybrid Approach)
+For modules requiring cross-table search (like orders):
+- Fetches expanded data from database
+- Applies client-side filtering across all fields
+- Cleans up unwanted expansions
+- Applies pagination to filtered results
+- More flexible but potentially slower
+
+### Search Behavior
+
+#### Single Search Term
+```json
+{
+  "search": "john doe"
+}
+```
+This searches for "john doe" across all configured searchable fields.
+
+#### Search with Filters and Expansion
+```json
+{
+  "search": "premium",
+  "expand": ["customer", "addresses"],
+  "filters": {
+    "status": "active",
+    "created_at": "2024%"
+  }
+}
+```
+Combines search with additional filtering and record expansion.
+
+### Search Performance Considerations
+
+#### Database-Level Search
+- Fast and efficient for single-table searches
+- Limited to main table fields only
+- Uses database indexes effectively
+- Recommended for simple search requirements
+
+#### Hybrid Search (Complex Modules)
+- Fetches 2x requested limit (max 100) to account for filtering
+- Results filtered client-side after expansion
+- Pagination applied to filtered results
+- More resource-intensive but supports cross-table search
+- Automatically expands required data for search, then cleans up based on user request
+
+### Common Search Patterns
+
+| Search Term | Finds Records With |
+|-------------|-------------------|
+| `"john"` | Any field containing "john" |
+| `"@gmail.com"` | Email addresses with "@gmail.com" |
+| `"ORD-123"` | Order numbers containing "ORD-123" |
+| `"premium"` | Any field containing "premium" |
+| `"+1234"` | Phone numbers containing "+1234" |
+
+## Response Format
+
+### Standard Response Structure
+```json
+{
+  "success": true,
+  "data": [
+    {
+      "id": "record_123",
+      "field1": "value1",
+      "field2": "value2",
+      "created_at": "2024-01-15T10:30:00Z",
+      // Expanded related data
+      "customer": {
+        "id": "customer_456",
+        "email": "john@example.com",
+        "first_name": "John",
+        "last_name": "Doe"
+      },
+      "shipping_address": {
+        "id": "addr_789",
+        "street": "123 Main St",
+        "city": "New York",
+        "country": "US"
+      }
+    }
+  ],
+  "pagination": {
+    "currentPage": 1,
+    "totalPages": 5,
+    "totalRecords": 247,
+    "recordsPerPage": 50,
+    "hasNextPage": true,
+    "hasPreviousPage": false,
+    "recordsOnCurrentPage": 50
+  },
+  "searchTerm": "search term",  // Only when search is used
+  "searchFields": ["field1", "field2"],  // Only when search is used
+  "filters": {
+    "status": "active"
+  },
+  "orderBy": {
+    "column": "created_at",
+    "ascending": false
+  },
+  "expansions": ["customer", "shipping_address"]  // Shows what was expanded
+}
+```
+
+### Pagination Metadata
+- `currentPage`: Current page number (1-based)
+- `totalPages`: Total number of pages
+- `totalRecords`: Total number of matching records
+- `recordsPerPage`: Number of records per page
+- `hasNextPage`: Boolean indicating if next page exists
+- `hasPreviousPage`: Boolean indicating if previous page exists
+- `recordsOnCurrentPage`: Actual records on current page
+
+## Column Selection
+
+### Select All Columns (Default)
+```json
+{
+  "select": "*"
+}
+```
+
+### Select Specific Columns
+```json
+{
+  "select": "id,name,email,created_at"
+}
+```
+
+### URL Parameter
+```bash
+POST /server/customers/query?select=id,name,email
+```
+
+**Note**: When using expansion, the select parameter applies to the main table only. Expanded records always return their complete objects.
+
+## Sorting
+
+### Default Sorting
+- Column: `created_at`
+- Order: Descending (newest first)
+
+### Custom Sorting
+```json
+{
+  "orderBy": "name",
+  "ascending": true
+}
+```
+
+### URL Parameter
+```bash
+POST /server/customers/query?orderBy=email&ascending=true
+```
+
+## Error Handling
+
+### HTTP Status Codes
+- **200 OK**: Query executed successfully
+- **400 Bad Request**: Invalid parameters or missing search term
+- **500 Internal Server Error**: Database or server error
+
+### Error Response Format
+```json
+{
+  "success": false,
+  "error": "Descriptive error message"
+}
+```
+
+### Common Validation Errors
+- `"Page must be a positive integer"`
+- `"Limit must be between 1 and 100"`
+- `"Search term is required"` (for search endpoint)
+- `"Invalid orderBy column"`
+
+## Usage Examples
+
+### Example 1: Simple Pagination with Expansion
+```bash
+curl -X POST "http://localhost:3000/api/server/customers/query?page=1&limit=25&expand=addresses" \
+  -H "Content-Type: application/json" \
+  -d '{}'
+```
+
+### Example 2: Filtered Query with Expansion
+```bash
+curl -X POST "http://localhost:3000/api/server/orders/query" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "page": 1,
+    "limit": 50,
+    "expand": ["customer"],
+    "filters": {
+      "payment_status": "UNPAID",
+      "local_currency": "CZK"
+    }
+  }'
+```
+
+### Example 3: Search Query with Expansion
+```bash
+curl -X POST "http://localhost:3000/api/server/orders/query" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "search": "Tadeáš Zejval",
+    "expand": ["customer"],
+    "filters": {
+      "payment_status": "UNPAID"
+    }
+  }'
+```
+
+### Example 4: Product Search with Multiple Expansions
+```bash
+curl -X POST "http://localhost:3000/api/server/products/query" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "search": "premium sneakers",
+    "expand": ["variants", "category"],
+    "filters": {
+      "category": "footwear",
+      "in_stock": true
+    }
+  }'
+```
+
+### Example 5: Complex Query with All Options
+```bash
+curl -X POST "http://localhost:3000/api/server/orders/query" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "page": 2,
+    "limit": 25,
+    "orderBy": "created_at",
+    "ascending": false,
+    "select": "id,name,payment_status,created_at",
+    "expand": ["customer", "items"],
+    "filters": {
+      "payment_status": ["PAID", "UNPAID"],
+      "local_currency": "CZK"
+    },
+    "search": "premium"
+  }'
+```
+
+## Performance Considerations
+
+### Query Optimization
+1. **Use specific column selection** when possible
+2. **Limit the number of records** with appropriate pagination
+3. **Index frequently filtered columns** in the database
+4. **Avoid complex searches** on large datasets without proper indexing
+5. **Use expansion judiciously** - only expand what you need
+
+### Search Performance
+- Search operations may be slower due to multi-table joins
+- Consider database-level full-text search for large datasets
+- Results include related data automatically when search is used
+- Pagination is applied after search filtering for accurate results
+
+### Expansion Performance
+- Expansions use database joins for efficiency
+- Only requested relations are fetched
+- Multiple expansions in a single query are optimized
+- Consider the impact on response size and network transfer
+
+### Best Practices
+- Use the unified endpoint for most operations
+- Use the dedicated search endpoint when search is the primary goal
+- Combine URL parameters for pagination with body parameters for complex filtering
+- Only expand relations you actually need in the response
+- Monitor query performance and optimize database indexes accordingly
+
+## Security & Validation
+
+### Input Validation
+- All parameters are sanitized before database execution
+- SQL injection prevention through parameterized queries
+- Type validation for all parameters
+- Range validation for pagination parameters
+- Expansion validation against allowed relations
+
+### Data Exposure
+- Only return necessary fields using column selection
+- Implement access control as needed per module
+- No sensitive data exposure in error messages
+- Expanded records follow same security rules as main records
+
+## Integration Guidelines
+
+### Frontend Integration
+```javascript
+// Simple query with expansion
+const response = await fetch('/api/server/customers/query?page=1&limit=25&expand=addresses', {
+  method: 'POST',
+  headers: { 'Content-Type': 'application/json' },
+  body: JSON.stringify({})
+});
+
+// Search with filters and expansion
+const searchResponse = await fetch('/api/server/orders/query', {
+  method: 'POST',
+  headers: { 'Content-Type': 'application/json' },
+  body: JSON.stringify({
+    search: "Tadeáš Zejval",
+    expand: ['customer'],
+    filters: { payment_status: 'UNPAID' }
+  })
+});
+```
+
+### Backend Integration
+```javascript
+// In your application code
+const queryOrders = require('./functions/orders/query');
+
+const result = await queryOrders({
+  page: 1,
+  limit: 50,
+  expand: ['customer'],
+  filters: { payment_status: 'UNPAID' },
+  search: 'Tadeáš Zejval'
+});
+```
+
+## Module-Specific Implementations
+
+Each module implements the query system with:
+- **Module-specific searchable fields**
+- **Relevant expansion options**
+- **Appropriate default sorting**
+- **Module-specific filters**
+- **Search implementation approach** (database-level or hybrid)
+
+## Troubleshooting
+
+### Common Issues
+
+#### 1. Empty Results
+- Check filter values for typos
+- Verify column names in filters
+- Ensure search term matches existing data
+- Verify expansion options are valid for the module
+
+#### 2. Validation Errors
+- Verify page and limit are positive integers
+- Ensure limit doesn't exceed 100
+- Check that search term is provided for search endpoint
+- Verify expansion options are supported
+
+#### 3. Performance Issues
+- Reduce limit for large datasets
+- Use specific column selection
+- Check database indexes for filtered columns
+- Consider using filters instead of search for exact matches
+- Limit the number of expansions per query
+
+#### 4. Expansion Issues
+- Verify expansion names are correct for the module
+- Check that related records exist
+- Ensure proper database relationships are configured
+
+### Debug Tips
+- Check the response's `filters`, `searchTerm`, and `expansions` fields to verify what was applied
+- Use the `pagination` metadata to understand result counts
+- Monitor server logs for detailed error messages
+- Test with simple queries first, then add complexity
+- Test expansions individually before combining multiple ones
+
+## Conclusion
+
+The Query & Search API System provides a powerful, flexible, and consistent way to retrieve data across all modules. Its unified design ensures that once you learn the pattern, you can apply it to any module in the system. The combination of flexible parameter handling, comprehensive filtering, powerful search capabilities, and efficient record expansion makes it suitable for everything from simple data retrieval to complex search operations with related data.
