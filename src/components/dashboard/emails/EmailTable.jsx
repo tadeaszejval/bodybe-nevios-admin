@@ -1,6 +1,6 @@
 "use client";
 import { Box } from "@mui/material";
-import React from "react";
+import React, { useCallback } from "react";
 import {
 	dateColumnFactory,
 	genericColumnFactory,
@@ -10,35 +10,55 @@ import { NeviosEnhancedTable } from "../../nevios/NeviosEnhancedTable";
 import { formatReadableDatetime } from "../../../core/formatters";
 import { EmailStatusBadge } from "./EmailStatusBadge";
 import { useRouter } from "next/navigation";
-
-// Transform function for email data
-const transformEmails = (emails) => {
-	return emails.map((email) => ({
-		id: email.id,
-		subject: email.subject || 'No Subject',
-		from: email.from || 'Unknown',
-		to: email.to || 'Unknown',
-		status: email.status || 'UNKNOWN',
-		created_at: email.created_at,
-		customer_name: email.customer ? 
-			`${email.customer.first_name || ''} ${email.customer.last_name || ''}`.trim() : 
-			'Unknown'
-	}));
-};
+import { useModuleQuery } from "../../../hooks/useModuleQuery";
+import { EMAILS_FILTER_CONFIG } from "../../nevios/NeviosFilters/EmailsFilterConfig";
 
 export function EmailTable({ 
-	tableHeight, 
-	allowCheckboxSelection = false,
-	data = [],
-	loading = false,
-	error = null,
-	totalCount = 0,
-	pagination = { page: 0, pageSize: 100 },
-	onPaginationChange,
-	sortModel = [],
-	onSortChange
+	tableHeight,
+	initialFilters = {},
+	initialSearch = ""
 }) {
 	const router = useRouter();
+
+	// Transform raw email data to table format
+	const transformEmailData = useCallback((emails) => {
+		return emails.map(email => ({
+			id: email.id,
+			subject: email.subject || 'No Subject',
+			from: email.from || 'Unknown',
+			to: email.to || 'Unknown',
+			status: email.status || 'UNKNOWN',
+			created_at: email.created_at,
+			customer_name: email.customer ? 
+				`${email.customer.first_name || ''} ${email.customer.last_name || ''}`.trim() : 
+				'Unknown',
+			// Keep original data for reference
+			_original: email
+		}));
+	}, []);
+
+	// Use the module query hook
+	const {
+		data,
+		loading,
+		error,
+		totalCount,
+		pagination,
+		sortModel,
+		filters,
+		searchTerm,
+		handlePaginationChange,
+		handleSortChange,
+		refreshData,
+		updateFilters,
+		updateSearch
+	} = useModuleQuery('emails', {
+		expand: ["customer"],
+		initialFilters,
+		initialSearch,
+		enableSearch: true,
+		transformData: transformEmailData
+	});
 
 	const columnDefinitions = [
 		clickableColumnFactory({
@@ -106,11 +126,6 @@ export function EmailTable({
 		}
 	};
 
-	// Transform the data
-	const transformedData = React.useMemo(() => {
-		return transformEmails(data);
-	}, [data]);
-
 	return (
 		<Box
 			sx={{
@@ -123,18 +138,25 @@ export function EmailTable({
 		>
 			<NeviosEnhancedTable
 				columns={columnDefinitions}
-				data={transformedData}
+				data={data}
 				loading={loading}
 				error={error}
 				totalCount={totalCount}
 				pagination={pagination}
-				onPaginationChange={onPaginationChange}
+				onPaginationChange={handlePaginationChange}
 				sortModel={sortModel}
-				onSortChange={onSortChange}
+				onSortChange={handleSortChange}
 				onRowClick={handleRowClick}
 				tableHeight={tableHeight}
-				enableFilters={true}
 				hideFooter={false}
+				enableSearch={true}
+				searchTerm={searchTerm}
+				onSearchChange={updateSearch}
+				searchPlaceholder="Search emails by subject, sender, recipient, or customer..."
+				enableFilters={true}
+				filterConfigs={EMAILS_FILTER_CONFIG}
+				activeFilters={filters}
+				onFiltersChange={updateFilters}
 				emptyStateProps={{
 					title: 'No emails found',
 					description: 'There are no emails to display',

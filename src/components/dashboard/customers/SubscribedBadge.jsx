@@ -32,8 +32,8 @@ export const subscriptionStatusMatcher = (value) =>
     .with(false, () => SUBSCRIPTION_STATUSES.UNSUBSCRIBED)
     .otherwise(() => SUBSCRIPTION_STATUSES.UNKNOWN); // Default fallback for null/undefined
 
-export function SubscribedBadge({ status, customSx = {} }) {
-  const statusMeta = subscriptionStatusMatcher(status);
+export function SubscribedBadge({ value, customSx = {} }) {
+  const statusMeta = subscriptionStatusMatcher(value);
   
   return (
     <Box

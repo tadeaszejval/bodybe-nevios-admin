@@ -1,12 +1,12 @@
 "use client";
 import React from "react";
-import { Box, Button } from "@mui/material";
+import { Box, Button, Paper } from "@mui/material";
 import { DashboardHeader } from "../../../components/DashboardHeader";
 import { PageContainer } from "../../../components/PageContainer";
 import { TbUsers } from "react-icons/tb";
 import { useRouter } from "next/navigation";
-import { Paper } from "@mui/material";
 import { CustomersTable } from "../../../components/dashboard/customers/CustomersTable";
+
 export default function DashboardCustomers() {
   const router = useRouter();
 
@@ -32,7 +32,9 @@ export default function DashboardCustomers() {
           </Box>
         }
       />
-        <CustomersTable tableHeight="100%" allowCheckboxSelection />
+      <Paper sx={{ flex: 1, display: "flex", flexDirection: "column" }}>
+        <CustomersTable tableHeight="100%" />
+      </Paper>
     </PageContainer>
   );
 }

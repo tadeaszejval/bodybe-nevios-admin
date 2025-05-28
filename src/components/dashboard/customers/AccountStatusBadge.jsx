@@ -32,8 +32,8 @@ export const accountStatusMatcher = (value) =>
     .with(false, () => ACCOUNT_STATUSES.DISABLED)
     .otherwise(() => ACCOUNT_STATUSES.UNKNOWN); // Default fallback for null/undefined
 
-export function AccountStatusBadge({ status, customSx = {} }) {
-  const statusMeta = accountStatusMatcher(status);
+export function AccountStatusBadge({ value, customSx = {} }) {
+  const statusMeta = accountStatusMatcher(value);
   
   return (
     <Box

@@ -1,0 +1,242 @@
+---
+description: 
+globs: 
+alwaysApply: false
+---
+# Product Query API
+
+## Endpoint
+**POST** `/server/product/query`
+
+## Description
+Query products with advanced filtering, pagination, sorting, and optional text search across multiple fields. This endpoint supports both URL parameters and request body parameters, with body parameters taking precedence.
+
+## Request Parameters
+
+### URL Parameters (Optional)
+All parameters can be passed as URL query parameters:
+- `page` (integer): Page number (default: 1)
+- `limit` (integer): Records per page (default: 50, max: 100)
+- `orderBy` (string): Column to sort by (default: 'created_at')
+- `ascending` (boolean): Sort order (default: false)
+- Any other parameters will be treated as filters
+
+### Request Body Parameters
+```json
+{
+  "page": 1,
+  "limit": 50,
+  "orderBy": "created_at",
+  "ascending": false,
+  "search": "search term",
+  "filters": {
+    "status": "active",
+    "type": "physical",
+    "category": "electronics"
+  }
+}
+```
+
+#### Body Parameters
+- `page` (integer, optional): Page number (default: 1)
+- `limit` (integer, optional): Records per page (default: 50, max: 100)
+- `orderBy` (string, optional): Column to sort by (default: 'created_at')
+- `ascending` (boolean, optional): Sort order (default: false)
+- `search` (string, optional): Search term for multi-field search
+- `filters` (object, optional): Filter criteria
+
+#### Available Filters
+- `id` (string): Product ID
+- `eid` (number): External ID
+- `title` (string): Product title
+- `description` (string): Product description
+- `status` (string): Product status
+- `url` (string): Product URL
+- `handle` (string): Product handle
+- `featured_image` (string): Featured image URL
+- `type` (string): Product type
+- `category` (string): Product category
+- `vendor` (string): Product vendor
+- `graphql_id` (string): GraphQL ID
+- `index_id` (string): Index ID
+- `tags` (string): Product tags (searches within comma-separated values)
+
+#### Search Fields
+When using the `search` parameter, the system searches across:
+- `title` - Product title
+- `description` - Product description
+- `status` - Product status
+- `handle` - Product handle
+- `type` - Product type
+- `category` - Product category
+- `vendor` - Product vendor
+- `tags` - Product tags (comma-separated values)
+- `eid` - External ID (converted to string)
+- `graphql_id` - GraphQL ID
+- `index_id` - Index ID
+
+## Example Requests
+
+### Basic Query
+```bash
+curl -X POST http://localhost:3000/server/product/query \
+  -H "Content-Type: application/json" \
+  -d '{
+    "page": 1,
+    "limit": 20,
+    "orderBy": "created_at",
+    "ascending": false
+  }'
+```
+
+### Query with Filters
+```bash
+curl -X POST http://localhost:3000/server/product/query \
+  -H "Content-Type: application/json" \
+  -d '{
+    "filters": {
+      "status": "active",
+      "type": "physical",
+      "category": "electronics"
+    }
+  }'
+```
+
+### Search Query
+```bash
+curl -X POST http://localhost:3000/server/product/query \
+  -H "Content-Type: application/json" \
+  -d '{
+    "search": "smartphone",
+    "limit": 10
+  }'
+```
+
+### Tags Filter
+```bash
+curl -X POST http://localhost:3000/server/product/query \
+  -H "Content-Type: application/json" \
+  -d '{
+    "filters": {
+      "tags": "featured"
+    }
+  }'
+```
+
+### URL Parameters Example
+```bash
+curl -X POST "http://localhost:3000/server/product/query?page=2&limit=25&status=active&type=physical"
+```
+
+## Response Format
+
+### Success Response (200 OK)
+```json
+{
+  "success": true,
+  "data": [
+    {
+      "id": "123e4567-e89b-12d3-a456-426614174000",
+      "eid": 12345,
+      "title": "Smartphone Pro",
+      "description": "Latest smartphone with advanced features",
+      "status": "active",
+      "url": "https://example.com/products/smartphone-pro",
+      "handle": "smartphone-pro",
+      "featured_image": "https://example.com/images/smartphone.jpg",
+      "type": "physical",
+      "category": "electronics",
+      "vendor": "TechCorp",
+      "options": [
+        {
+          "name": "Color",
+          "values": ["Black", "White", "Blue"]
+        }
+      ],
+      "graphql_id": "gid://shopify/Product/123456789",
+      "index_id": "prod_123",
+      "hasOnlyDefaultVariant": true,
+      "tags": "featured,bestseller,new",
+      "created_at": "2024-01-15T10:30:00Z"
+    }
+  ],
+  "pagination": {
+    "currentPage": 1,
+    "totalPages": 5,
+    "totalRecords": 100,
+    "recordsPerPage": 20,
+    "hasNextPage": true,
+    "hasPreviousPage": false,
+    "recordsOnCurrentPage": 20
+  },
+  "filters": {
+    "status": "active"
+  },
+  "orderBy": {
+    "column": "created_at",
+    "ascending": false
+  },
+  "expansions": []
+}
+```
+
+### Search Response
+```json
+{
+  "success": true,
+  "data": [
+    {
+      "id": "123e4567-e89b-12d3-a456-426614174000",
+      "title": "Smartphone Pro",
+      "description": "Latest smartphone with advanced features",
+      "status": "active",
+      "type": "physical",
+      "category": "electronics",
+      "vendor": "TechCorp",
+      "tags": "featured,bestseller,new",
+      "created_at": "2024-01-15T10:30:00Z"
+    }
+  ],
+  "pagination": {
+    "currentPage": 1,
+    "totalPages": 1,
+    "totalRecords": 1,
+    "recordsPerPage": 10,
+    "hasNextPage": false,
+    "hasPreviousPage": false,
+    "recordsOnCurrentPage": 1
+  },
+  "searchTerm": "smartphone",
+  "filters": {},
+  "orderBy": {
+    "column": "created_at",
+    "ascending": false
+  },
+  "expansions": []
+}
+```
+
+## Error Responses
+
+### Bad Request (400)
+```json
+{
+  "success": false,
+  "error": "Page must be greater than 0"
+}
+```
+
+### Server Error (500)
+```json
+{
+  "success": false,
+  "error": "Database query failed: connection timeout"
+}
+```
+
+## Notes
+- Body parameters take precedence over URL parameters when both are provided
+- The search functionality performs case-insensitive partial matching across multiple fields
+- Tags filtering supports searching within comma-separated values (e.g., searching "featured" will match products with tags "featured,bestseller,new")
+- Maximum limit is 100 records per page to prevent performance issues
+- Products table has no related records to expand, so expansion functionality is not applicable 

@@ -468,6 +468,7 @@ export function NeviosEnhancedTable({
             
             {/* Data Grid */}
             <DataGrid
+              disableRowSelectionOnClick={true}
               columnHeaderHeight={matchesSmBreakpoint ? 40 : 32}
               disableColumnSorting={true}
               disableColumnMenu={true}

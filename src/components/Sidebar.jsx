@@ -1,6 +1,6 @@
 "use client";
-import { Box, Divider, List, IconButton } from "@mui/material";
-import { darken, alpha } from "@mui/material/styles";
+import { Box, Divider, List } from "@mui/material";
+import { darken } from "@mui/material/styles";
 import {
 	TbHome,
 	TbSpeakerphone,
@@ -21,6 +21,7 @@ import {
 	TbToolsKitchen2,
 	TbSun,
 	TbMoon,
+	TbPackage,
 } from "react-icons/tb";
 import { useColorScheme } from "@mui/material";
 import { SidebarItem } from "../components/SidebarItem";
@@ -144,14 +145,21 @@ export function Sidebar() {
 							icon={<TbBuildingStore size={ICON_SIZE} />}
 						/>
 						<SidebarItem
+							deemphasized={true}
 							href="/dashboard/inventory"
 							title="Inventory"
 							icon={<TbArchive size={ICON_SIZE} />}
 						/>
 						<SidebarItem
+							deemphasized={true}
 							href="/dashboard/stock-movements"
 							title="Stock Movements"
 							icon={<TbReplace size={ICON_SIZE} />}
+						/>
+						<SidebarItem
+							href="/dashboard/fulfillments"
+							title="Fulfillments"
+							icon={<TbPackage size={ICON_SIZE} />}
 						/>
 						<SidebarDivider />
 						<SidebarItem

@@ -1,0 +1,312 @@
+---
+description: 
+globs: 
+alwaysApply: false
+---
+# Customer Query API
+
+## Overview
+The Customer Query API provides flexible endpoints for retrieving and searching customer records with comprehensive filtering, pagination, expansion, and search capabilities.
+
+## Endpoint
+**POST** `/server/customers/query`
+
+## Description
+Unified customer query endpoint with flexible parameter handling. Supports both URL query parameters and request body parameters, with request body taking precedence.
+
+## Parameters Reference
+
+### Core Parameters
+| Parameter | Type | Location | Default | Description |
+|-----|---|----|---|----|
+| `page` | integer | URL/Body | 1 | Page number (1-based) |
+| `limit` | integer | URL/Body | 50 | Records per page (max: 100) |
+| `orderBy` | string | URL/Body | 'created_at' | Column to sort by |
+| `ascending` | boolean | URL/Body | false | Sort order (true = ascending, false = descending) |
+| `select` | string | URL/Body | '*' | Columns to select |
+| `expand` | string/array | URL/Body | [] | Related records to expand |
+
+### Expansion Options
+| Expansion | Description | Returns |
+|-----|----|---|
+| `orders` | Customer's orders | Array of order objects |
+| `default_billing` | Default billing address | Billing address object |
+| `default_shipping` | Default shipping address | Shipping address object |
+| `addresses` | Both billing and shipping addresses | Both address objects |
+| `billing_address` | Default billing address (alias) | Billing address object |
+| `shipping_address` | Default shipping address (alias) | Shipping address object |
+
+### Filter Parameters (Body Only)
+| Parameter | Type | Description | Example |
+|-----|---|----|---|
+| `filters.email` | string | Customer email | "john@example.com" |
+| `filters.phone` | string | Customer phone | "+1234567890" |
+| `filters.country` | string | Customer country code | "US", "CA" |
+| `filters.first_name` | string | Customer first name | "John" |
+| `filters.last_name` | string | Customer last name | "Doe" |
+| `filters.full_name` | string | Customer full name | "John Doe" |
+| `filters.subscribed` | boolean | Newsletter subscription status | true, false |
+| `filters.account_enabled` | boolean | Account enabled status | true, false |
+| `filters.gender` | string | Customer gender | "MALE", "FEMALE", "NOT_FOUND" |
+| `filters.tags` | string | Customer tags (searches within comma-separated values) | "VIP", "premium" |
+
+### Search Parameters
+| Parameter | Type | Location | Required | Description |
+|-----|---|----|---|----|
+| `search` | string | Body | Yes (for search) | Search term to look for across multiple fields |
+
+## Search Fields
+The search functionality looks across the following fields:
+
+### Customer Table Fields
+- `first_name` - Customer's first name
+- `last_name` - Customer's last name
+- `full_name` - Customer's full name
+- `email` - Customer's email address
+- `phone` - Customer's phone number
+- `country` - Customer's country code
+- `tags` - Customer tags
+
+### Related Fields (via expansion)
+- `orders.name` - Order names/numbers
+- `orders.payment_status` - Order payment status
+- `orders.fulfillment_status` - Order fulfillment status
+
+## Request Examples
+
+### Basic Query (URL Parameters)
+```http
+POST /server/customers/query?page=1&limit=25&orderBy=email&ascending=true
+```
+
+### Advanced Query (Request Body)
+```http
+POST /server/customers/query
+Content-Type: application/json
+
+{
+  "page": 1,
+  "limit": 50,
+  "orderBy": "created_at",
+  "ascending": false,
+  "expand": ["orders", "addresses"],
+  "filters": {
+    "subscribed": true,
+    "account_enabled": true,
+    "country": "US"
+  }
+}
+```
+
+### Search Query
+```http
+POST /server/customers/query
+Content-Type: application/json
+
+{
+  "search": "john",
+  "expand": ["orders"],
+  "filters": {
+    "account_enabled": true
+  }
+}
+```
+
+### Filtering by Multiple Criteria
+```http
+POST /server/customers/query
+Content-Type: application/json
+
+{
+  "filters": {
+    "account_enabled": true,
+    "country": "US",
+    "subscribed": true
+  }
+}
+```
+
+### Mixed Parameters (Body overrides URL)
+```http
+POST /server/customers/query?page=1&limit=10
+Content-Type: application/json
+
+{
+  "page": 2,
+  "limit": 25,
+  "expand": ["orders"]
+}
+```
+*Note: Final query will use page=2, limit=25 from body*
+
+## Response Format
+
+### Success Response
+```json
+{
+  "success": true,
+  "data": [
+    {
+      "id": "123e4567-e89b-12d3-a456-426614174000",
+      "email": "john.doe@example.com",
+      "phone": "+1234567890",
+      "country": "US",
+      "first_name": "John",
+      "last_name": "Doe",
+      "full_name": "John Doe",
+      "subscribed": true,
+      "account_enabled": true,
+      "benefits": null,
+      "default_billing": "456e7890-e89b-12d3-a456-426614174001",
+      "default_shipping": "789e0123-e89b-12d3-a456-426614174002",
+      "tags": "VIP,Premium",
+      "created_at": "2024-01-15T10:30:00Z",
+      "gender": "MALE",
+      "orders": [
+        {
+          "id": "order-123",
+          "name": "ORD-001",
+          "payment_status": "PAID",
+          "fulfillment_status": "FULFILLED"
+        }
+      ]
+    }
+  ],
+  "pagination": {
+    "currentPage": 1,
+    "totalPages": 5,
+    "totalRecords": 125,
+    "recordsPerPage": 25,
+    "hasNextPage": true,
+    "hasPreviousPage": false,
+    "recordsOnCurrentPage": 25
+  },
+  "filters": {
+    "subscribed": true,
+    "country": "US"
+  },
+  "orderBy": {
+    "column": "created_at",
+    "ascending": false
+  },
+  "expansions": ["orders"],
+  "searchTerm": "john"
+}
+```
+
+### Error Response
+```json
+{
+  "success": false,
+  "error": "Limit must be between 1 and 100"
+}
+```
+
+## Response Status Codes
+- **200 OK**: Query executed successfully
+- **400 Bad Request**: Invalid parameters (page, limit, etc.)
+- **500 Internal Server Error**: Database or server error
+
+## Usage Notes
+
+### Parameter Precedence
+- Request body parameters always override URL parameters
+- This allows for simple queries via URL and complex queries via body
+
+### Expansion Behavior
+- Expansions are only included when explicitly requested
+- Multiple expansions can be combined
+- Search mode automatically expands required relations for filtering
+
+### Search Behavior
+- Search is case-insensitive
+- Searches across both customer and related order fields
+- When searching with expansions, only requested expansions are returned
+- Search fetches 2x the requested limit (max 100) to account for filtering
+
+### Filtering Options
+- **Exact match**: `"email": "john@example.com"`
+- **Array values**: `"country": ["US", "CA"]` (uses SQL IN)
+- **Boolean values**: `"account_enabled": true`
+- **Tags matching**: `"tags": "VIP"` (matches within comma-separated values like "VIP,Premium")
+
+### Performance Considerations
+- Use specific column selection when possible: `"select": "id,email,first_name"`
+- Limit expansions to only what you need
+- Consider pagination for large datasets
+- Search operations may be slower than filtered queries
+
+### Security Notes
+- All parameters are sanitized before database queries
+- No sensitive information is exposed in error messages
+- Expansion options are validated against allowed values
+
+## Examples by Use Case
+
+### Get All Active Customers
+```http
+POST /server/customers/query
+Content-Type: application/json
+
+{
+  "filters": {
+    "account_enabled": true
+  },
+  "orderBy": "created_at",
+  "ascending": false
+}
+```
+
+### Find Customers by Country
+```http
+POST /server/customers/query
+Content-Type: application/json
+
+{
+  "filters": {
+    "country": "US"
+  }
+}
+```
+
+### Search for Customer with Order Details
+```http
+POST /server/customers/query
+Content-Type: application/json
+
+{
+  "search": "john smith",
+  "expand": ["orders", "addresses"]
+}
+```
+
+### Get VIP Customers with Recent Orders
+```http
+POST /server/customers/query
+Content-Type: application/json
+
+{
+  "filters": {
+    "tags": "VIP",
+    "account_enabled": true
+  },
+  "expand": ["orders"],
+  "orderBy": "created_at",
+  "ascending": false,
+  "limit": 20
+}
+```
+
+### Paginated Customer List
+```http
+POST /server/customers/query
+Content-Type: application/json
+
+{
+  "page": 3,
+  "limit": 50,
+  "select": "id,email,first_name,last_name,created_at",
+  "orderBy": "email",
+  "ascending": true
+}
+``` 

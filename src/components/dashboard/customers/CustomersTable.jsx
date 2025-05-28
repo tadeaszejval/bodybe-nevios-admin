@@ -1,6 +1,6 @@
 "use client";
 import { Box } from "@mui/material";
-import React from "react";
+import React, { useCallback } from "react";
 import {
 	dateColumnFactory,
 	genericColumnFactory,
@@ -12,37 +12,58 @@ import { GenderBadge } from "./GenderBadge";
 import { AccountStatusBadge } from "./AccountStatusBadge";
 import { SubscribedBadge } from "./SubscribedBadge";
 import { useRouter } from "next/navigation";
-
-// Transform function for customer data
-const transformCustomers = (customers) => {
-	return customers.map((customer) => ({
-		id: customer.id,
-		email: customer.email || 'No Email',
-		first_name: customer.first_name || '',
-		last_name: customer.last_name || '',
-		full_name: `${customer.first_name || ''} ${customer.last_name || ''}`.trim() || 'Unknown',
-		gender: customer.gender || 'NOT_SPECIFIED',
-		account_enabled: customer.account_enabled || false,
-		subscribed: customer.subscribed || false,
-		created_at: customer.created_at,
-		phone: customer.phone || 'N/A',
-		country: customer.country || 'N/A'
-	}));
-};
+import { useModuleQuery } from "../../../hooks/useModuleQuery";
+import { CUSTOMERS_FILTER_CONFIG } from "../../nevios/NeviosFilters/CustomersFilterConfig";
 
 export function CustomersTable({ 
-	tableHeight, 
-	allowCheckboxSelection = false,
-	data = [],
-	loading = false,
-	error = null,
-	totalCount = 0,
-	pagination = { page: 0, pageSize: 100 },
-	onPaginationChange,
-	sortModel = [],
-	onSortChange
+	tableHeight,
+	initialFilters = {},
+	initialSearch = ""
 }) {
 	const router = useRouter();
+
+	// Transform raw customer data to table format
+	const transformCustomerData = useCallback((customers) => {
+		const transformed = customers.map(customer => ({
+			id: customer.id,
+			email: customer.email || 'No Email',
+			first_name: customer.first_name || '',
+			last_name: customer.last_name || '',
+			full_name: `${customer.first_name || ''} ${customer.last_name || ''}`.trim() || 'Unknown',
+			gender: customer.gender || 'NOT_SPECIFIED',
+			account_enabled: customer.account_enabled || false,
+			subscribed: customer.subscribed || false,
+			created_at: customer.created_at,
+			phone: customer.phone || 'N/A',
+			country: customer.country || 'N/A',
+			// Keep original data for reference
+			_original: customer
+		}));
+		return transformed;
+	}, []);
+
+	// Use the module query hook
+	const {
+		data,
+		loading,
+		error,
+		totalCount,
+		pagination,
+		sortModel,
+		filters,
+		searchTerm,
+		handlePaginationChange,
+		handleSortChange,
+		refreshData,
+		updateFilters,
+		updateSearch
+	} = useModuleQuery('customers', {
+		expand: ["orders", "addresses"],
+		initialFilters,
+		initialSearch,
+		enableSearch: true,
+		transformData: transformCustomerData
+	});
 
 	const columnDefinitions = [
 		clickableColumnFactory({
@@ -81,7 +102,7 @@ export function CustomersTable({
 						alignItems: "center",
 					}}
 				>
-					<GenderBadge gender={params.value} />
+					<GenderBadge value={params.value} />
 				</Box>
 			),
 		}),
@@ -100,7 +121,7 @@ export function CustomersTable({
 						alignItems: "center",
 					}}
 				>
-					<AccountStatusBadge enabled={params.value} />
+					<AccountStatusBadge value={params.value} />
 				</Box>
 			),
 		}),
@@ -119,7 +140,7 @@ export function CustomersTable({
 						alignItems: "center",
 					}}
 				>
-					<SubscribedBadge subscribed={params.value} />
+					<SubscribedBadge value={params.value} />
 				</Box>
 			),
 		}),
@@ -150,11 +171,6 @@ export function CustomersTable({
 		}
 	};
 
-	// Transform the data
-	const transformedData = React.useMemo(() => {
-		return transformCustomers(data);
-	}, [data]);
-
 	return (
 		<Box
 			sx={{
@@ -167,18 +183,25 @@ export function CustomersTable({
 		>
 			<NeviosEnhancedTable
 				columns={columnDefinitions}
-				data={transformedData}
+				data={data}
 				loading={loading}
 				error={error}
 				totalCount={totalCount}
 				pagination={pagination}
-				onPaginationChange={onPaginationChange}
+				onPaginationChange={handlePaginationChange}
 				sortModel={sortModel}
-				onSortChange={onSortChange}
+				onSortChange={handleSortChange}
 				onRowClick={handleRowClick}
 				tableHeight={tableHeight}
-				enableFilters={true}
 				hideFooter={false}
+				enableSearch={true}
+				searchTerm={searchTerm}
+				onSearchChange={updateSearch}
+				searchPlaceholder="Search customers by name, email, phone, or country..."
+				enableFilters={true}
+				filterConfigs={CUSTOMERS_FILTER_CONFIG}
+				activeFilters={filters}
+				onFiltersChange={updateFilters}
 				emptyStateProps={{
 					title: 'No customers found',
 					description: 'There are no customers to display',

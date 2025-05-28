@@ -33,10 +33,10 @@ export const genderStatusMatcher = (value) =>
     .with("NOT_FOUND", () => GENDER_STATUSES.NOT_FOUND)
     .otherwise(() => GENDER_STATUSES.NOT_FOUND); // Default fallback
 
-export function GenderBadge({ status, customSx = {} }) {
+export function GenderBadge({ value, customSx = {} }) {
   // Handle case sensitivity by converting to uppercase
-  const normalizedStatus = status?.toUpperCase() || "NOT_FOUND";
-  const statusMeta = genderStatusMatcher(normalizedStatus);
+  const normalizedValue = value?.toUpperCase() || "NOT_FOUND";
+  const genderMeta = genderStatusMatcher(normalizedValue);
   
   return (
     <Box
@@ -45,11 +45,11 @@ export function GenderBadge({ status, customSx = {} }) {
         alignItems: "center",
         gap: 0.5,
         padding: 0,
-        backgroundColor: `${statusMeta.color}.50`,
-        color: `${statusMeta.color}.800`,
+        backgroundColor: `${genderMeta.color}.50`,
+        color: `${genderMeta.color}.800`,
         fontWeight: 500,
         borderRadius: 1,
-        borderColor: `${statusMeta.color}.200`,
+        borderColor: `${genderMeta.color}.200`,
         borderWidth: 1,
         borderStyle: "solid",
         px: 0.75,
@@ -58,8 +58,8 @@ export function GenderBadge({ status, customSx = {} }) {
         ...customSx,
       }}
     >
-      {statusMeta.icon}
-      {statusMeta.label}
+      {genderMeta.icon}
+      {genderMeta.label}
     </Box>
   );
 } 
