@@ -1,5 +1,5 @@
 // Customer modification action
-import { putRequest } from '../../src/utils/nevios-express';
+import { putRequest } from '../../src/utils/neviosExpress';
 
 /**
  * Modifies an existing customer's information

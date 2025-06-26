@@ -1,17 +1,27 @@
+"use client";
 import React from "react";
-import { Box } from "@mui/material";
-import { TbFileDescription } from "react-icons/tb";
+import { Box, Paper } from "@mui/material";
+import { TbFileInvoice, TbRefresh } from "react-icons/tb";
 import { DashboardHeader } from "../../../components/DashboardHeader";
+import { PageContainer } from "../../../components/PageContainer";
+import { DocumentsTable } from "../../../components/dashboard/documents/DocumentsTable";
 
 export default function DashboardDocuments() {
+
   return (
-    <Box sx={{ p: 4 }}>
+    <PageContainer>
       <DashboardHeader
         title="Documents"
-        icon={<TbFileDescription size={24} />}
+        icon={<TbFileInvoice size={24} />}
+        actions={
+          <Box display="flex" gap={1}>
+          </Box>
+        }
       />
-      {/* Add your dashboard widgets and content here */}
-    </Box>
+      <Paper sx={{ flex: 1, display: "flex", flexDirection: "column" }}>
+        <DocumentsTable tableHeight="100%" />
+      </Paper>
+    </PageContainer>
   );
 }
 

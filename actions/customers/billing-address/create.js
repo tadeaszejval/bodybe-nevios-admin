@@ -1,5 +1,5 @@
 // Billing address creation action
-import { postRequest } from '../../../src/utils/nevios-express';
+import { postRequest } from '../../../src/utils/neviosExpress';
 
 /**
  * Creates a billing address for a customer

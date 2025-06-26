@@ -1,17 +1,18 @@
 import React from "react";
-import { Box } from "@mui/material";
+import { PageContainer } from "../../../components/PageContainer";
 import { TbCash } from "react-icons/tb";
 import { DashboardHeader } from "../../../components/DashboardHeader";
+import { PaymentsTable } from "../../../components/dashboard/payments/PaymentsTable";
 
 export default function DashboardPayments() {
   return (
-    <Box sx={{ p: 4 }}>
+    <PageContainer>
       <DashboardHeader
         title="Payments"
         icon={<TbCash size={24} />}
       />
-      {/* Add your dashboard widgets and content here */}
-    </Box>
+      <PaymentsTable />
+    </PageContainer>
   );
 }
 

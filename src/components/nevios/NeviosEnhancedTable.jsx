@@ -4,7 +4,7 @@ import { NeviosSecondaryIconButton, NeviosSimpleToggleButton } from "./NeviosBut
 import { TbFilterCog, TbChevronLeft, TbChevronRight } from "react-icons/tb";
 import { DataGrid, gridClasses } from "@mui/x-data-grid";
 import * as React from "react";
-import { DotLoader } from "../DotLoader";
+import { CircularProgress } from "@mui/material";
 import { NeviosSearchBar } from "./NeviosSearchBar";
 import { NeviosEnhancedTableFilters } from "./NeviosFilters/NeviosEnhancedTableFilters";
 export const defaultAscendingSortOrder = ["asc", "desc", null];
@@ -45,6 +45,8 @@ const GLOBAL_PAGE_SIZE = 50;
  * @param {boolean} props.checkboxSelection - Whether to show checkboxes for selection (default: true)
  * @param {Array} props.bulkActions - Array of bulk action configurations
  * @param {Function} props.onBulkAction - Callback when a bulk action is performed
+ * @param {string|number} props.buttonHeight - Custom height for all buttons in the table
+ * @param {string|number} props.buttonWidth - Custom width for all buttons in the table
  */
 export function NeviosEnhancedTable({
   columns,
@@ -76,6 +78,8 @@ export function NeviosEnhancedTable({
   checkboxSelection = true,
   bulkActions = [],
   onBulkAction,
+  buttonHeight,
+  buttonWidth,
   ...props
 }) {
   const theme = useTheme();
@@ -241,7 +245,20 @@ export function NeviosEnhancedTable({
   }, [onBulkAction, selectedRowsData, currentRowSelectionModel]);
 
   // Footer component
-  const FooterComponent = () => (
+  const FooterComponent = React.memo(({ 
+    isFooterSticky, 
+    theme, 
+    handlePreviousPage, 
+    handleNextPage, 
+    hasPreviousPage, 
+    hasNextPage, 
+    loading, 
+    totalCount, 
+    startRecord, 
+    endRecord,
+    buttonHeight,
+    buttonWidth
+  }) => (
     <Box 
       sx={{ 
         backgroundColor: 'gray.50', 
@@ -252,8 +269,7 @@ export function NeviosEnhancedTable({
         alignItems: 'center', 
         justifyContent: 'space-between', 
         px: 1.5,
-        borderTop: isFooterSticky ? `1px solid ${theme.palette.gray[200]}` : 'none',
-        boxShadow: isFooterSticky ? theme.shadows[4] : 'none',
+        borderTop: isFooterSticky ? `1px solid ${theme.palette.gray[200]}` : 'none'
       }}
     >
       {/* Left side - Navigation buttons */}
@@ -262,12 +278,16 @@ export function NeviosEnhancedTable({
           <NeviosSecondaryIconButton 
             onClick={handlePreviousPage}
             disabled={!hasPreviousPage || loading}
+            height={buttonHeight}
+            width={buttonWidth}
           >
             <TbChevronLeft size={16} />
           </NeviosSecondaryIconButton>
           <NeviosSecondaryIconButton 
             onClick={handleNextPage}
             disabled={!hasNextPage || loading}
+            height={buttonHeight}
+            width={buttonWidth}
           >
             <TbChevronRight size={16} />
           </NeviosSecondaryIconButton>
@@ -306,7 +326,7 @@ export function NeviosEnhancedTable({
         
       </Box>
     </Box>
-  );
+  ));
 
   return (
     <>
@@ -317,7 +337,9 @@ export function NeviosEnhancedTable({
           flex: 1, 
           display: "flex", 
           flexDirection: "column",
-          marginBottom: isFooterSticky ? '45px' : '0' // Add margin when footer is sticky
+          marginBottom: isFooterSticky ? '45px' : '0', // Add margin when footer is sticky
+          height: tableHeight || '250px', // Set a default height to enable proper scrolling
+          minHeight: '250px' // Minimum height to ensure table is usable
         }}
       >
         <div
@@ -325,8 +347,9 @@ export function NeviosEnhancedTable({
             flex: 1,
             height: "100%",
             width: "100%",
-            overflowX: "auto",
-            overflowY: "hidden",
+            display: "flex",
+            flexDirection: "column",
+            overflow: "hidden", // Prevent outer container from scrolling
           }}
         >
           <Box
@@ -334,6 +357,9 @@ export function NeviosEnhancedTable({
               flex: 1,
               width: "100%",
               borderTop: (theme) => `0.5px solid ${theme.palette.gray[200]}`,
+              display: "flex",
+              flexDirection: "column",
+              overflow: "hidden", // Prevent this container from scrolling
             }}
           >
             {/* Table Controls */}
@@ -346,6 +372,7 @@ export function NeviosEnhancedTable({
               justifyContent: "space-between",
               gap: 2,
               borderBottom: (theme) => `0.75px solid ${theme.palette.gray[200]}`,
+              flexShrink: 0, // Prevent controls from shrinking
             }}>
               {/* Bulk Actions - Show when rows are selected */}
               {currentRowSelectionModel.length > 0 && bulkActions.length > 0 ? (
@@ -373,6 +400,10 @@ export function NeviosEnhancedTable({
                       onClick={() => handleBulkAction(action.key)}
                       disabled={loading}
                       startIcon={action.icon}
+                      sx={{
+                        ...(buttonHeight && { height: buttonHeight }),
+                        ...(buttonWidth && { width: buttonWidth, minWidth: buttonWidth }),
+                      }}
                     >
                       {action.label}
                     </Button>
@@ -387,8 +418,19 @@ export function NeviosEnhancedTable({
                     alignItems: "center",
                     gap: 0.5,
                   }}>
-                    <NeviosSimpleToggleButton toggled={true}>Active</NeviosSimpleToggleButton>
-                    <NeviosSimpleToggleButton>Inactive</NeviosSimpleToggleButton>
+                    <NeviosSimpleToggleButton 
+                      toggled={true}
+                      height={buttonHeight}
+                      width={buttonWidth}
+                    >
+                      Active
+                    </NeviosSimpleToggleButton>
+                    <NeviosSimpleToggleButton
+                      height={buttonHeight}
+                      width={buttonWidth}
+                    >
+                      Inactive
+                    </NeviosSimpleToggleButton>
                   </Box>
                   <Box sx={{
                     display: "flex",
@@ -423,7 +465,11 @@ export function NeviosEnhancedTable({
                   alignItems: "center",
                   gap: 0.5,
                 }}>
-                  <NeviosSecondaryIconButton onClick={() => setShowFiltersBar(!showFiltersBar)}>
+                  <NeviosSecondaryIconButton 
+                    onClick={() => setShowFiltersBar(!showFiltersBar)}
+                    height={buttonHeight}
+                    width={buttonWidth}
+                  >
                     <TbFilterCog size={16} />
                   </NeviosSecondaryIconButton>
                 </Box>
@@ -439,6 +485,7 @@ export function NeviosEnhancedTable({
                   maxHeight: showFiltersBar ? '200px' : '0px',
                   opacity: showFiltersBar ? 1 : 0,
                   p: 0,
+                  flexShrink: 0, // Prevent filters from shrinking
                 }}
               >
                 <Box sx={{ p: 1, backgroundColor: 'white' }}>
@@ -460,176 +507,229 @@ export function NeviosEnhancedTable({
                 color: 'error.main',
                 backgroundColor: 'error.light',
                 borderRadius: 1,
-                m: 2
+                m: 2,
+                flexShrink: 0, // Prevent error box from shrinking
               }}>
                 Error: {error}
               </Box>
             )}
             
-            {/* Data Grid */}
-            <DataGrid
-              disableRowSelectionOnClick={true}
-              columnHeaderHeight={matchesSmBreakpoint ? 40 : 32}
-              disableColumnSorting={true}
-              disableColumnMenu={true}
-              rowHeight={calculatedRowHeight}
-              sortingOrder={sortingOrder}
-              sortModel={sortModel}
-              onSortModelChange={handleSortModelChange}
-              hideFooter={true}
-              loading={loading}
-              columns={columns}
-              rows={data}
-              
-              // Use autoHeight instead of fixed height with scrolling
-              autoHeight
-              
-              // Row selection
-              checkboxSelection={checkboxSelection}
-              rowSelectionModel={currentRowSelectionModel}
-              onRowSelectionModelChange={handleRowSelectionModelChange}
-              getRowId={(row) => row.id || row._id || row.key}
-              
-              // Pagination
-              pagination={!hideFooter}
-              paginationMode="server"
-              rowCount={totalCount}
-              paginationModel={pagination}
-              onPaginationModelChange={handlePaginationModelChange}
-              pageSizeOptions={[GLOBAL_PAGE_SIZE]}
-              
-              
-              // Row interaction
-              onRowClick={handleRowClick}
-              
+            {/* Data Grid Container */}
+            <Box
               sx={{
-                [`.${gridClasses.cell}:focus, .${gridClasses.cell}:focus-within`]: {
-                  outline: "none",
-                },
-                [`.${gridClasses.columnHeader}:focus, .${gridClasses.columnHeader}:focus-within`]: {
-                  borderRadius: 0,
-                  outline: "none",
-                },
-                ".datagrid-row-error": {
-                  backgroundColor: theme.palette.red["50"],
-                  backgroundImage: `url("data:image/svg+xml,%3Csvg width='6' height='6' viewBox='0 0 6 6' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='%23${hslToHex(theme.palette.red["200"])}' fill-opacity='0.75' fill-rule='evenodd'%3E%3Cpath d='M5 0h1L0 6V5zM6 5v1H5z'/%3E%3C/g%3E%3C/svg%3E")`,
-                  '[data-mui-color-scheme="dark"] &': {
+                flex: 1,
+                width: "100%",
+                overflow: "auto", // Enable both horizontal and vertical scrolling
+                minHeight: 0, // Allow flex child to shrink below content size
+              }}
+            >
+              {/* Data Grid */}
+              <DataGrid
+                disableRowSelectionOnClick={true}
+                columnHeaderHeight={matchesSmBreakpoint ? 40 : 32}
+                disableColumnSorting={true}
+                disableColumnMenu={true}
+                rowHeight={calculatedRowHeight}
+                sortingOrder={sortingOrder}
+                sortModel={sortModel}
+                onSortModelChange={handleSortModelChange}
+                hideFooter={true}
+                loading={loading}
+                columns={columns}
+                rows={data}
+                
+                // Remove autoHeight to enable proper scrolling
+                // autoHeight
+                
+                // Row selection
+                checkboxSelection={checkboxSelection}
+                rowSelectionModel={currentRowSelectionModel}
+                onRowSelectionModelChange={handleRowSelectionModelChange}
+                getRowId={(row) => row.id || row._id || row.key}
+                
+                // Pagination
+                pagination={!hideFooter}
+                paginationMode="server"
+                rowCount={totalCount}
+                paginationModel={pagination}
+                onPaginationModelChange={handlePaginationModelChange}
+                pageSizeOptions={[GLOBAL_PAGE_SIZE]}
+                
+                
+                // Row interaction
+                onRowClick={handleRowClick}
+                
+                sx={{
+                  height: data.length === 0 ? '250px' : '100%', // Minimum 250px height when no rows
+                  width: '100%',
+                  minWidth: 'max-content', // Ensure table doesn't compress below content width
+                  position: 'relative', // Ensure overlays position correctly
+                  [`.${gridClasses.cell}:focus, .${gridClasses.cell}:focus-within`]: {
+                    outline: "none",
+                  },
+                  [`.${gridClasses.columnHeader}:focus, .${gridClasses.columnHeader}:focus-within`]: {
+                    borderRadius: 0,
+                    outline: "none",
+                  },
+                  ".datagrid-row-error": {
                     backgroundColor: theme.palette.red["50"],
                     backgroundImage: `url("data:image/svg+xml,%3Csvg width='6' height='6' viewBox='0 0 6 6' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='%23${hslToHex(theme.palette.red["200"])}' fill-opacity='0.75' fill-rule='evenodd'%3E%3Cpath d='M5 0h1L0 6V5zM6 5v1H5z'/%3E%3C/g%3E%3C/svg%3E")`,
+                    '[data-mui-color-scheme="dark"] &': {
+                      backgroundColor: theme.palette.red["50"],
+                      backgroundImage: `url("data:image/svg+xml,%3Csvg width='6' height='6' viewBox='0 0 6 6' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='%23${hslToHex(theme.palette.red["200"])}' fill-opacity='0.75' fill-rule='evenodd'%3E%3Cpath d='M5 0h1L0 6V5zM6 5v1H5z'/%3E%3C/g%3E%3C/svg%3E")`,
+                    },
                   },
-                },
-                ".datagrid-row-disabled": {
-                  ".MuiCheckbox-root": {
-                    visibility: "hidden",
-                  },
-                  opacity: 0.75,
-                  backgroundColor: theme.palette.gray["50"],
-                  backgroundImage: `url("data:image/svg+xml,%3Csvg width='6' height='6' viewBox='0 0 6 6' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='%23${hslToHex(theme.palette.gray["200"])}' fill-opacity='0.75' fill-rule='evenodd'%3E%3Cpath d='M5 0h1L0 6V5zM6 5v1H5z'/%3E%3C/g%3E%3C/svg%3E")`,
-                  '[data-mui-color-scheme="dark"] &': {
+                  ".datagrid-row-disabled": {
+                    ".MuiCheckbox-root": {
+                      visibility: "hidden",
+                    },
+                    opacity: 0.75,
                     backgroundColor: theme.palette.gray["50"],
                     backgroundImage: `url("data:image/svg+xml,%3Csvg width='6' height='6' viewBox='0 0 6 6' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='%23${hslToHex(theme.palette.gray["200"])}' fill-opacity='0.75' fill-rule='evenodd'%3E%3Cpath d='M5 0h1L0 6V5zM6 5v1H5z'/%3E%3C/g%3E%3C/svg%3E")`,
+                    '[data-mui-color-scheme="dark"] &': {
+                      backgroundColor: theme.palette.gray["50"],
+                      backgroundImage: `url("data:image/svg+xml,%3Csvg width='6' height='6' viewBox='0 0 6 6' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='%23${hslToHex(theme.palette.gray["200"])}' fill-opacity='0.75' fill-rule='evenodd'%3E%3Cpath d='M5 0h1L0 6V5zM6 5v1H5z'/%3E%3C/g%3E%3C/svg%3E")`,
+                    },
                   },
-                },
-                ".MuiDataGrid-menuIcon": {
-                  display: "none",
-                },
-                ".MuiDataGrid-row": {
-                  borderTop: `0.7px solid ${theme.palette.gray[200]}`,
-                },
-                '.MuiDataGrid-row, .MuiDataGrid-cell': {
-                  cursor: 'default',
-                },
-                '.MuiDataGrid-row[role="row"]:hover': {
-                  backgroundColor: theme.palette.action.hover,
-                  cursor: onRowClick ? 'pointer' : 'default',
-                },
-                ...(variant === "simple" && {
-                  borderRadius: 0,
-                  ".MuiDataGrid-columnHeader": {
-                    borderTopRightRadius: 0,
-                    borderTopLeftRadius: 0,
-                    backgroundColor: theme.palette.gray["50"],
+                  ".MuiDataGrid-menuIcon": {
+                    display: "none",
                   },
-                  border: "none",
-                  ".MuiDataGrid-cell[aria-colindex='1']": {
-                    paddingLeft: 0,
+                  ".MuiDataGrid-row": {
+                    borderTop: `0.7px solid ${theme.palette.gray[200]}`,
                   },
-                  ".MuiDataGrid-columnHeader[aria-colindex='1']": {
-                    paddingLeft: 0,
+                  '.MuiDataGrid-row, .MuiDataGrid-cell': {
+                    cursor: 'default',
                   },
-                }),
-              }}
-              
-              {...props}
-              
-              slots={{
-                ...props.slots,
-                loadingOverlay: () => (
-                  <Box
-                    sx={{
-                      position: "absolute",
-                      inset: 0,
-                      height: "100%",
-                      width: "100%",
-                      pointerEvents: "none",
-                      display: "flex",
-                      alignItems: "center",
-                      justifyContent: "center",
-                      zIndex: 4,
-                      "&::before": {
-                        content: '""',
-                        position: "absolute",
-                        inset: 0,
-                        height: "100%",
-                        width: "100%",
-                        pointerEvents: "none",
-                        zIndex: 5,
-                        opacity: 0.5,
-                        background: (theme) => `linear-gradient(to top,
-                          ${theme.palette.background.paper},
-                          ${theme.palette.background.paper} 100%
-                        )`,
-                      },
-                    }}
-                  >
-                    <DotLoader loading={true} dotSize={6} />
-                  </Box>
-                ),
-                noRowsOverlay: () => (
-                  <Box
-                    sx={{
-                      height: "100%",
-                      width: "100%",
-                      display: "flex",
-                      flexDirection: "column",
-                      alignItems: "center",
-                      justifyContent: "center",
-                      gap: 2,
-                      color: "gray.800",
-                    }}
-                  >
-                    <Box sx={{ fontSize: "48px" }}>📋</Box>
-                    <Box sx={{ fontSize: "16px", fontWeight: 500 }}>
-                      {emptyStateProps.title || 'No data available'}
+                  '.MuiDataGrid-row[role="row"]:hover': {
+                    backgroundColor: theme.palette.action.hover,
+                    cursor: onRowClick ? 'pointer' : 'default',
+                  },
+                  // Custom overlay positioning - ensure overlays fill the entire DataGrid
+                  '.MuiDataGrid-overlayWrapper': {
+                    position: 'absolute',
+                    top: 0,
+                    left: 0,
+                    right: 0,
+                    bottom: 0,
+                    width: '100%',
+                    height: '100%',
+                    minHeight: '250px',
+                    zIndex: 10,
+                  },
+                  '.MuiDataGrid-overlayWrapperInner': {
+                    width: '100%',
+                    height: '100%',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                  },
+                  ...(variant === "simple" && {
+                    borderRadius: 0,
+                    ".MuiDataGrid-columnHeader": {
+                      borderTopRightRadius: 0,
+                      borderTopLeftRadius: 0,
+                      backgroundColor: theme.palette.gray["50"],
+                    },
+                    border: "none",
+                    ".MuiDataGrid-cell[aria-colindex='1']": {
+                      paddingLeft: 0,
+                    },
+                    ".MuiDataGrid-columnHeader[aria-colindex='1']": {
+                      paddingLeft: 0,
+                    },
+                  }),
+                }}
+                
+                {...props}
+                
+                slots={{
+                  ...props.slots,
+                  loadingOverlay: () => (
+                    <Box
+                      sx={{
+                        width: '100%',
+                        height: '100%',
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "center",
+                        backgroundColor: "rgba(255, 255, 255, 0.8)",
+                        minHeight: '250px',
+                      }}
+                    >
+                      <Box
+                        sx={{
+                          display: "flex",
+                          flexDirection: "column",
+                          alignItems: "center",
+                          gap: 2,
+                        }}
+                      >
+                        <CircularProgress size={24} />
+                        <Typography variant="body2" color="text.secondary">
+                          Loading...
+                        </Typography>
+                      </Box>
                     </Box>
-                    <Box sx={{ fontSize: "14px", color: "gray.400" }}>
-                      {emptyStateProps.description || 'There are no rows to display'}
+                  ),
+                  noRowsOverlay: () => (
+                    <Box
+                      sx={{
+                        width: '100%',
+                        height: '100%',
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "center",
+                        minHeight: '250px',
+                      }}
+                    >
+                      <Box
+                        sx={{
+                          display: "flex",
+                          flexDirection: "column",
+                          alignItems: "center",
+                          justifyContent: "center",
+                          gap: 2,
+                          color: "gray.800",
+                          textAlign: "center",
+                        }}
+                      >
+                        <Box sx={{ fontSize: "48px" }}>📋</Box>
+                        <Box sx={{ fontSize: "16px", fontWeight: 500 }}>
+                          {emptyStateProps.title || 'No data available'}
+                        </Box>
+                        <Box sx={{ fontSize: "14px", color: "gray.400" }}>
+                          {emptyStateProps.description || 'There are no rows to display'}
+                        </Box>
+                        {emptyStateProps.action && (
+                          <Button variant="contained" color="primary" onClick={emptyStateProps.action}>
+                            {emptyStateProps.buttonText || 'Add New Item'}
+                          </Button>
+                        )}
+                      </Box>
                     </Box>
-                    {emptyStateProps.action && (
-                      <Button variant="contained" color="primary" onClick={emptyStateProps.action}>
-                        {emptyStateProps.buttonText || 'Add New Item'}
-                      </Button>
-                    )}
-                  </Box>
-                ),
-              }}
-            />
+                  ),
+                }}
+              />
+            </Box>
           </Box>
         </div>
         
         {/* Regular footer (for intersection observer) */}
         <div ref={footerRef}>
-          <FooterComponent />
+          <FooterComponent 
+            isFooterSticky={isFooterSticky}
+            theme={theme}
+            handlePreviousPage={handlePreviousPage}
+            handleNextPage={handleNextPage}
+            hasPreviousPage={hasPreviousPage}
+            hasNextPage={hasNextPage}
+            loading={loading}
+            totalCount={totalCount}
+            startRecord={startRecord}
+            endRecord={endRecord}
+            buttonHeight={buttonHeight}
+            buttonWidth={buttonWidth}
+          />
         </div>
       </Paper>
 
@@ -644,7 +744,20 @@ export function NeviosEnhancedTable({
             zIndex: 1000,
           }}
         >
-          <FooterComponent />
+          <FooterComponent 
+            isFooterSticky={isFooterSticky}
+            theme={theme}
+            handlePreviousPage={handlePreviousPage}
+            handleNextPage={handleNextPage}
+            hasPreviousPage={hasPreviousPage}
+            hasNextPage={hasNextPage}
+            loading={loading}
+            totalCount={totalCount}
+            startRecord={startRecord}
+            endRecord={endRecord}
+            buttonHeight={buttonHeight}
+            buttonWidth={buttonWidth}
+          />
         </Box>
       )}
     </>

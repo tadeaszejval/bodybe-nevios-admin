@@ -1,5 +1,6 @@
 "use client";
 import { Box, Avatar } from "@mui/material";
+import { TbShoe } from "react-icons/tb";
 import React, { useCallback } from "react";
 import {
 	dateColumnFactory,
@@ -68,7 +69,7 @@ export function ProductsTable({
 		genericColumnFactory({
 			field: "featured_image",
 			headerName: "Image",
-			minWidth: 70,
+			minWidth: 50,
 			flex: 0.5,
 			sortable: false,
 			renderCell: (params) => (
@@ -83,12 +84,12 @@ export function ProductsTable({
 				>
 					{params.value ? (
 						<Avatar
-							src={params.value}
+							src={`${params.value}&width=128`}
 							alt={params.row.title}
 							variant="rounded"
 							sx={{ 
-								width: 50, 
-								height: 50,
+								width: 40, 
+								height: 40,
 								objectFit: "cover",
 								borderRadius: 1,
 								border: "0.5px solid rgb(228, 228, 228)",
@@ -98,8 +99,8 @@ export function ProductsTable({
 					) : (
 						<Box
 							sx={{
-								width: 50,
-								height: 50,
+								width: 40,
+								height: 40,
 								bgcolor: 'gray.100',
 								borderRadius: 1,
 								display: 'flex',
@@ -109,7 +110,7 @@ export function ProductsTable({
 								fontSize: 'xs',
 							}}
 						>
-							No img
+							<TbShoe size={20} />
 						</Box>
 					)}
 				</Box>
@@ -139,23 +140,6 @@ export function ProductsTable({
 			),
 		}),
 		genericColumnFactory({
-			field: "vendor",
-			headerName: "Vendor",
-			minWidth: 150,
-			flex: 1,
-		}),
-		genericColumnFactory({
-			field: "type",
-			headerName: "Type",
-			minWidth: 120,
-			flex: 1,
-			renderCell: (params) => (
-				<Box sx={{ textTransform: 'capitalize' }}>
-					{params.value}
-				</Box>
-			),
-		}),
-		genericColumnFactory({
 			field: "status",
 			headerName: "Status",
 			minWidth: 120,
@@ -171,6 +155,23 @@ export function ProductsTable({
 					}}
 				>
 					<ProductStatusBadge status={params.value} />
+				</Box>
+			),
+		}),
+		genericColumnFactory({
+			field: "vendor",
+			headerName: "Vendor",
+			minWidth: 150,
+			flex: 1,
+		}),
+		genericColumnFactory({
+			field: "type",
+			headerName: "Type",
+			minWidth: 120,
+			flex: 1,
+			renderCell: (params) => (
+				<Box sx={{ textTransform: 'capitalize' }}>
+					{params.value}
 				</Box>
 			),
 		}),
@@ -298,7 +299,7 @@ export function ProductsTable({
 				onBulkAction={handleBulkAction}
 				checkboxSelection={true}
 				getRowId={(row) => row.id}
-				rowHeight={65}
+				rowHeight={55}
 				emptyStateProps={{
 					title: 'No products found',
 					description: 'There are no products to display',

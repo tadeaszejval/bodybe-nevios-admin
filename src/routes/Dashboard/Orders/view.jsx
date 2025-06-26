@@ -28,6 +28,8 @@ import { supabase } from "../../../utils/supabase";
 import { NeviosFormPaperBlock } from "../../../components/nevios/NeviosFormPaperBlock";
 import { NeviosCopyBlock } from "../../../components/nevios/NeviosCopyBlock";
 import { getCountryName } from "../../../core/countryName";
+import { generateAndViewOrderPDF } from "../../../../actions/orders/print";
+
 export function OrderView({ orderId }) {
   const [order, setOrder] = useState({ name: '', created_at: null });
   const [orderItems, setOrderItems] = useState([]);
@@ -40,6 +42,7 @@ export function OrderView({ orderId }) {
   const [billingAddress, setBillingAddress] = useState(null);
   const [shippingAddress, setShippingAddress] = useState(null);
   const [customerLoading, setCustomerLoading] = useState(true);
+  const [printLoading, setPrintLoading] = useState(false);
 
   useEffect(() => {
     async function fetchOrder() {
@@ -202,6 +205,18 @@ export function OrderView({ orderId }) {
     console.log('Delete dialog should open');
   };
 
+  const handlePrintOrder = async () => {
+    try {
+      setPrintLoading(true);
+      await generateAndViewOrderPDF(orderId);
+    } catch (error) {
+      console.error('Failed to generate PDF:', error);
+      // You could add a toast notification here to show the error to the user
+    } finally {
+      setPrintLoading(false);
+    }
+  };
+
   // Function to format pricing component label
   const formatPricingLabel = (component) => {
     // Capitalize first letter and handle special cases
@@ -242,9 +257,15 @@ export function OrderView({ orderId }) {
             iconTooltipTitle="Back to list of orders"
             actions={
               <Box sx={{ display: 'flex', gap: 1 }}>
-
                 <NeviosShadowButton>Return</NeviosShadowButton>
                 <NeviosShadowButton>Cancel</NeviosShadowButton>
+                <NeviosShadowButton 
+                  onClick={handlePrintOrder}
+                  loading={printLoading}
+                  disabled={printLoading}
+                >
+                  Print
+                </NeviosShadowButton>
                 <NeviosGroupButton
                   buttonText="Documents"
                   variant="contained"

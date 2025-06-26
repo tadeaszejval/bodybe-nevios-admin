@@ -1,12 +1,6 @@
 "use client";
 import React, { useState, useEffect } from 'react';
-import { 
-  TextField, 
-  Box, 
-  IconButton, 
-  InputAdornment 
-} from '@mui/material';
-import { TbX, TbSearch } from 'react-icons/tb';
+import { NeviosInput } from '../NeviosInput';
 
 /**
  * FilterContains Component
@@ -57,56 +51,12 @@ export function FilterContains({
   const hasValue = localValue && localValue.trim().length > 0;
 
   return (
-    <Box sx={{ width: '100%' }}>
-      <TextField
-        fullWidth
-        size="small"
-        value={localValue}
-        onChange={handleInputChange}
-        placeholder={placeholder}
-        disabled={disabled}
-        InputProps={{
-          startAdornment: (
-            <InputAdornment position="start">
-              <TbSearch size={16} style={{ color: 'rgba(0, 0, 0, 0.54)' }} />
-            </InputAdornment>
-          ),
-          endAdornment: hasValue && (
-            <InputAdornment position="end">
-              <IconButton
-                size="small"
-                onClick={handleClear}
-                edge="end"
-                sx={{ 
-                  padding: 0.5,
-                  '&:hover': {
-                    backgroundColor: 'rgba(0, 0, 0, 0.04)'
-                  }
-                }}
-              >
-                <TbX size={14} />
-              </IconButton>
-            </InputAdornment>
-          )
-        }}
-        sx={{
-          '& .MuiOutlinedInput-root': {
-            backgroundColor: 'background.paper',
-            '&:hover': {
-              '& .MuiOutlinedInput-notchedOutline': {
-                borderColor: 'primary.main',
-              },
-            },
-            '&.Mui-focused': {
-              '& .MuiOutlinedInput-notchedOutline': {
-                borderColor: 'primary.main',
-                borderWidth: 2,
-              },
-            },
-          },
-        }}
-        {...props}
-      />
-    </Box>
+    <NeviosInput
+      value={localValue}
+      onChange={handleInputChange}
+      placeholder={placeholder}
+      disabled={disabled}
+      {...props}
+    />
   );
 } 

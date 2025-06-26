@@ -1,5 +1,5 @@
 // Customer creation action
-import { postRequest } from '../../src/utils/nevios-express';
+import { postRequest } from '../../src/utils/neviosExpress';
 
 /**
  * Creates a new customer with optional billing and shipping addresses

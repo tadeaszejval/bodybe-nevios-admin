@@ -34,6 +34,7 @@ export function OrdersTable({
 			payment_status: order.payment_status,
 			item_count: order.items?.length || 0,
 			shipping_method: order.shipping_method?.name || 'Not specified',
+			payment_method: order.payment_method?.name || 'Not specified',
 			// Keep original data for reference
 			_original: order
 		}));
@@ -163,6 +164,12 @@ export function OrdersTable({
 			headerName: "Shipping Method",
 			flex: 1.5,
 			minWidth: 150,
+		}),
+		genericColumnFactory({
+			field: "payment_method",
+			headerName: "Payment Method",
+			flex: 1.5,
+			minWidth: 200,
 		}),
 	];
 

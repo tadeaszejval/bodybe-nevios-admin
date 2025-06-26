@@ -1,5 +1,5 @@
 // Customer deletion action
-import { deleteRequest } from '../../src/utils/nevios-express';
+import { deleteRequest } from '../../src/utils/neviosExpress';
 
 /**
  * Deletes a customer by ID

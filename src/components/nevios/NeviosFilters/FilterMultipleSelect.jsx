@@ -118,6 +118,25 @@ export function FilterMultipleSelect({
           fontSize: '12px',
           border: '1px solid',
           borderColor: 'divider',
+          backgroundColor: 'white',
+          '&:hover': {
+            backgroundColor: 'gray.100'
+          },
+          '&:focus': {
+            backgroundColor: 'gray.100'
+          },
+          '&:active': {
+            backgroundColor: 'gray.100'
+          },
+          '&:focus-within': {
+            backgroundColor: 'gray.100'
+          },
+          '&:focus-visible': {
+            backgroundColor: 'gray.100'
+          },
+          '&.Mui-focused': {
+            backgroundColor: 'white'
+          },
           '& .MuiSelect-select': {
             py: 1,
             minHeight: 'auto'

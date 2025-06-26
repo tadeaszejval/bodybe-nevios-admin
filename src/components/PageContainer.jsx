@@ -19,7 +19,7 @@ export function PageContainer({
 				gap: 2,
 				position: "relative",
 				mt: 4,
-				mb: { xs: 6, sm: 4 },
+				mb: { xs: 8, sm: 6 },
 				...customSx,
 			}}
 		>

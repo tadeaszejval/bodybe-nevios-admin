@@ -1,5 +1,5 @@
 // Billing address modification action
-import { putRequest } from '../../../src/utils/nevios-express';
+import { putRequest } from '../../../src/utils/neviosExpress';
 
 /**
  * Updates a billing address for a customer

@@ -1,5 +1,5 @@
 // Billing address deletion action
-import { deleteRequest } from '../../../src/utils/nevios-express';
+import { deleteRequest } from '../../../src/utils/neviosExpress';
 
 /**
  * Deletes a billing address for a customer

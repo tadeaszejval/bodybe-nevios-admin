@@ -2,6 +2,8 @@
 import { FilterSelect } from './FilterSelect';
 import { FilterMultipleSelect } from './FilterMultipleSelect';
 import { FilterContains } from './FilterContains';
+import { FilterProductTypeSelect } from './FilterProductTypeSelect';
+import { FilterVendorSelect } from './FilterVendorSelect';
 
 /**
  * Products Filter Configuration
@@ -10,18 +12,18 @@ import { FilterContains } from './FilterContains';
 
 // Product Status Filter Options
 const PRODUCT_STATUS_OPTIONS = [
-  { value: 'active', label: 'Active' },
-  { value: 'draft', label: 'Draft' },
-  { value: 'archived', label: 'Archived' }
+  { value: 'ACTIVE', label: 'Active' },
+  { value: 'DRAFT', label: 'Draft' },
+  { value: 'ARCHIVED', label: 'Archived' }
 ];
 
-// Product Type Filter Options
-const PRODUCT_TYPE_OPTIONS = [
-  { value: 'physical', label: 'Physical' },
-  { value: 'digital', label: 'Digital' },
-  { value: 'service', label: 'Service' },
-  { value: 'gift_card', label: 'Gift Card' }
-];
+// Product Type Filter Options - Now fetched dynamically from database
+// const PRODUCT_TYPE_OPTIONS = [
+//   { value: 'physical', label: 'Physical' },
+//   { value: 'digital', label: 'Digital' },
+//   { value: 'service', label: 'Service' },
+//   { value: 'gift_card', label: 'Gift Card' }
+// ];
 
 // Product Category Filter Options
 const PRODUCT_CATEGORY_OPTIONS = [
@@ -37,14 +39,11 @@ const PRODUCT_CATEGORY_OPTIONS = [
   { value: 'food', label: 'Food & Beverages' }
 ];
 
-// Common Vendor Options (you can expand this based on your data)
-const VENDOR_OPTIONS = [
-  { value: 'TechCorp', label: 'TechCorp' },
-  { value: 'FashionBrand', label: 'Fashion Brand' },
-  { value: 'HomeGoods', label: 'Home Goods' },
-  { value: 'SportsCo', label: 'Sports Co' },
-  { value: 'BeautyInc', label: 'Beauty Inc' }
-];
+// Vendor Options - Now fetched dynamically from database
+// const VENDOR_OPTIONS = [
+//   { value: 'Botas', label: 'Botas' },
+//   { value: 'Vasky', label: 'Vasky' }
+// ];
 
 /**
  * Products Filter Configuration
@@ -69,27 +68,16 @@ export const PRODUCTS_FILTER_CONFIG = [
   {
     id: 'type',
     label: 'Type',
-    component: FilterMultipleSelect,
-    options: PRODUCT_TYPE_OPTIONS,
+    component: FilterProductTypeSelect,
     props: {
       placeholder: 'All types',
       maxDisplayChips: 2
     }
   },
   {
-    id: 'category',
-    label: 'Category',
-    component: FilterSelect,
-    options: PRODUCT_CATEGORY_OPTIONS,
-    props: {
-      placeholder: 'All categories'
-    }
-  },
-  {
     id: 'vendor',
     label: 'Vendor',
-    component: FilterSelect,
-    options: VENDOR_OPTIONS,
+    component: FilterVendorSelect,
     props: {
       placeholder: 'All vendors'
     }
@@ -126,7 +114,7 @@ export const PRODUCTS_FILTER_CONFIG = [
 // Export individual filter configs for flexibility
 export {
   PRODUCT_STATUS_OPTIONS,
-  PRODUCT_TYPE_OPTIONS,
+  // PRODUCT_TYPE_OPTIONS, // Now dynamic - fetched from database
   PRODUCT_CATEGORY_OPTIONS,
-  VENDOR_OPTIONS
+  // VENDOR_OPTIONS // Now dynamic - fetched from database
 }; 

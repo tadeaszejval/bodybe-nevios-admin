@@ -1,7 +1,7 @@
 "use client";
 import React, { useState } from 'react';
-import { Box, Popover, Typography, Chip } from '@mui/material';
-import { NeviosSecondaryIconButton, NeviosSecondaryButton, NeviosPrimaryButton } from '../NeviosButtons';
+import { Box, Popover, Typography, Chip, IconButton } from '@mui/material';
+import { NeviosSecondaryButton, NeviosPrimaryButton, NeviosTextButton, NeviosFilterButton } from '../NeviosButtons';
 import { TbX } from 'react-icons/tb';
 
 /**
@@ -87,9 +87,10 @@ export function NeviosEnhancedTableFilters({
         return (
           <React.Fragment key={config.id}>
             {/* Filter Button */}
-            <NeviosSecondaryButton
+            <NeviosFilterButton
               onClick={(event) => handleFilterOpen(config.id, event)}
               disabled={loading}
+              height={25}
             >
               {config.label}
               {isActive && (
@@ -100,12 +101,12 @@ export function NeviosEnhancedTableFilters({
                     ml: 0.5,
                     height: '16px',
                     fontSize: '10px',
-                    backgroundColor: 'rgba(255,255,255,0.2)',
-                    color: 'inherit'
+                    backgroundColor: 'gray.200',
+                    color: 'gray.900'
                   }}
                 />
               )}
-            </NeviosSecondaryButton>
+            </NeviosFilterButton>
 
             {/* Filter Popover */}
             <Popover
@@ -125,9 +126,30 @@ export function NeviosEnhancedTableFilters({
               }}
             >
               <Box sx={{ p: 1.5, minWidth: 250 }}>
-                <Typography variant="subtitle2" sx={{ mb: 1.5, fontWeight: 600 }}>
-                  {config.label}
-                </Typography>
+                {/* Header with title and close button */}
+                <Box sx={{ 
+                  display: 'flex', 
+                  justifyContent: 'space-between', 
+                  alignItems: 'center',
+                  mb: 1.5 
+                }}>
+                  <Typography variant="subtitle2" sx={{ fontWeight: 600 }}>
+                    {config.label}
+                  </Typography>
+                  <IconButton
+                    size="small"
+                    onClick={() => handleFilterClose(config.id)}
+                    sx={{ 
+                      color: 'gray.500',
+                      '&:hover': {
+                        color: 'gray.700',
+                        backgroundColor: 'gray.100'
+                      }
+                    }}
+                  >
+                    <TbX size={16} />
+                  </IconButton>
+                </Box>
                 
                 {/* Render filter component based on type */}
                 {config.component && (
@@ -143,7 +165,7 @@ export function NeviosEnhancedTableFilters({
                 <Box sx={{ 
                   display: 'flex', 
                   justifyContent: 'flex-end', 
-                  mt: 2,
+                  mt: 1,
                   gap: 1
                 }}>
                   <NeviosSecondaryButton
@@ -154,11 +176,6 @@ export function NeviosEnhancedTableFilters({
                   >
                     Clear
                   </NeviosSecondaryButton>
-                  <NeviosPrimaryButton
-                    onClick={() => handleFilterClose(config.id)}
-                  >
-                    Apply
-                  </NeviosPrimaryButton>
                 </Box>
               </Box>
             </Popover>
@@ -168,13 +185,16 @@ export function NeviosEnhancedTableFilters({
 
       {/* Clear All Button */}
       {activeFilterCount > 0 && (
-        <NeviosSecondaryIconButton
+        <NeviosTextButton
           onClick={handleClearAll}
           disabled={loading}
+          height={25}
+          fontSize="12px"
+          fontWeight="500"
           sx={{ ml: 0.5 }}
         >
-          <TbX size={14} />
-        </NeviosSecondaryIconButton>
+          Clear All
+        </NeviosTextButton>
       )}
     </Box>
   );

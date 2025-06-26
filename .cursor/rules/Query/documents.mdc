@@ -1,0 +1,303 @@
+---
+description: 
+globs: 
+alwaysApply: false
+---
+# Documents Query API
+
+## Endpoint
+**POST** `/server/documents/query`
+
+## Description
+Unified query endpoint for all document types (INVOICE, DEPOSIT_INVOICE) with comprehensive filtering, search, pagination, and expansion capabilities.
+
+This endpoint supports both URL query parameters and request body parameters, with request body taking precedence. It provides flexible filtering, multi-field search, and related data expansion.
+
+## Query Parameters (URL) - Optional
+- `page`: Page number (default: 1)
+- `limit`: Records per page (default: 50, max: 100)
+- `orderBy`: Column to order by (default: 'created_at')
+- `ascending`: Sort order (default: false)
+- `select`: Columns to select (default: '*')
+- `expand`: Related records to expand (comma-separated)
+
+## Request Body - Optional
+All URL parameters can be overridden in the request body:
+
+```json
+{
+  "page": 1,
+  "limit": 50,
+  "orderBy": "created_at",
+  "ascending": false,
+  "select": "*",
+  "expand": ["customer", "items"],
+  "filters": {
+    "doc_type": "INVOICE",
+    "status": "PAID",
+    "customer": "customer-uuid-here",
+    "created_after": "2024-01-01",
+    "total_min": 100.00
+  },
+  "search": "john doe"
+}
+```
+
+## Available Expansions
+- `customer`: Expand customer information
+- `billing_address`: Expand billing address details
+- `shipping_address`: Expand shipping address details
+- `addresses`: Expand both billing and shipping addresses
+- `items`: Expand document items with product/variant details
+- `relationships`: Include document relationships (orders, payments, etc.)
+- `all`: Expand all available related data
+
+## Available Filters
+
+### Document Type & Status
+- `doc_type`: Document type
+  - **Type**: `string`
+  - **Description**: Filter by document type
+  - **Values**: `INVOICE`, `DEPOSIT_INVOICE`
+- `status`: Document status
+  - Values: `DRAFT`, `ISSUED`, `PAID`, `COMPLETED`, `CANCELLED`
+
+### Customer & Currency
+- `customer`: Customer UUID
+- `currency`: Currency code (e.g., `EUR`, `USD`, `GBP`)
+
+### Date Range Filters
+- `created_after`: ISO date string (e.g., "2024-01-01")
+- `created_before`: ISO date string (e.g., "2024-12-31")
+- `updated_after`: ISO date string
+- `updated_before`: ISO date string
+- `vat_date_after`: ISO date string
+- `vat_date_before`: ISO date string
+
+### Amount Filters
+- `total_min`: Minimum total amount (number)
+- `total_max`: Maximum total amount (number)
+
+### Document-Specific Filters
+- `has_items`: Boolean - whether document has items
+
+## Search Functionality
+The `search` parameter performs multi-field search across:
+
+### Document Fields
+- name, doc_type, status, currency, note, internal_note
+
+### Metadata Fields
+- reason, reason_details, source_invoice_name, refund_method
+
+### Customer Fields (when expanded)
+- first_name, last_name, email, phone, company, full_name
+
+### Item Fields (when expanded)
+- item_name, product_title, variant_title, discount_code
+
+### Address Fields (when expanded)
+- first_name, last_name, company, address_1, address_2, city, postal_code, country_code
+
+## Example Requests
+
+### Basic Query - All Documents
+```bash
+curl -X POST http://localhost:3000/server/documents/query \
+  -H "Content-Type: application/json" \
+  -d '{
+    "page": 1,
+    "limit": 20,
+    "orderBy": "created_at",
+    "ascending": false
+  }'
+```
+
+### Filter by Document Type
+```bash
+curl -X POST http://localhost:3000/server/documents/query \
+  -H "Content-Type: application/json" \
+  -d '{
+    "filters": {
+      "doc_type": "INVOICE",
+      "status": "PAID"
+    },
+    "expand": ["customer", "items"]
+  }'
+```
+
+### Date Range Query
+```bash
+curl -X POST http://localhost:3000/server/documents/query \
+  -H "Content-Type: application/json" \
+  -d '{
+    "filters": {
+      "created_after": "2024-01-01",
+      "created_before": "2024-12-31",
+      "total_min": 100.00
+    },
+    "expand": ["customer"]
+  }'
+```
+
+### Search Query
+```bash
+curl -X POST http://localhost:3000/server/documents/query \
+  -H "Content-Type: application/json" \
+  -d '{
+    "search": "john doe",
+    "expand": ["customer", "items"],
+    "filters": {
+      "doc_type": "INVOICE"
+    }
+  }'
+```
+
+### Complex Query with Multiple Filters
+```bash
+curl -X POST http://localhost:3000/server/documents/query \
+  -H "Content-Type: application/json" \
+  -d '{
+    "filters": {
+      "doc_type": "INVOICE",
+      "status": "PAID",
+      "currency": "EUR",
+      "created_after": "2024-01-01",
+      "total_min": 50.00,
+      "total_max": 1000.00,
+      "has_items": true
+    },
+    "expand": ["customer", "items", "addresses"],
+    "orderBy": "total_price_gross",
+    "ascending": false,
+    "limit": 25
+  }'
+```
+
+## Response Format
+
+### Success Response (200)
+```json
+{
+  "success": true,
+  "data": [
+    {
+      "id": "doc-uuid-here",
+      "name": "INV-2024-001",
+      "doc_type": "INVOICE",
+      "status": "PAID",
+      "currency": "EUR",
+      "total_price_gross": 120.00,
+      "total_price_net": 100.00,
+      "total_vat": 20.00,
+      "vat_date": "2024-01-15",
+      "note": "Customer note",
+      "internal_note": "Internal note",
+      "created_at": "2024-01-15T10:30:00Z",
+      "updated_at": "2024-01-15T10:30:00Z",
+      "customer": {
+        "id": "customer-uuid",
+        "first_name": "John",
+        "last_name": "Doe",
+        "email": "john@example.com",
+        "phone": "+1234567890",
+        "company": "Acme Corp"
+      },
+      "items": [
+        {
+          "id": "item-uuid",
+          "item_name": "Product Name",
+          "quantity": 2,
+          "unit_price": 50.00,
+          "total_price": 100.00,
+          "vat_rate": 20,
+          "product": {
+            "id": "product-uuid",
+            "title": "Product Title"
+          }
+        }
+      ],
+      "billing_address": {
+        "id": "address-uuid",
+        "first_name": "John",
+        "last_name": "Doe",
+        "company": "Acme Corp",
+        "address_1": "123 Main St",
+        "city": "New York",
+        "postal_code": "10001",
+        "country_code": "US"
+      }
+    }
+  ],
+  "pagination": {
+    "currentPage": 1,
+    "totalPages": 5,
+    "totalRecords": 100,
+    "recordsPerPage": 20,
+    "hasNextPage": true,
+    "hasPreviousPage": false,
+    "recordsOnCurrentPage": 20
+  },
+  "filters": {
+    "doc_type": "INVOICE",
+    "status": "PAID"
+  },
+  "orderBy": {
+    "column": "created_at",
+    "ascending": false
+  },
+  "expansions": ["customer", "items"]
+}
+```
+
+### Search Response (200)
+When using search, additional fields are included:
+```json
+{
+  "success": true,
+  "data": [...],
+  "pagination": {...},
+  "searchTerm": "john doe",
+  "filters": {...},
+  "orderBy": {...},
+  "expansions": [...]
+}
+```
+
+### Error Responses
+
+#### Validation Error (400)
+```json
+{
+  "success": false,
+  "error": "Page must be a positive integer"
+}
+```
+
+#### Server Error (500)
+```json
+{
+  "success": false,
+  "error": "Failed to query documents: Database connection error"
+}
+```
+
+## Notes
+
+### Parameter Precedence
+Request body parameters take precedence over URL query parameters. This allows for flexible API usage where simple queries can use URL parameters while complex queries use the request body.
+
+### Search Performance
+Search functionality loads all records with expansions and filters client-side for comprehensive search across related data. For large datasets, consider using specific filters to reduce the search scope.
+
+### Expansion Efficiency
+Use specific expansions rather than `all` when possible to improve performance. The `relationships` expansion requires additional database queries.
+
+### Date Formats
+All date filters should use ISO 8601 format (YYYY-MM-DD or full ISO string with time).
+
+### Currency Handling
+Amount filters work with the document's base currency. Multi-currency comparisons are not automatically converted.
+
+### Document Types
+The system supports all document types defined in the documents table. New document types will automatically be queryable through this endpoint. 

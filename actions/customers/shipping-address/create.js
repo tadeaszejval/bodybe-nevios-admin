@@ -1,5 +1,5 @@
 // Shipping address creation action
-import { postRequest } from '../../../src/utils/nevios-express';
+import { postRequest } from '../../../src/utils/neviosExpress';
 
 /**
  * Creates a shipping address for a customer

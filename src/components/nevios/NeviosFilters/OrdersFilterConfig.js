@@ -1,6 +1,8 @@
 "use client";
 import { FilterSelect } from './FilterSelect';
 import { FilterMultipleSelect } from './FilterMultipleSelect';
+import { FilterProductSelect } from './FilterProductSelect';
+import { FilterContains } from './FilterContains';
 
 /**
  * Orders Filter Configuration
@@ -38,6 +40,15 @@ const CURRENCY_OPTIONS = [
  */
 export const ORDERS_FILTER_CONFIG = [
   {
+    id: 'local_currency',
+    label: 'Currency',
+    component: FilterSelect,
+    options: CURRENCY_OPTIONS,
+    props: {
+      placeholder: 'All currencies'
+    }
+  },
+  {
     id: 'payment_status',
     label: 'Payment Status',
     component: FilterMultipleSelect,
@@ -58,12 +69,21 @@ export const ORDERS_FILTER_CONFIG = [
     }
   },
   {
-    id: 'local_currency',
-    label: 'Currency',
-    component: FilterSelect,
-    options: CURRENCY_OPTIONS,
+    id: 'products',
+    label: 'Products',
+    component: FilterProductSelect,
     props: {
-      placeholder: 'All currencies'
+      placeholder: 'All products',
+      maxDisplayChips: 2
+    }
+  },
+  {
+    id: 'product_variant',
+    label: 'Product Variant',
+    component: FilterContains,
+    props: {
+      placeholder: 'Enter variant name...',
+      debounceMs: 500
     }
   }
 ];

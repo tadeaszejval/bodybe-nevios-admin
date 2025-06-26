@@ -1,9 +1,4 @@
-/**
- * Nevios Express API Utilities
- * Base URL: https://vasky-nevios-express-production.up.railway.app/api
- */
-
-const API_BASE_URL = 'https://vasky-nevios-express-production.up.railway.app/api';
+const API_BASE_URL = process.env.NEXT_PUBLIC_NEVIOS_EXPRESS_URL;
 
 /**
  * Make a GET request to the API
