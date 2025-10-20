@@ -71,7 +71,7 @@ export function DocumentsTable({
 		updateFilters,
 		updateSearch
 	} = useModuleQuery('documents', {
-		expand: ["customer", "billing_address", "shipping_address", "items"],
+		expand: ["customer", "items"],
 		initialFilters,
 		initialSearch,
 		enableSearch: true,

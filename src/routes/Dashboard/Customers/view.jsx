@@ -21,7 +21,6 @@ import { SubscribedBadge } from "../../../components/dashboard/customers/Subscri
 import { AccountStatusBadge } from "../../../components/dashboard/customers/AccountStatusBadge";
 import { getCountryName } from "../../../core/countryName";
 import { formatReadableDatetime } from "../../../core/formatters";
-import NeviosAnalyticsStripe from "../../../components/nevios/NeviosAnalyticsStripe";
 import ActivityLogs from "../../../components/dashboard/customers/ActivityLogs";
 import { CompanyBadge } from "../../../components/dashboard/customers/CompanyBadge";  
 import NeviosGroupButton from "../../../components/nevios/NeviosGroupButton";
@@ -529,13 +528,6 @@ export function CustomerView({ customerId }) {
           </Box>
         }
       />
-      <NeviosAnalyticsStripe sections={[
-        { title: "Revenue", value: "$1,234" },
-        { title: "Orders", value: "56" },
-        { title: "Customer since", value: "About 2 hours" },
-        { title: "RFM group", value: "—" },
-        { title: "Predicted spend time", value: "—" }
-      ]} />
       <NeviosTwoColumnFormContainer
         mainContent={
           <>

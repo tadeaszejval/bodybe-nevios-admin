@@ -12,7 +12,7 @@ const NeviosAnalyticsHorizontalBarChart = ({
   comparisonBarColor = '#E5E7EB',
   showPercentageChange = true,
   maxBarWidth = 70, // percentage of container width for bar area
-  height = 'auto', // height of the component
+  height = '100%', // Default to 100% height
   ...props
 }) => {
   // Find the maximum value to calculate bar widths
@@ -46,9 +46,10 @@ const NeviosAnalyticsHorizontalBarChart = ({
     <NeviosAnalyticsBlock
       title={title}
       tooltip={tooltip}
+      height={height}
       {...props}
     >
-      <Box sx={{ width: '100%', height: height === 'auto' ? 'auto' : height, overflow: 'auto', overflowX: 'auto' }}>
+      <Box sx={{ width: '100%', height: '100%', overflow: 'auto', overflowX: 'auto' }}>
                 {data.map((item, index) => {
           const barWidth = maxValue > 0 ? (item.value / maxValue) * maxBarWidth : 0;
           const comparisonBarWidth = maxValue > 0 && item.previousValue ? (item.previousValue / maxValue) * maxBarWidth : 0;
@@ -111,7 +112,6 @@ const NeviosAnalyticsHorizontalBarChart = ({
                     ml: 1,
                     display: 'flex',
                     alignItems: 'center',
-                    gap: 1,
                     whiteSpace: 'nowrap'
                   }}
                 >

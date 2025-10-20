@@ -28,7 +28,6 @@ import { DocumentStatusBadge } from "../../../components/dashboard/documents/Doc
 import { DocumentTypeBadge } from "../../../components/dashboard/documents/DocumentTypeBadge";
 import { getCountryName } from "../../../core/countryName";
 import { formatReadableDatetime, formatCurrencyNumber, formatReadableDate } from "../../../core/formatters";
-import NeviosAnalyticsStripe from "../../../components/nevios/NeviosAnalyticsStripe";
 import NeviosGroupButton from "../../../components/nevios/NeviosGroupButton";
 import NeviosPaginationButtons from "../../../components/nevios/NeviosPaginationButtons";
 import { NeviosDangerButton } from "../../../components/nevios/NeviosButtons";
@@ -38,8 +37,6 @@ export function DocumentView({ documentId }) {
   const [loading, setLoading] = useState(true);
   const [document, setDocument] = useState(null);
   const [customer, setCustomer] = useState(null);
-  const [billingAddress, setBillingAddress] = useState(null);
-  const [shippingAddress, setShippingAddress] = useState(null);
   const [documentItems, setDocumentItems] = useState([]);
   const [error, setError] = useState(null);
   const [snackbar, setSnackbar] = useState({
@@ -63,9 +60,7 @@ export function DocumentView({ documentId }) {
         .from('documents')
         .select(`
           *,
-          customer:customers(*),
-          billing_address:billing_address(*),
-          shipping_address:shipping_address(*)
+          customer:customers(*)
         `)
         .eq('id', id)
         .single();
@@ -75,8 +70,6 @@ export function DocumentView({ documentId }) {
       
       setDocument(documentData);
       setCustomer(documentData.customer);
-      setBillingAddress(documentData.billing_address);
-      setShippingAddress(documentData.shipping_address);
 
       // Fetch document items
       const { data: itemsData, error: itemsError } = await supabase
@@ -205,14 +198,6 @@ export function DocumentView({ documentId }) {
           </Box>
         }
       />
-      
-      <NeviosAnalyticsStripe sections={[
-        { title: "Total Amount", value: `${document.currency} ${formatCurrencyNumber(totalGross)}` },
-        { title: "Paid Amount", value: `${document.currency} ${formatCurrencyNumber(totalPaid)}` },
-        { title: "Remaining", value: `${document.currency} ${formatCurrencyNumber(remainingAmount)}` },
-        { title: "VAT Rate", value: `${document.vat_rate}%` },
-        { title: "Items", value: documentItems.length.toString() }
-      ]} />
       
       <NeviosTwoColumnFormContainer
         mainContent={

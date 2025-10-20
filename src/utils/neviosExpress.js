@@ -12,8 +12,16 @@ export const getRequest = async (endpoint, queryParams = {}) => {
     
     // Add query parameters
     Object.keys(queryParams).forEach(key => {
-      if (queryParams[key] !== undefined && queryParams[key] !== null) {
-        url.searchParams.append(key, queryParams[key]);
+      const value = queryParams[key];
+      if (value !== undefined && value !== null) {
+        // Handle array parameters (like select[])
+        if (Array.isArray(value)) {
+          value.forEach(item => {
+            url.searchParams.append(key, item);
+          });
+        } else {
+          url.searchParams.append(key, value);
+        }
       }
     });
 

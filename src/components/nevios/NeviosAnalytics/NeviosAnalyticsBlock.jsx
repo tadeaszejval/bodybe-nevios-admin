@@ -7,6 +7,7 @@ const NeviosAnalyticsBlock = ({
   tooltip, 
   value, 
   children,
+  height = '100%',
   sx = {},
   ...props 
 }) => {
@@ -15,23 +16,22 @@ const NeviosAnalyticsBlock = ({
       elevation={1}
       sx={{
         p: '16px',
-        borderRadius: '12px',
-        border: '1px solid',
-        borderColor: 'divider',
-        backgroundColor: 'background.paper',
+        height: height,
+        display: 'flex',
+        flexDirection: 'column',
         ...sx
       }}
       {...props}
     >
       {/* Header with title and optional tooltip */}
-      <Box sx={{ mb: value ? 1 : 2 }}>
+      <Box sx={{ mb: value ? 1 : 2, flexShrink: 0 }}>
         <Box sx={{ display: 'inline-flex', alignItems: 'center', flexDirection: 'column', alignItems: 'flex-start' }}>
           <Box sx={{ display: 'flex', alignItems: 'center' }}>
             <Typography 
               sx={{ 
                 fontWeight: 600,
                 color: 'text.primary',
-                fontSize: '14px'
+                fontSize: '13px'
               }}
             >
               {title}
@@ -43,8 +43,11 @@ const NeviosAnalyticsBlock = ({
                   sx={{ 
                     color: 'text.secondary',
                     '&:hover': {
-                      color: 'text.primary'
-                    }
+                      color: 'text.primary',
+                      backgroundColor: 'transparent'
+                    },
+                    py: 0,
+                    px: 0.5
                   }}
                 >
                   <InfoOutlined fontSize="small" />
@@ -69,13 +72,13 @@ const NeviosAnalyticsBlock = ({
 
       {/* Optional value display */}
       {value && (
-        <Box sx={{ mb: 1, mt: 1 }}>
+        <Box sx={{ mb: 2, mt: 1, flexShrink: 0 }}>
           <Typography 
             component="div"
             sx={{ 
               fontWeight: 600,
               color: 'text.primary',
-              fontSize: '20px',
+              fontSize: '18px',
               lineHeight: 1.2
             }}
           >
@@ -86,7 +89,13 @@ const NeviosAnalyticsBlock = ({
 
       {/* Content area for charts or other components */}
       {children && (
-        <Box sx={{ minHeight: '200px', mt: 1 }}>
+        <Box sx={{ 
+          flex: 1,
+          minHeight: 0,
+          mt: 1,
+          display: 'flex',
+          flexDirection: 'column'
+        }}>
           {children}
         </Box>
       )}

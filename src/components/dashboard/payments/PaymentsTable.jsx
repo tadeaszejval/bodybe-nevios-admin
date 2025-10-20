@@ -1,5 +1,5 @@
 "use client";
-import { Box, Chip } from "@mui/material";
+import { Box } from "@mui/material";
 import React, { useCallback } from "react";
 import {
 	currencyColumnFactory,
@@ -12,61 +12,129 @@ import { NeviosEnhancedTable } from "../../nevios/NeviosEnhancedTable";
 import { formatReadableDatetime, formatCurrencyNumber } from "../../../core/formatters";
 import { useModuleQuery } from "../../../hooks/useModuleQuery";
 import { PAYMENTS_FILTER_CONFIG } from "../../nevios/NeviosFilters/PaymentsFilterConfig";
-import { TbCreditCard, TbRefresh, TbTrash } from "react-icons/tb";
+import { TbCreditCard, TbRefresh, TbTrash, TbCash, TbBuildingBank, TbEdit } from "react-icons/tb";
+import { match } from "ts-pattern";
+import { ColorDot } from "../../ColorDot";
 
 // Payment Status Badge Component
-const PaymentStatusBadge = ({ status }) => {
-	const getStatusConfig = (status) => {
-		switch (status?.toUpperCase()) {
-			case 'PAID':
-				return { color: 'success', label: 'Paid' };
-			case 'UNPAID':
-				return { color: 'warning', label: 'Unpaid' };
-			case 'REFUNDED':
-				return { color: 'error', label: 'Refunded' };
-			default:
-				return { color: 'default', label: status || 'Unknown' };
-		}
-	};
+const PAYMENT_STATUSES = {
+	PAID: {
+		value: "PAID",
+		label: "Paid",
+		color: "green",
+	},
+	UNPAID: {
+		value: "UNPAID",
+		label: "Unpaid",
+		color: "red",
+	},
+	REFUNDED: {
+		value: "REFUNDED",
+		label: "Refunded",
+		color: "orange",
+	},
+};
 
-	const config = getStatusConfig(status);
+const paymentStatusMatcher = (value) =>
+	match(value)
+		.with("PAID", () => PAYMENT_STATUSES.PAID)
+		.with("UNPAID", () => PAYMENT_STATUSES.UNPAID)
+		.with("REFUNDED", () => PAYMENT_STATUSES.REFUNDED)
+		.otherwise(() => PAYMENT_STATUSES.UNPAID);
+
+const PaymentStatusBadge = ({ status, customSx = {} }) => {
+	const normalizedStatus = status?.toUpperCase() || "UNPAID";
+	const statusMeta = paymentStatusMatcher(normalizedStatus);
 	
 	return (
-		<Chip
-			label={config.label}
-			color={config.color}
-			size="small"
-			variant="outlined"
-		/>
+		<Box
+			sx={{
+				display: "flex",
+				alignItems: "center",
+				gap: 0.5,
+				padding: 0,
+				backgroundColor: `${statusMeta.color}.50`,
+				color: `${statusMeta.color}.800`,
+				fontWeight: 500,
+				borderRadius: 1,
+				borderColor: `${statusMeta.color}.200`,
+				borderWidth: 1,
+				borderStyle: "solid",
+				px: 0.75,
+				py: 0.25,
+				fontSize: "xs",
+				...customSx,
+			}}
+		>
+			<ColorDot color={statusMeta.color} />
+			{statusMeta.label}
+		</Box>
 	);
 };
 
 // Payment Type Badge Component
-const PaymentTypeBadge = ({ type }) => {
-	const getTypeConfig = (type) => {
-		switch (type?.toUpperCase()) {
-			case 'GATEWAY':
-				return { color: 'primary', label: 'Gateway' };
-			case 'COD':
-				return { color: 'secondary', label: 'Cash on Delivery' };
-			case 'BANK_TRANSFER':
-				return { color: 'info', label: 'Bank Transfer' };
-			case 'MANUAL':
-				return { color: 'default', label: 'Manual' };
-			default:
-				return { color: 'default', label: type || 'Unknown' };
-		}
-	};
+const PAYMENT_TYPES = {
+	GATEWAY: {
+		value: "GATEWAY",
+		label: "Gateway",
+		color: "gray",
+		icon: <TbCreditCard size={14} />
+	},
+	COD: {
+		value: "COD",
+		label: "Cash on Delivery",
+		color: "gray",
+		icon: <TbCash size={14} />
+	},
+	BANK_TRANSFER: {
+		value: "BANK_TRANSFER",
+		label: "Bank Transfer",
+		color: "gray",
+		icon: <TbBuildingBank size={14} />
+	},
+	MANUAL: {
+		value: "MANUAL",
+		label: "Manual",
+		color: "gray",
+		icon: <TbEdit size={14} />
+	},
+};
 
-	const config = getTypeConfig(type);
+const paymentTypeMatcher = (value) =>
+	match(value)
+		.with("GATEWAY", () => PAYMENT_TYPES.GATEWAY)
+		.with("COD", () => PAYMENT_TYPES.COD)
+		.with("BANK_TRANSFER", () => PAYMENT_TYPES.BANK_TRANSFER)
+		.with("MANUAL", () => PAYMENT_TYPES.MANUAL)
+		.otherwise(() => PAYMENT_TYPES.MANUAL);
+
+const PaymentTypeBadge = ({ type, customSx = {} }) => {
+	const normalizedType = type?.toUpperCase() || "MANUAL";
+	const typeMeta = paymentTypeMatcher(normalizedType);
 	
 	return (
-		<Chip
-			label={config.label}
-			color={config.color}
-			size="small"
-			variant="filled"
-		/>
+		<Box
+			sx={{
+				display: "flex",
+				alignItems: "center",
+				gap: 0.5,
+				padding: 0,
+				backgroundColor: `${typeMeta.color}.50`,
+				color: `${typeMeta.color}.800`,
+				fontWeight: 500,
+				borderRadius: 1,
+				borderColor: `${typeMeta.color}.200`,
+				borderWidth: 1,
+				borderStyle: "solid",
+				px: 0.75,
+				py: 0.25,
+				fontSize: "xs",
+				...customSx,
+			}}
+		>
+			{typeMeta.icon}
+			{typeMeta.label}
+		</Box>
 	);
 };
 
@@ -171,9 +239,8 @@ export function PaymentsTable({
 
 	// Handle row click to view payment details
 	const handleRowClick = useCallback((params) => {
-		// Navigate to payment detail view (if it exists)
-		// For now, just log the payment data
-		console.log('Payment clicked:', params.row);
+		// Navigate to payment detail view
+		window.location.href = `/dashboard/payments/${params.id}`;
 	}, []);
 
 	// Define bulk actions
@@ -205,8 +272,27 @@ export function PaymentsTable({
 		clickableColumnFactory({
 			field: "payment_name",
 			headerName: "Payment ID",
-			minWidth: 150,
+			minWidth: 100,
 			link: (params) => `/dashboard/payments/${params.id}`
+		}),
+		genericColumnFactory({
+			field: "type",
+			headerName: "Type",
+			flex: 1.5,
+			minWidth: 140,
+			renderCell: (params) => (
+				<Box
+					sx={{
+						lineHeight: 1.2,
+						width: "100%",
+						height: "100%",
+						display: "flex",
+						alignItems: "center",
+					}}
+				>
+					<PaymentTypeBadge type={params.value} />
+				</Box>
+			),
 		}),
 		dateColumnFactory({
 			field: "payment_date",
@@ -264,25 +350,6 @@ export function PaymentsTable({
 					}}
 				>
 					<PaymentStatusBadge status={params.value} />
-				</Box>
-			),
-		}),
-		genericColumnFactory({
-			field: "type",
-			headerName: "Type",
-			flex: 1.5,
-			minWidth: 140,
-			renderCell: (params) => (
-				<Box
-					sx={{
-						lineHeight: 1.2,
-						width: "100%",
-						height: "100%",
-						display: "flex",
-						alignItems: "center",
-					}}
-				>
-					<PaymentTypeBadge type={params.value} />
 				</Box>
 			),
 		}),

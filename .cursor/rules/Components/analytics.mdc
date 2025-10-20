@@ -1,0 +1,315 @@
+---
+description: 
+globs: 
+alwaysApply: false
+---
+# NeviosAnalytics Components
+
+A comprehensive set of analytics components for building beautiful dashboards with consistent styling and behavior.
+
+## Components Overview
+
+### 1. NeviosAnalyticsBlock
+Root container component that provides the foundation for all other analytics components.
+
+**Parameters:**
+- `title` (string) - Component title/heading
+- `tooltip` (string, optional) - Tooltip text that appears when hovering over info icon
+- `value` (string/number, optional) - Main metric value to display
+- `children` (ReactNode, optional) - Content to render inside the block
+- `sx` (object, optional) - Additional Material-UI styling
+
+**Usage:**
+```jsx
+<NeviosAnalyticsBlock 
+  title="Revenue Overview" 
+  tooltip="Total revenue generated from all sales channels"
+  value="$125,430"
+>
+  <YourCustomContent />
+</NeviosAnalyticsBlock>
+```
+
+### 2. NeviosAnalyticsLineChart
+Line chart component with dual lines, tooltips, and legends.
+
+**Parameters:**
+- `title` (string) - Chart title
+- `tooltip` (string, optional) - Tooltip text for info icon
+- `data` (array) - Array of data objects
+- `primaryDataKey` (string, default: 'primary') - Key for primary line data
+- `secondaryDataKey` (string, default: 'secondary') - Key for secondary line data
+- `primaryLabel` (string, default: 'Current') - Label for primary line
+- `secondaryLabel` (string, default: 'Previous') - Label for secondary line
+- `xAxisDataKey` (string, default: 'date') - Key for X-axis data
+- `valueLabel` (string, default: 'CZK') - Unit label (CZK, $, %, etc.)
+- `primaryColor` (string, default: '#3B82F6') - Primary line color
+- `secondaryColor` (string, default: '#D1D5DB') - Secondary line color
+- `showSecondary` (boolean, default: true) - Whether to show secondary line
+- `height` (number, default: 300) - Chart height in pixels
+
+**Data Structure:**
+```javascript
+const data = [
+  { date: 'Jun 2024', primary: 100000, secondary: 50000 },
+  { date: 'Jul 2024', primary: 120000, secondary: 60000 },
+  // ... more data points
+];
+```
+
+**Usage:**
+```jsx
+<NeviosAnalyticsLineChart
+  title="Sales Overview"
+  tooltip="Monthly sales comparison between current and previous period"
+  data={salesData}
+  valueLabel="$"
+  primaryColor="#10B981"
+  secondaryColor="#E5E7EB"
+/>
+```
+
+### 3. NeviosAnalyticsHorizontalBarChart
+Horizontal bar chart with comparison bars and value positioning.
+
+**Parameters:**
+- `title` (string) - Chart title
+- `tooltip` (string, optional) - Tooltip text for info icon
+- `data` (array) - Array of data objects
+- `valueLabel` (string, default: '') - Unit label prefix
+- `barColor` (string, default: 'primary.500') - Main bar color
+- `comparisonBarColor` (string, default: '#E5E7EB') - Comparison bar color
+- `showPercentageChange` (boolean, default: true) - Show percentage changes
+- `maxBarWidth` (number, default: 70) - Maximum bar width percentage
+- `height` (string/number, default: 'auto') - Component height
+
+**Data Structure:**
+```javascript
+const data = [
+  {
+    label: "New York",
+    value: 12345,
+    previousValue: 10000,
+    percentageChange: 23.5
+  },
+  // ... more locations
+];
+```
+
+**Usage:**
+```jsx
+<NeviosAnalyticsHorizontalBarChart
+  title="Sales by Location"
+  tooltip="Sales performance across different geographical locations"
+  data={locationData}
+  valueLabel="$"
+  barColor="#3B82F6"
+  height={400}
+/>
+```
+
+### 4. NeviosAnalyticsSessionsList
+List component displaying sessions with change indicators.
+
+**Parameters:**
+- `title` (string, default: "Sessions by landing page") - List title
+- `tooltip` (string, optional) - Tooltip text for info icon
+- `data` (array) - Array of data objects
+- `height` (number, default: 400) - Component height
+
+**Data Structure:**
+```javascript
+const data = [
+  {
+    label: "Homepage · /",
+    value: 1234,
+    percentageChange: 12.5
+  },
+  {
+    label: "Products · /products",
+    value: 856,
+    percentageChange: -5.2
+  },
+  // ... more pages
+];
+```
+
+**Usage:**
+```jsx
+<NeviosAnalyticsSessionsList
+  title="Top Landing Pages"
+  tooltip="Most visited pages and their performance changes"
+  data={pagesData}
+  height={350}
+/>
+```
+
+### 5. NeviosAnalyticsPieChart
+Donut chart with center totals and interactive legend.
+
+**Parameters:**
+- `title` (string, default: "Sessions by device type") - Chart title
+- `tooltip` (string, optional) - Tooltip text for info icon
+- `data` (array) - Array of data objects
+- `height` (number, default: 400) - Chart height
+- `colors` (array, default: ['#3B82F6', '#8B5CF6', '#6366F1', '#EC4899']) - Segment colors
+
+**Data Structure:**
+```javascript
+const data = [
+  {
+    label: "Desktop",
+    value: 5234,
+    percentageChange: 8.2
+  },
+  {
+    label: "Mobile",
+    value: 3456,
+    percentageChange: -2.1
+  },
+  // ... more device types
+];
+```
+
+**Usage:**
+```jsx
+<NeviosAnalyticsPieChart
+  title="Traffic by Device"
+  tooltip="Breakdown of website traffic by device type"
+  data={deviceData}
+  colors={['#3B82F6', '#10B981', '#F59E0B', '#EF4444']}
+  height={350}
+/>
+```
+
+### 6. NeviosAnalyticsMetricCard
+Individual metric card with optional sparkline chart.
+
+**Parameters:**
+- `title` (string, default: "Returning customer rate") - Metric title
+- `tooltip` (string, optional) - Tooltip text for info icon
+- `value` (string, default: "9.83%") - Main metric value
+- `data` (array, optional) - Sparkline chart data
+- `color` (string, default: "#3B82F6") - Sparkline color
+
+**Data Structure (for sparkline):**
+```javascript
+const sparklineData = [
+  { value: 10 },
+  { value: 15 },
+  { value: 12 },
+  { value: 18 },
+  // ... more points
+];
+```
+
+**Usage:**
+```jsx
+<NeviosAnalyticsMetricCard
+  title="Conversion Rate"
+  tooltip="Percentage of visitors who complete a purchase"
+  value="3.2%"
+  data={conversionSparkline}
+  color="#10B981"
+/>
+```
+
+### 7. NeviosAnalyticsGroupMetricCard
+Horizontal grouped metrics with individual tooltips.
+
+**Parameters:**
+- `data` (array) - Array of metric objects
+
+**Data Structure:**
+```javascript
+const data = [
+  {
+    label: "Total Orders",
+    value: "1,234",
+    tooltip: "Total number of orders placed this month"
+  },
+  {
+    label: "Revenue",
+    value: "$45,678",
+    tooltip: "Total revenue generated from all sales"
+  },
+  {
+    label: "Avg Order",
+    value: "$37.12",
+    tooltip: "Average order value across all transactions"
+  }
+];
+```
+
+**Usage:**
+```jsx
+<NeviosAnalyticsGroupMetricCard data={groupedMetrics} />
+```
+
+## Common Patterns
+
+### Tooltip Usage
+All components support tooltips via the `tooltip` prop. When provided, an info icon appears next to the title that shows the tooltip on hover:
+
+```jsx
+<NeviosAnalyticsLineChart
+  title="Sales Trends"
+  tooltip="This chart shows the comparison between current and previous period sales"
+  // ... other props
+/>
+```
+
+For `NeviosAnalyticsGroupMetricCard`, tooltips are defined per metric in the data array:
+
+```jsx
+const data = [
+  {
+    label: "Metric Name",
+    value: "123",
+    tooltip: "Explanation of this specific metric"
+  }
+];
+```
+
+### Color Consistency
+Use consistent colors across your dashboard:
+- Primary Blue: `#3B82F6`
+- Success Green: `#10B981`
+- Warning Orange: `#F59E0B`
+- Error Red: `#EF4444`
+- Secondary Gray: `#6B7280`
+
+### Data Formatting
+- Use `toLocaleString()` for number formatting with commas
+- Keep percentage changes to 1 decimal place
+- Use appropriate units (K, M) for large numbers in displays
+- Maintain consistent date formats across components
+
+### Layout Recommendations
+```jsx
+// Dashboard grid layout example
+<Box sx={{ display: 'flex', gap: 2, mb: 2 }}>
+  <Box sx={{ flex: 1 }}>
+    <NeviosAnalyticsLineChart {...salesProps} />
+  </Box>
+  <Box sx={{ flex: 1 }}>
+    <NeviosAnalyticsLineChart {...ordersProps} />
+  </Box>
+</Box>
+
+<Box sx={{ display: 'flex', gap: 2, mb: 2 }}>
+  <Box sx={{ flex: 2 }}>
+    <NeviosAnalyticsPieChart {...deviceProps} />
+  </Box>
+  <Box sx={{ flex: 1 }}>
+    <NeviosAnalyticsSessionsList {...pagesProps} />
+  </Box>
+</Box>
+```
+
+## Design Notes
+- All components use consistent dotted line styling under titles
+- Hover effects are subtle and consistent across components
+- Typography follows the same hierarchy (title: 14px, values: 16px+)
+- Spacing uses Material-UI's spacing system (multiples of 8px)
+- All components are responsive and work well in flex layouts 

@@ -332,6 +332,7 @@ function invertColorScale(colorScale) {
 }
 const lightPaletteScales = {
 	background: {
+		defaultLight: "rgba(247, 247, 247, 1)",
 		default: "rgba(241, 241, 241, 1)",
 		defaultDark: "rgb(238, 238, 238)",
 		defaultDarker: "rgb(217, 217, 217)",
@@ -354,7 +355,10 @@ const lightPaletteScales = {
 };
 const darkPaletteScales = {
 	background: {
+		defaultLight: "hsla(220, 2%, 16%, 1)",
 		default: "hsla(220, 2%, 12%, 1)",
+		defaultDark: "hsla(220, 2%, 10%, 1)",
+		defaultDarker: "hsla(220, 2%, 8%, 1)",
 		paper: "#2a2b2e",
 	},
 	// built in MUI color scales
