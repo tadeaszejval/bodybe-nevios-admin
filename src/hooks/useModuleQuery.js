@@ -9,7 +9,7 @@ const GLOBAL_PAGE_SIZE = 50;
 /**
  * Custom hook for querying module data with pagination, sorting, filtering, and search
  * 
- * @param {string} module - The module name (e.g., 'order', 'customer', 'product')
+ * @param {string} module - The module name (e.g., 'order', 'customer', 'product', 'inventory')
  * @param {Object} options - Configuration options
  * @param {Array} options.expand - Related records to expand (default: [])
  * @param {Object} options.initialFilters - Initial filters to apply (default: {})
@@ -19,6 +19,7 @@ const GLOBAL_PAGE_SIZE = 50;
  * @param {boolean} options.defaultAscending - Default sort order (default: false)
  * @param {boolean} options.autoFetch - Whether to auto-fetch on mount (default: true)
  * @param {Function} options.transformData - Custom data transformation function
+ * @param {string} options.method - HTTP method to use (default: 'POST', can be 'GET')
  * 
  * @returns {Object} Hook state and methods
  */
@@ -31,7 +32,8 @@ export function useModuleQuery(module, options = {}) {
     defaultOrderBy = 'created_at',
     defaultAscending = false,
     autoFetch = true,
-    transformData = null
+    transformData = null,
+    method = 'POST' // Default to POST, but allow GET for inventory
   } = options;
 
   // State for data fetching
@@ -90,30 +92,74 @@ export function useModuleQuery(module, options = {}) {
     try {
       const { orderBy, ascending } = transformSortModel(sortModel);
       
-      const requestBody = {
-        page: pagination.page + 1, // Convert from 0-based to 1-based
-        limit: pagination.pageSize,
-        orderBy,
-        ascending,
-        ...(expand.length > 0 && { expand }),
-        ...(Object.keys(filters).length > 0 && { filters }),
-        ...(enableSearch && debouncedSearchTerm?.trim() && { search: debouncedSearchTerm.trim() })
-      };
+      let response;
+      
+      if (method === 'GET') {
+        // For GET requests (like inventory), use URL parameters
+        const params = new URLSearchParams({
+          page: (pagination.page + 1).toString(),
+          limit: pagination.pageSize.toString(),
+          orderBy,
+          ascending: ascending.toString()
+        });
 
-      // Remove undefined values
-      Object.keys(requestBody).forEach(key => {
-        if (requestBody[key] === undefined) {
-          delete requestBody[key];
+        // Add expand parameter if provided (comma-separated)
+        if (expand.length > 0) {
+          const expandParam = expand.join(',');
+          params.append('expand', expandParam);
         }
-      });
 
-      const response = await fetch(`${API_BASE_URL}/server/${module}/query`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(requestBody)
-      });
+        // Add filters as individual parameters
+        Object.keys(filters).forEach(key => {
+          if (filters[key] !== undefined && filters[key] !== null && filters[key] !== '') {
+            params.append(key, filters[key]);
+          }
+        });
+
+        // Add search term if enabled
+        if (enableSearch && debouncedSearchTerm?.trim()) {
+          params.append('search', debouncedSearchTerm.trim());
+        }
+
+        const url = `${API_BASE_URL}/server/${module}/query?${params.toString()}`;
+        
+        console.log(`[useModuleQuery] ${module} GET request URL:`, url);
+        console.log(`[useModuleQuery] ${module} Search enabled:`, enableSearch);
+        console.log(`[useModuleQuery] ${module} Search term:`, debouncedSearchTerm);
+
+        response = await fetch(url, {
+          method: 'GET',
+          headers: {
+            'Content-Type': 'application/json',
+          }
+        });
+      } else {
+        // For POST requests (default behavior)
+        const requestBody = {
+          page: pagination.page + 1, // Convert from 0-based to 1-based
+          limit: pagination.pageSize,
+          orderBy,
+          ascending,
+          ...(expand.length > 0 && { expand }),
+          ...(Object.keys(filters).length > 0 && { filters }),
+          ...(enableSearch && debouncedSearchTerm?.trim() && { search: debouncedSearchTerm.trim() })
+        };
+
+        // Remove undefined values
+        Object.keys(requestBody).forEach(key => {
+          if (requestBody[key] === undefined) {
+            delete requestBody[key];
+          }
+        });
+
+        response = await fetch(`${API_BASE_URL}/server/${module}/query`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify(requestBody)
+        });
+      }
 
       if (!response.ok) {
         throw new Error(`HTTP error! status: ${response.status}`);
@@ -125,11 +171,29 @@ export function useModuleQuery(module, options = {}) {
         throw new Error(result.error || `Failed to fetch ${module} data`);
       }
 
+      // Handle different API response formats
+      let records = result.data;
+      let paginationInfo = result.pagination;
+      
+      // Handle nested response structures
+      if (result.data && typeof result.data === 'object' && !Array.isArray(result.data)) {
+        // Check for data.data (double-nested)
+        if (result.data.data && Array.isArray(result.data.data)) {
+          records = result.data.data;
+          paginationInfo = result.data.pagination || result.pagination;
+        }
+        // Check for data.records
+        else if (result.data.records && Array.isArray(result.data.records)) {
+          records = result.data.records;
+          paginationInfo = result.data.pagination || result.pagination;
+        }
+      }
+
       // Apply custom transformation if provided
-      const finalData = transformData ? transformData(result.data) : result.data;
+      const finalData = transformData ? transformData(records) : records;
       
       setData(finalData);
-      setTotalCount(result.pagination.totalRecords);
+      setTotalCount(paginationInfo?.totalRecords || 0);
 
     } catch (err) {
       console.error(`Error fetching ${module} data:`, err);

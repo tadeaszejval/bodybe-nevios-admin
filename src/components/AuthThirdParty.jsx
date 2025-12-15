@@ -1,17 +1,13 @@
 "use client";
 import {
 	Box,
-	Button,
 	Checkbox,
-	FilledInput,
-	FormControl,
 	FormControlLabel,
-	FormLabel,
-	IconButton,
 	Link,
 	Stack,
 	Typography,
 	Alert,
+	IconButton,
 } from "@mui/material";
 import * as React from "react";
 import { FaGithub, FaGoogle } from "react-icons/fa";
@@ -19,6 +15,8 @@ import { TbEye, TbEyeOff, TbLock } from "react-icons/tb";
 import { Logo } from "../components/Logo";
 import { useAuth } from "../context/AuthProvider";
 import { useRouter } from "next/navigation";
+import { NeviosInput } from "../components/nevios/NeviosInput";
+import { NeviosPrimaryButton, NeviosSecondaryButton } from "../components/nevios/NeviosButtons";
 
 // auth form with 3rd party integrations included
 export function AuthThirdParty() {
@@ -85,37 +83,6 @@ export function AuthThirdParty() {
 					display: "flex",
 					flexDirection: "column",
 					alignItems: "center",
-					textAlign: "center",
-					gap: 1,
-				}}
-			>
-				<Logo height={20} />
-				<Typography
-					variant="h1"
-					sx={{
-						fontSize: { xs: "2xl", sm: "3xl" },
-						lineHeight: 1.25,
-					}}
-				>
-					Welcome back to UI Kit
-				</Typography>
-				<Typography>
-					Sign in, or{" "}
-					<Link
-						href="/register"
-						sx={{
-							textDecoration: "none",
-						}}
-					>
-						create an account
-					</Link>
-				</Typography>
-			</Box>
-			<Box
-				sx={{
-					display: "flex",
-					flexDirection: "column",
-					alignItems: "center",
 					justifyContent: "center",
 					height: "max-content",
 					borderRadius: 2,
@@ -145,37 +112,36 @@ export function AuthThirdParty() {
 						mb: 0,
 					}}
 				>
-					<FormControl>
-						<FormLabel>Email</FormLabel>
-						<FilledInput
-							type="email"
-							name="email"
-							value={email}
-							onChange={(e) => setEmail(e.target.value)}
-							autoComplete="email"
-							required
-						/>
-					</FormControl>
-					<FormControl>
-						<FormLabel>Password</FormLabel>
-						<FilledInput
-							type={passwordVisibility ? "text" : "password"}
-							name="password"
-							value={password}
-							onChange={(e) => setPassword(e.target.value)}
-							autoComplete="current-password"
-							required
-							endAdornment={
-								<IconButton
-									aria-label="toggle password visibility"
-									onClick={() => setPasswordVisibility(!passwordVisibility)}
-									edge="end"
-								>
-									{passwordVisibility ? <TbEye /> : <TbEyeOff />}
-								</IconButton>
-							}
-						/>
-					</FormControl>
+					<NeviosInput
+						label="Email"
+						type="email"
+						name="email"
+						value={email}
+						onChange={(e) => setEmail(e.target.value)}
+						autoComplete="email"
+						required
+						height="40px"
+					/>
+					<NeviosInput
+						label="Password"
+						type={passwordVisibility ? "text" : "password"}
+						name="password"
+						value={password}
+						onChange={(e) => setPassword(e.target.value)}
+						autoComplete="current-password"
+						required
+						height="40px"
+						endAdornment={
+							<IconButton
+								aria-label="toggle password visibility"
+								onClick={() => setPasswordVisibility(!passwordVisibility)}
+								edge="end"
+								size="small"
+							>
+								{passwordVisibility ? <TbEye size={18} /> : <TbEyeOff size={18} />}
+							</IconButton>
+						}
+					/>
 					<Box
 						sx={{
 							display: "flex",
@@ -206,15 +172,16 @@ export function AuthThirdParty() {
 							Forgot password?
 						</Box>
 					</Box>
-					<Button
-						variant="contained"
-						size="large"
+					<NeviosPrimaryButton
 						type="submit"
-						startIcon={<TbLock />}
+						loading={isLoading}
 						disabled={isLoading}
+						iconBefore={<TbLock size={18} />}
+						height="40px"
+						width="100%"
 					>
 						{isLoading ? "Signing in..." : "Sign in"}
-					</Button>
+					</NeviosPrimaryButton>
 					<Box
 						role="separator"
 						sx={{
@@ -241,20 +208,22 @@ export function AuthThirdParty() {
 					>
 						Continue with
 					</Box>
-					<Button 
-						startIcon={<FaGoogle />} 
-						variant="outlined"
+					<NeviosSecondaryButton 
+						iconBefore={<FaGoogle size={18} />}
 						onClick={handleGoogleSignIn}
+						height="40px"
+						width="100%"
 					>
 						Sign in with Google
-					</Button>
-					<Button 
-						startIcon={<FaGithub />} 
-						variant="outlined"
+					</NeviosSecondaryButton>
+					<NeviosSecondaryButton 
+						iconBefore={<FaGithub size={18} />}
 						onClick={handleGithubSignIn}
+						height="40px"
+						width="100%"
 					>
 						Sign in with GitHub
-					</Button>
+					</NeviosSecondaryButton>
 				</Stack>
 			</Box>
 		</Box>

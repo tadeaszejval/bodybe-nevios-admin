@@ -599,6 +599,16 @@ export const ALL_AVAIL_FONTS_LIST = Object.values(ALL_AVAIL_FONTS);
 // -------------------------------
 const DARK_THEME_STRING = "*:where(.dark) &";
 export function ThemeProvider({ children }) {
+	// Force light mode - always set to light on mount
+	React.useEffect(() => {
+		// Set the color scheme to light
+		if (typeof window !== 'undefined') {
+			localStorage.setItem('mui-mode', 'light');
+			// Remove dark class if it exists
+			document.documentElement.classList.remove('dark');
+		}
+	}, []);
+	
 	// You can uncomment these lines and remove the useThemeCustomization() hook to use the default theme, or modify it to your liking, removing the dependence on the useThemeCustomization() hook
 	const activeColorScale = 'primary';
 	const activeRadiusScale = 'lg';
@@ -632,6 +642,7 @@ export function ThemeProvider({ children }) {
 	// that needs to be stripped before we call it again with all the component customizations
 	delete themeWithNewPalette?.vars;
 	const theme = extendTheme(themeWithNewPalette, {
+		defaultColorScheme: 'light',
 		spacing: "8px",
 		typography: {
 			fontFamily: `"${activeFont}",${customTheme.typography.fontFamily} !important`,

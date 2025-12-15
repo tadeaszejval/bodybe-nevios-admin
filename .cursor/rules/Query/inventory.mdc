@@ -1,0 +1,568 @@
+---
+description: Inventory Query API for React dashboard servers - comprehensive filtering, pagination, and product/variant expansion
+globs: 
+alwaysApply: false
+---
+
+# Inventory Query API
+
+## Endpoint
+
+**GET** `/server/inventory/query`
+
+## Description
+
+Query inventory with advanced filtering, pagination, sorting, expansion of related records (variant, product, location), and support for product-level filters (vendor, type, category, tags). This endpoint is optimized for dashboard use with multi-location inventory tracking and low stock monitoring.
+
+## Request Parameters
+
+### URL Parameters
+
+All parameters are passed as URL query parameters:
+
+**Pagination & Sorting:**
+- `page` (integer): Page number (default: 1)
+- `limit` (integer): Records per page (default: 50, max: 100)
+- `orderBy` (string): Column to sort by (default: 'created_at')
+- `ascending` (boolean): Sort order (default: false)
+
+**Search:**
+- `search` (string): Search term for multi-field search across:
+  - Inventory: sku, full_title
+  - Variant: sku, full_title, title, barcode
+  - Product: title, vendor, type, category, tags
+  - Location: name, type
+
+**Expansion:**
+- `expand` (string): Comma-separated list of relations to expand
+  - `variant` - Include variant details (eid, sku, full_title, track_inventory)
+  - `variant.product` - Include variant + product details (title, vendor, type, category, tags)
+  - `location` - Include location details (name, type)
+
+**Inventory Filters:**
+- `location` (string): Filter by location UUID
+- `variant` (string): Filter by variant UUID
+- `sku` (string): Filter by SKU
+
+**Quantity Filters:**
+- `available_gt` (number): Available quantity greater than
+- `available_lt` (number): Available quantity less than (useful for low stock alerts)
+- `available_eq` (number): Available quantity equal to
+- `reserved_gt` (number): Reserved quantity greater than
+- `reserved_lt` (number): Reserved quantity less than
+- `quantity_eq` (number): Total quantity equal to
+
+**Product Filters** (requires expansion to work):
+These filters work on the related product data:
+- `vendor` (string): Filter by product vendor
+- `type` (string): Filter by product type
+- `category` (string): Filter by product category
+- `tags` (string): Filter by product tags
+
+## Available Expansions
+
+- **`variant`**: Expands variant information
+  - Returns: eid, sku, full_title, track_inventory, barcode
+- **`variant.product`**: Expands variant + product information
+  - Returns: All variant fields + product (title, vendor, type, category, tags, featured_image, handle)
+- **`location`**: Expands location information
+  - Returns: name, type, address details
+- **`variant.product,location`**: Multiple expansions (comma-separated)
+
+## Common Use Cases
+
+### 1. Low Stock Dashboard
+Monitor items with low inventory levels:
+```bash
+curl -X GET "http://localhost:3100/server/inventory/query?available_lt=10&expand=variant.product&orderBy=available&ascending=true"
+```
+
+### 2. Out of Stock Items
+Find items that are completely out of stock:
+```bash
+curl -X GET "http://localhost:3100/server/inventory/query?available_eq=0&expand=variant.product"
+```
+
+### 3. Inventory by Location
+View all inventory at a specific warehouse or store:
+```bash
+curl -X GET "http://localhost:3100/server/inventory/query?location={location-uuid}&expand=variant.product"
+```
+
+### 4. Reserved Stock Report
+See items currently reserved in carts or pending orders:
+```bash
+curl -X GET "http://localhost:3100/server/inventory/query?reserved_gt=0&expand=variant.product"
+```
+
+### 5. Vendor Inventory Check
+Check inventory levels for a specific vendor (e.g., Nike):
+```bash
+curl -X GET "http://localhost:3100/server/inventory/query?expand=variant.product&orderBy=available&ascending=true"
+```
+Note: Product-level filtering requires client-side filtering after expansion or use of custom filters.
+
+### 6. SKU Lookup Across Locations
+Find a specific SKU across all locations:
+```bash
+curl -X GET "http://localhost:3100/server/inventory/query?sku=ABC123&expand=location"
+```
+
+### 7. High Stock Items
+Find items with high inventory (e.g., overstock):
+```bash
+curl -X GET "http://localhost:3100/server/inventory/query?available_gt=1000&expand=variant.product"
+```
+
+### 8. Paginated Inventory List
+Get paginated inventory with full details:
+```bash
+curl -X GET "http://localhost:3100/server/inventory/query?page=1&limit=25&expand=variant.product,location&orderBy=created_at&ascending=false"
+```
+
+### 9. Search by Product Name
+Search for inventory by product name (e.g., "Nike"):
+```bash
+curl -X GET "http://localhost:3100/server/inventory/query?search=Nike&expand=variant.product"
+```
+
+### 10. Search by SKU
+Search for specific SKU across all locations:
+```bash
+curl -X GET "http://localhost:3100/server/inventory/query?search=ABC123&expand=location"
+```
+
+### 11. Search by Location Name
+Find inventory at locations matching search term:
+```bash
+curl -X GET "http://localhost:3100/server/inventory/query?search=warehouse&expand=variant.product,location"
+```
+
+### 12. Search with Filters
+Combine search with filters (e.g., low stock Nike products):
+```bash
+curl -X GET "http://localhost:3100/server/inventory/query?search=Nike&available_lt=10&expand=variant.product"
+```
+
+## Example Requests
+
+### Basic Query
+Get first page of inventory records:
+```bash
+curl -X GET "http://localhost:3100/server/inventory/query?page=1&limit=50"
+```
+
+### Query with Expansion
+Get inventory with variant and product details:
+```bash
+curl -X GET "http://localhost:3100/server/inventory/query?expand=variant.product&limit=20"
+```
+
+### Low Stock Alert
+Get items with less than 10 units available:
+```bash
+curl -X GET "http://localhost:3100/server/inventory/query?available_lt=10&expand=variant.product&orderBy=available&ascending=true"
+```
+
+### Location-Specific Inventory
+Get all inventory at a specific location:
+```bash
+curl -X GET "http://localhost:3100/server/inventory/query?location=123e4567-e89b-12d3-a456-426614174000&expand=variant"
+```
+
+### Multiple Filters
+Combine quantity filters with expansion:
+```bash
+curl -X GET "http://localhost:3100/server/inventory/query?available_lt=50&available_gt=10&expand=variant.product,location"
+```
+
+### Search Query
+Search across all inventory fields:
+```bash
+curl -X GET "http://localhost:3100/server/inventory/query?search=Nike&expand=variant.product"
+```
+
+### Search with Filters
+Search combined with quantity filters:
+```bash
+curl -X GET "http://localhost:3100/server/inventory/query?search=shoes&available_lt=20&expand=variant.product,location"
+```
+
+## Response Format
+
+### Success Response (200 OK)
+
+**Basic Response (No Expansion):**
+```json
+{
+  "success": true,
+  "data": {
+    "records": [
+      {
+        "id": "123e4567-e89b-12d3-a456-426614174000",
+        "variant": "variant-uuid",
+        "location": "location-uuid",
+        "available": 45,
+        "reserved": 5,
+        "quantity": 50,
+        "full_title": "Product Title - Size M - Color Blue",
+        "sku": "ABC123",
+        "created_at": "2023-08-15T14:30:00Z"
+      },
+      {
+        "id": "123e4567-e89b-12d3-a456-426614174001",
+        "variant": "variant-uuid-2",
+        "location": "location-uuid",
+        "available": 8,
+        "reserved": 2,
+        "quantity": 10,
+        "full_title": "Another Product - Size L",
+        "sku": "XYZ789",
+        "created_at": "2023-08-16T09:15:00Z"
+      }
+    ],
+    "pagination": {
+      "page": 1,
+      "limit": 50,
+      "totalRecords": 2,
+      "totalPages": 1
+    }
+  }
+}
+```
+
+**Response with Variant Expansion:**
+```json
+{
+  "success": true,
+  "data": {
+    "records": [
+      {
+        "id": "123e4567-e89b-12d3-a456-426614174000",
+        "variant": {
+          "id": "variant-uuid",
+          "eid": 12345,
+          "sku": "ABC123",
+          "full_title": "Product Title - Size M - Color Blue",
+          "track_inventory": true,
+          "barcode": "1234567890123",
+          "require_shipping": true
+        },
+        "location": "location-uuid",
+        "available": 45,
+        "reserved": 5,
+        "quantity": 50,
+        "full_title": "Product Title - Size M - Color Blue",
+        "sku": "ABC123",
+        "created_at": "2023-08-15T14:30:00Z"
+      }
+    ],
+    "pagination": {
+      "page": 1,
+      "limit": 50,
+      "totalRecords": 1,
+      "totalPages": 1
+    }
+  }
+}
+```
+
+**Response with Full Expansion (variant.product + location):**
+```json
+{
+  "success": true,
+  "data": {
+    "records": [
+      {
+        "id": "123e4567-e89b-12d3-a456-426614174000",
+        "variant": {
+          "id": "variant-uuid",
+          "eid": 12345,
+          "sku": "ABC123",
+          "full_title": "Nike Air Max - Size 10 - Color Black",
+          "track_inventory": true,
+          "barcode": "1234567890123",
+          "product": {
+            "id": "product-uuid",
+            "eid": 9876,
+            "title": "Nike Air Max",
+            "vendor": "Nike",
+            "type": "Shoes",
+            "category": "Footwear",
+            "tags": "athletic,running,lifestyle",
+            "featured_image": "https://cdn.example.com/nike-air-max.jpg",
+            "handle": "nike-air-max",
+            "status": "active"
+          }
+        },
+        "location": {
+          "id": "location-uuid",
+          "name": "Main Warehouse",
+          "type": "WAREHOUSE",
+          "address": "123 Storage Ln"
+        },
+        "available": 45,
+        "reserved": 5,
+        "quantity": 50,
+        "full_title": "Nike Air Max - Size 10 - Color Black",
+        "sku": "ABC123",
+        "created_at": "2023-08-15T14:30:00Z"
+      },
+      {
+        "id": "123e4567-e89b-12d3-a456-426614174001",
+        "variant": {
+          "id": "variant-uuid-2",
+          "eid": 12346,
+          "sku": "ABC124",
+          "full_title": "Nike Air Max - Size 11 - Color Black",
+          "track_inventory": true,
+          "product": {
+            "id": "product-uuid",
+            "eid": 9876,
+            "title": "Nike Air Max",
+            "vendor": "Nike",
+            "type": "Shoes",
+            "category": "Footwear",
+            "tags": "athletic,running,lifestyle"
+          }
+        },
+        "location": {
+          "id": "location-uuid-2",
+          "name": "Store Front",
+          "type": "RETAIL"
+        },
+        "available": 8,
+        "reserved": 2,
+        "quantity": 10,
+        "full_title": "Nike Air Max - Size 11 - Color Black",
+        "sku": "ABC124",
+        "created_at": "2023-08-16T09:15:00Z"
+      }
+    ],
+    "pagination": {
+      "page": 1,
+      "limit": 50,
+      "totalRecords": 2,
+      "totalPages": 1
+    }
+  }
+}
+```
+
+**Low Stock Alert Response:**
+```json
+{
+  "success": true,
+  "data": {
+    "records": [
+      {
+        "id": "inv-uuid-1",
+        "variant": {
+          "sku": "LOW-STOCK-001",
+          "full_title": "Product Running Low - Size M",
+          "product": {
+            "title": "Product Running Low",
+            "vendor": "Acme Corp",
+            "type": "Apparel"
+          }
+        },
+        "location": {
+          "name": "Main Warehouse"
+        },
+        "available": 3,
+        "reserved": 1,
+        "quantity": 4
+      },
+      {
+        "id": "inv-uuid-2",
+        "variant": {
+          "sku": "LOW-STOCK-002",
+          "full_title": "Another Low Stock Item",
+          "product": {
+            "title": "Another Low Stock Item",
+            "vendor": "XYZ Inc"
+          }
+        },
+        "location": {
+          "name": "Store A"
+        },
+        "available": 5,
+        "reserved": 0,
+        "quantity": 5
+      }
+    ],
+    "pagination": {
+      "page": 1,
+      "limit": 50,
+      "totalRecords": 2,
+      "totalPages": 1
+    }
+  }
+}
+```
+
+## Error Responses
+
+### Bad Request (400)
+```json
+{
+  "success": false,
+  "error": "Invalid page number: must be greater than 0"
+}
+```
+
+### Server Error (500)
+```json
+{
+  "success": false,
+  "error": "Server error while querying inventory"
+}
+```
+
+## Dashboard Integration Examples
+
+### React Example - Low Stock Alert Component
+```typescript
+// Fetch low stock items for dashboard
+const fetchLowStockItems = async () => {
+  const response = await fetch(
+    'http://localhost:3100/server/inventory/query?available_lt=10&expand=variant.product,location&orderBy=available&ascending=true'
+  );
+  const data = await response.json();
+  
+  if (data.success) {
+    return data.data.records.map(item => ({
+      id: item.id,
+      productName: item.variant.product.title,
+      variant: item.variant.full_title,
+      sku: item.sku,
+      location: item.location.name,
+      available: item.available,
+      reserved: item.reserved,
+      vendor: item.variant.product.vendor
+    }));
+  }
+};
+```
+
+### React Example - Location Inventory View
+```typescript
+// Fetch inventory for specific location
+const fetchLocationInventory = async (locationId: string, page: number = 1) => {
+  const response = await fetch(
+    `http://localhost:3100/server/inventory/query?location=${locationId}&expand=variant.product&page=${page}&limit=25&orderBy=available&ascending=false`
+  );
+  const data = await response.json();
+  
+  return {
+    items: data.data.records,
+    pagination: data.data.pagination
+  };
+};
+```
+
+### React Example - Out of Stock Monitor
+```typescript
+// Monitor out of stock items
+const fetchOutOfStockItems = async () => {
+  const response = await fetch(
+    'http://localhost:3100/server/inventory/query?available_eq=0&expand=variant.product'
+  );
+  const data = await response.json();
+  
+  if (data.success) {
+    return data.data.records.map(item => ({
+      productTitle: item.variant.product.title,
+      sku: item.sku,
+      vendor: item.variant.product.vendor,
+      lastUpdated: item.created_at
+    }));
+  }
+};
+```
+
+### React Example - SKU Search
+```typescript
+// Search for specific SKU across all locations using search
+const searchBySKU = async (sku: string) => {
+  const response = await fetch(
+    `http://localhost:3100/server/inventory/query?search=${sku}&expand=variant.product,location`
+  );
+  const data = await response.json();
+  
+  if (data.success && data.data.length > 0) {
+    return data.data.map(item => ({
+      location: item.location.name,
+      available: item.available,
+      reserved: item.reserved,
+      total: item.quantity
+    }));
+  }
+  return [];
+};
+```
+
+### React Example - Product Search
+```typescript
+// Search for products by name (e.g., "Nike Air Max")
+const searchProducts = async (searchTerm: string) => {
+  const response = await fetch(
+    `http://localhost:3100/server/inventory/query?search=${encodeURIComponent(searchTerm)}&expand=variant.product,location&limit=25`
+  );
+  const data = await response.json();
+  
+  return {
+    items: data.data || [],
+    totalResults: data.pagination.totalRecords,
+    searchTerm: data.searchTerm
+  };
+};
+```
+
+## Performance Notes
+
+- **Expansion Impact**: Expanding `variant.product` adds significant data to response. Use only when needed.
+- **Pagination**: Default limit is 50. For dashboards, consider using 25 for faster loads.
+- **Filtering**: Quantity filters (`available_lt`, etc.) are efficient and indexed.
+- **Location Queries**: Querying by location is highly optimized for warehouse views.
+- **Maximum Limit**: 100 records per page to prevent performance issues.
+
+## Best Practices for Dashboard Development
+
+1. **Always expand what you display**: If showing product names, use `expand=variant.product`
+2. **Use appropriate limits**: Dashboard cards typically show 5-10 items, set `limit` accordingly
+3. **Order by relevant fields**: For low stock, order by `available` ascending
+4. **Cache location data**: If querying multiple locations, fetch and cache location list separately
+5. **Implement real-time updates**: Consider polling this endpoint every 30-60s for critical stock levels
+6. **Show loading states**: Inventory queries with expansion can take 200-500ms
+7. **Handle empty states**: Show helpful messages when no inventory matches filters
+
+## Related Endpoints
+
+- **Retrieve by Variant**: `GET /server/inventory/retrieve/variant/:variantId` - Get all locations for one variant
+- **Retrieve by Location**: `GET /server/inventory/retrieve/location/:locationId` - Get all variants at one location
+- **Adjust Inventory**: `PUT /server/inventory/adjust/:id` - Update inventory levels
+- **Single Record**: `GET /server/inventory/retrieve/:id` - Get one inventory record
+
+## Filter Combinations for Common Scenarios
+
+### Scenario: "Items that need restocking"
+```
+?available_lt=20&available_gt=0&expand=variant.product&orderBy=available&ascending=true
+```
+
+### Scenario: "High value at risk" (low stock of popular items)
+```
+?available_lt=10&reserved_gt=5&expand=variant.product
+```
+
+### Scenario: "Excess inventory report"
+```
+?available_gt=500&expand=variant.product&orderBy=available&ascending=false
+```
+
+### Scenario: "Complete stock overview for location"
+```
+?location={uuid}&expand=variant.product&orderBy=available&ascending=false&limit=100
+```
+

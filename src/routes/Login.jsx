@@ -1,9 +1,6 @@
 "use client";
-import { Button } from "@mui/material";
-import { TbArrowRight } from "react-icons/tb";
 import { AuthThirdParty } from "../components/AuthThirdParty";
 import { PageContainer } from "../components/PageContainer";
-import { FrameworkLink } from "../framework/FrameworkLink";
 export function Login() {
 	return (
 		<PageContainer
@@ -15,12 +12,7 @@ export function Login() {
 				justifyContent: "center",
 			}}
 		>
-			<AuthThirdParty />
-			<FrameworkLink to="/dashboard/home">
-				<Button color="secondary" endIcon={<TbArrowRight />}>
-					Skip to the dashboard
-				</Button>
-			</FrameworkLink>
+			<AuthThirdParty />	
 		</PageContainer>
 	);
 }

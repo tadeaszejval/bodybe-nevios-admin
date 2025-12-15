@@ -124,6 +124,7 @@ export function Sidebar() {
 						/>
 						<SidebarDivider />
 						<SidebarItem
+							deemphasized={true}
 							href="/dashboard/reports"
 							title="Reports"
 							icon={<TbReportAnalytics size={ICON_SIZE} />}
@@ -134,6 +135,7 @@ export function Sidebar() {
 							icon={<TbChartBar size={ICON_SIZE} />}
 						/>
 						<SidebarItem
+							deemphasized={true}
 							href="/dashboard/marketing"
 							title="Marketing"
 							icon={<TbHeartSpark size={ICON_SIZE} />}
@@ -145,7 +147,6 @@ export function Sidebar() {
 							icon={<TbBuildingStore size={ICON_SIZE} />}
 						/>
 						<SidebarItem
-							deemphasized={true}
 							href="/dashboard/inventory"
 							title="Inventory"
 							icon={<TbArchive size={ICON_SIZE} />}

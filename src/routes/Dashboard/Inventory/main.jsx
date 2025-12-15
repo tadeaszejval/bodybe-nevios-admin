@@ -1,17 +1,22 @@
+"use client";
 import React from "react";
-import { Box } from "@mui/material";
+import { Paper } from "@mui/material";
 import { TbArchive } from "react-icons/tb";
 import { DashboardHeader } from "../../../components/DashboardHeader";
+import { PageContainer } from "../../../components/PageContainer";
+import { InventoryTable } from "../../../components/dashboard/inventory/InventoryTable";
 
 export default function DashboardInventory() {
   return (
-    <Box sx={{ p: 4 }}>
+    <PageContainer>
       <DashboardHeader
         title="Inventory"
         icon={<TbArchive size={24} />}
       />
-      {/* Add your dashboard widgets and content here */}
-    </Box>
+      <Paper sx={{ flex: 1, display: "flex", flexDirection: "column" }}>
+        <InventoryTable tableHeight="100%" />
+      </Paper>
+    </PageContainer>
   );
 }
 

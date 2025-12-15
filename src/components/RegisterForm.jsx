@@ -1,10 +1,6 @@
 "use client";
 import {
   Box,
-  Button,
-  FilledInput,
-  FormControl,
-  FormLabel,
   IconButton,
   Link,
   Stack,
@@ -16,6 +12,8 @@ import { TbEye, TbEyeOff, TbUserPlus } from "react-icons/tb";
 import { Logo } from "./Logo";
 import { useAuth } from "../context/AuthProvider";
 import { useRouter } from "next/navigation";
+import { NeviosInput } from "../components/nevios/NeviosInput";
+import { NeviosPrimaryButton } from "../components/nevios/NeviosButtons";
 
 export function RegisterForm() {
   const [email, setEmail] = React.useState("");
@@ -145,63 +143,62 @@ export function RegisterForm() {
             mb: 0,
           }}
         >
-          <FormControl>
-            <FormLabel>Email</FormLabel>
-            <FilledInput
-              type="email"
-              name="email"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              autoComplete="email"
-              required
-              disabled={success}
-            />
-          </FormControl>
+          <NeviosInput
+            label="Email"
+            type="email"
+            name="email"
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+            autoComplete="email"
+            required
+            disabled={success}
+            height="40px"
+          />
           
-          <FormControl>
-            <FormLabel>Password</FormLabel>
-            <FilledInput
-              type={passwordVisibility ? "text" : "password"}
-              name="password"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              autoComplete="new-password"
-              required
-              disabled={success}
-              endAdornment={
-                <IconButton
-                  aria-label="toggle password visibility"
-                  onClick={() => setPasswordVisibility(!passwordVisibility)}
-                  edge="end"
-                >
-                  {passwordVisibility ? <TbEye /> : <TbEyeOff />}
-                </IconButton>
-              }
-            />
-          </FormControl>
+          <NeviosInput
+            label="Password"
+            type={passwordVisibility ? "text" : "password"}
+            name="password"
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
+            autoComplete="new-password"
+            required
+            disabled={success}
+            height="40px"
+            endAdornment={
+              <IconButton
+                aria-label="toggle password visibility"
+                onClick={() => setPasswordVisibility(!passwordVisibility)}
+                edge="end"
+                size="small"
+              >
+                {passwordVisibility ? <TbEye size={18} /> : <TbEyeOff size={18} />}
+              </IconButton>
+            }
+          />
           
-          <FormControl>
-            <FormLabel>Confirm Password</FormLabel>
-            <FilledInput
-              type={passwordVisibility ? "text" : "password"}
-              name="passwordConfirm"
-              value={passwordConfirm}
-              onChange={(e) => setPasswordConfirm(e.target.value)}
-              autoComplete="new-password"
-              required
-              disabled={success}
-            />
-          </FormControl>
+          <NeviosInput
+            label="Confirm Password"
+            type={passwordVisibility ? "text" : "password"}
+            name="passwordConfirm"
+            value={passwordConfirm}
+            onChange={(e) => setPasswordConfirm(e.target.value)}
+            autoComplete="new-password"
+            required
+            disabled={success}
+            height="40px"
+          />
           
-          <Button
-            variant="contained"
-            size="large"
+          <NeviosPrimaryButton
             type="submit"
-            startIcon={<TbUserPlus />}
+            loading={isLoading}
             disabled={isLoading || success}
+            iconBefore={<TbUserPlus size={18} />}
+            height="40px"
+            width="100%"
           >
             {isLoading ? "Creating account..." : "Create account"}
-          </Button>
+          </NeviosPrimaryButton>
           
           <Typography 
             variant="caption" 

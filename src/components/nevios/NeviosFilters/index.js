@@ -3,6 +3,8 @@ export { NeviosEnhancedTableFilters } from './NeviosEnhancedTableFilters';
 export { FilterSelect } from './FilterSelect';
 export { FilterMultipleSelect } from './FilterMultipleSelect';
 export { FilterContains } from './FilterContains';
+export { FilterLocationSelect } from './FilterLocationSelect';
+export { FilterNumericOperator } from './FilterNumericOperator';
 
 // Filter Configurations
 export { ORDERS_FILTER_CONFIG } from './OrdersFilterConfig';
@@ -12,6 +14,7 @@ export { FULFILLMENTS_FILTER_CONFIG } from './FulfillmentsFilterConfig';
 export { PRODUCTS_FILTER_CONFIG } from './ProductsFilterConfig';
 export { PAYMENTS_FILTER_CONFIG } from './PaymentsFilterConfig';
 export { DOCUMENTS_FILTER_CONFIG } from './DocumentsFilterConfig';
+export { INVENTORY_FILTER_CONFIG } from './InventoryFilterConfig';
 
 // Individual filter options for reuse
 export {
