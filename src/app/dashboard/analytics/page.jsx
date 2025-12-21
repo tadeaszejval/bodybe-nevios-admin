@@ -1,4 +1,4 @@
-import { Analytics } from '../../../routes/Dashboard/Analytics/main';
+import Analytics from '../../../routes/Dashboard/Analytics/main';
 export default function Page() {
     return <Analytics />;
 }
