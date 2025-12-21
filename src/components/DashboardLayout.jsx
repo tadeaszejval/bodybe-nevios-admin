@@ -7,6 +7,7 @@ import { Sidebar, SIDEBAR_WIDTH } from "../components/Sidebar";
 import { useRegisterTours } from "../context/TourProvider";
 import { NavigationBackButton } from "./NavigationBackButton";
 import { ContentLoadingScreen } from "./ContentLoadingScreen";
+import { Logo } from "./Logo";
 
 export function DashboardLayout({ children }) {
 	useRegisterTours();
@@ -36,10 +37,11 @@ export function DashboardLayout({ children }) {
 					px: 2,
 				}}
 			>
-				<Box sx={{ width: "33%", display: "flex", flexDirection: "row", alignItems: "center", justifyContent: "flex-start", gap: 2 }}>
-					<Box sx={{maxWidth: "250px"	}}>
-					</Box>
+			<Box sx={{ width: "33%", display: "flex", flexDirection: "row", alignItems: "center", justifyContent: "flex-start", paddingLeft: 1, gap: 2 }}>
+				<Box>
+					<Logo animate width={100} textColor="white" />
 				</Box>
+			</Box>
 				<Box sx={{ width: "33%", display: "flex", flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 2 }}>
 					<Box>
 						<NavigationBackButton />

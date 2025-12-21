@@ -1,5 +1,4 @@
 import * as React from "react";
-import { LoadingScreen } from "../components/LoadingScreen";
 import { AppProviders } from "../context/AppProviders";
 export const metadata = {
 	title: "Vasky | Nevios",
@@ -31,9 +30,7 @@ export default function RootLayout({ children }) {
 			</head>
 			<body>
 				<AppProviders>
-					<React.Suspense fallback={<LoadingScreen />}>
-						{children}
-					</React.Suspense>
+					{children}
 				</AppProviders>
 			</body>
 		</html>

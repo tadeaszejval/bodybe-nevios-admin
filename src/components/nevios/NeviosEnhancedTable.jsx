@@ -7,7 +7,6 @@ import * as React from "react";
 import { CircularProgress } from "@mui/material";
 import { NeviosSearchBar } from "./NeviosSearchBar";
 import { NeviosEnhancedTableFilters } from "./NeviosFilters/NeviosEnhancedTableFilters";
-import { Logo } from "../Logo";
 export const defaultAscendingSortOrder = ["asc", "desc", null];
 export const defaultDescendingSortOrder = ["desc", "asc", null];
 
@@ -619,7 +618,7 @@ export function NeviosEnhancedTable({
                         minHeight: '250px',
                       }}
                     >
-                      <Logo animate height={24} />
+                      <CircularProgress size={24} />
                     </Box>
                   ),
                   noRowsOverlay: () => (
