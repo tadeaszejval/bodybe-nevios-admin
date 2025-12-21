@@ -27,6 +27,7 @@ import { useColorScheme } from "@mui/material";
 import { SidebarItem } from "../components/SidebarItem";
 import { useAuth } from "../context/AuthProvider";
 import { useRouter } from "next/navigation";
+import { NeviosShadowButton } from "./nevios/NeviosButtons";
 
 export const SIDEBAR_WIDTH = 250;
 const ICON_SIZE = 18;
@@ -195,35 +196,9 @@ export function Sidebar() {
 						>
 							<SidebarDivider />
 							<SidebarItem
-								href="/dashboard/account"
-								title="Profile"
-								icon={<TbUser size={ICON_SIZE} />}
-							/>
-							<SidebarItem
-								href="/changelog"
-								title="Changelog"
-								icon={<TbSpeakerphone />}
-							/>
-							<SidebarItem
-								href="/dashboard/kit"
-								title="Kit"
-								icon={<TbToolsKitchen2 />}
-							/>
-							<SidebarDivider />
-							<SidebarItem
-								href="#"
-								title={mode === 'light' ? 'Light' : 'Dark'}
-								icon={mode === 'light' ? <TbSun /> : <TbMoon />}
-								onClick={toggleColorMode}
-							/>
-							<SidebarDivider />
-							<SidebarItem
-								href="#"
 								title="Logout"
 								icon={<TbLogout size={ICON_SIZE} />}
 								onClick={handleLogout}
-								customColor="error.main"
-								customHoverColor="error.main"
 							/>
 						</List>
 					</Box>

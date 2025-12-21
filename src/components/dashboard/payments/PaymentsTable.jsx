@@ -237,12 +237,6 @@ export function PaymentsTable({
 		}
 	}, [refreshData, onPaymentAction]);
 
-	// Handle row click to view payment details
-	const handleRowClick = useCallback((params) => {
-		// Navigate to payment detail view
-		window.location.href = `/dashboard/payments/${params.id}`;
-	}, []);
-
 	// Define bulk actions
 	const bulkActions = [
 		{
@@ -422,10 +416,9 @@ export function PaymentsTable({
 				totalCount={totalCount}
 				pagination={pagination}
 				onPaginationChange={handlePaginationChange}
-				sortModel={sortModel}
-				onSortChange={handleSortChange}
-				onRowClick={handleRowClick}
-				tableHeight={tableHeight}
+			sortModel={sortModel}
+			onSortChange={handleSortChange}
+			tableHeight={tableHeight}
 				hideFooter={false}
 				enableFilters={true}
 				filterConfigs={PAYMENTS_FILTER_CONFIG}

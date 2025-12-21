@@ -20,6 +20,7 @@ import { NeviosFormPaperBlock } from "../../../components/nevios/NeviosFormPaper
 import { EmailStatusBadge } from "../../../components/dashboard/emails/EmailStatusBadge";
 import NeviosPaginationButtons from "../../../components/nevios/NeviosPaginationButtons";
 import { EmailActivityBar } from "../../../components/dashboard/emails/EmailActivityBar";
+import { ContentLoadingScreen } from "../../../components/ContentLoadingScreen";
 
 export function EmailView({ emailId }) {
   const router = useRouter();
@@ -139,13 +140,7 @@ export function EmailView({ emailId }) {
   };
 
   if (loading) {
-    return (
-      <PageContainer>
-        <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '50vh' }}>
-          <CircularProgress />
-        </Box>
-      </PageContainer>
-    );
+    return <ContentLoadingScreen />;
   }
 
   if (!email) {

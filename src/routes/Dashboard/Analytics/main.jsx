@@ -10,6 +10,7 @@ import NeviosAnalyticsList from "../../../components/nevios/NeviosAnalytics/Nevi
 import { NeviosDatePicker, NeviosCompareDatePicker, formatDateRange } from "../../../components/nevios/NeviosDatePicker";
 import { postRequest, getRequest } from "../../../utils/neviosExpress";
 import dayjs from "dayjs";
+import { ContentLoadingScreen } from "../../../components/ContentLoadingScreen";
 
 const MARKET = "vasky/czechia";
 
@@ -197,11 +198,7 @@ export default function DashboardAnalytics() {
   }, [dateRange, compareDateRange]);
 
   if (loading) {
-    return (
-      <Box sx={{ p: 4, display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: '400px' }}>
-        <CircularProgress />
-      </Box>
-    );
+    return <ContentLoadingScreen />;
   }
 
   if (error) {

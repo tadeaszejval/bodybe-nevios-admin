@@ -30,6 +30,7 @@ import { getCountryName } from "../../../core/countryName";
 import { formatReadableDatetime, formatCurrencyNumber, formatReadableDate } from "../../../core/formatters";
 import NeviosGroupButton from "../../../components/nevios/NeviosGroupButton";
 import NeviosPaginationButtons from "../../../components/nevios/NeviosPaginationButtons";
+import { ContentLoadingScreen } from "../../../components/ContentLoadingScreen";
 import { NeviosDangerButton } from "../../../components/nevios/NeviosButtons";
 
 export function DocumentView({ documentId }) {
@@ -106,13 +107,7 @@ export function DocumentView({ documentId }) {
   };
 
   if (loading) {
-    return (
-      <PageContainer>
-        <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '50vh' }}>
-          <CircularProgress />
-        </Box>
-      </PageContainer>
-    );
+    return <ContentLoadingScreen />;
   }
 
   if (error || !document) {

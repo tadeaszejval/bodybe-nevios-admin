@@ -37,13 +37,14 @@ export function AuthThirdParty() {
 			const result = await signIn(email, password);
 			if (!result.success) {
 				setError(result.error || "Failed to sign in");
+				setIsLoading(false);
 				return;
 			}
 			// Redirect to dashboard on successful login
+			// Keep loading state active until redirect completes
 			router.push("/dashboard/home");
 		} catch (error) {
 			setError(error.message || "An error occurred during sign in");
-		} finally {
 			setIsLoading(false);
 		}
 	};
@@ -97,6 +98,7 @@ export function AuthThirdParty() {
 					bgcolor: { xs: "none", sm: "background.paper" },
 				}}
 			>
+				<Logo height={40} width={160} />
 				{error && (
 					<Alert severity="error" sx={{ width: "100%" }}>
 						{error}
@@ -113,24 +115,22 @@ export function AuthThirdParty() {
 					}}
 				>
 					<NeviosInput
-						label="Email"
 						type="email"
 						name="email"
+						placeholder="Email"
 						value={email}
 						onChange={(e) => setEmail(e.target.value)}
 						autoComplete="email"
 						required
-						height="40px"
 					/>
 					<NeviosInput
-						label="Password"
 						type={passwordVisibility ? "text" : "password"}
 						name="password"
+						placeholder="Password"
 						value={password}
 						onChange={(e) => setPassword(e.target.value)}
 						autoComplete="current-password"
 						required
-						height="40px"
 						endAdornment={
 							<IconButton
 								aria-label="toggle password visibility"
@@ -182,6 +182,8 @@ export function AuthThirdParty() {
 					>
 						{isLoading ? "Signing in..." : "Sign in"}
 					</NeviosPrimaryButton>
+					
+					{/*
 					<Box
 						role="separator"
 						sx={{
@@ -224,6 +226,7 @@ export function AuthThirdParty() {
 					>
 						Sign in with GitHub
 					</NeviosSecondaryButton>
+					*/}
 				</Stack>
 			</Box>
 		</Box>

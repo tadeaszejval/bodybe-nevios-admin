@@ -11,16 +11,14 @@ import {
 import { NeviosEnhancedTable } from "../../nevios/NeviosEnhancedTable";
 import { formatReadableDatetime } from "../../../core/formatters";
 import { ProductStatusBadge } from "./ProductStatusBadge";
-import { useRouter } from "next/navigation";
 import { useModuleQuery } from "../../../hooks/useModuleQuery";
 import { PRODUCTS_FILTER_CONFIG } from "../../nevios/NeviosFilters/ProductsFilterConfig";
 
-export function ProductsTable({ 
+export function ProductsTable({
 	tableHeight,
 	initialFilters = {},
 	initialSearch = ""
 }) {
-	const router = useRouter();
 
 	// Transform raw product data to table format
 	const transformProductData = useCallback((products) => {
@@ -87,8 +85,8 @@ export function ProductsTable({
 							src={`${params.value}&width=128`}
 							alt={params.row.title}
 							variant="rounded"
-							sx={{ 
-								width: 40, 
+							sx={{
+								width: 40,
 								height: 40,
 								objectFit: "cover",
 								borderRadius: 1,
@@ -199,71 +197,6 @@ export function ProductsTable({
 		}),
 	];
 
-	// Handle row clicks
-	const handleRowClick = (params, event) => {
-		if (event.ctrlKey || event.metaKey) {
-			window.open(`/dashboard/products/${params.id}`, '_blank');
-		} else {
-			router.push(`/dashboard/products/${params.id}`);
-		}
-	};
-
-	// Bulk actions configuration
-	const bulkActions = [
-		{
-			key: 'activate',
-			label: 'Activate Products',
-			icon: 'CheckCircleIcon',
-			variant: 'contained',
-			color: 'success'
-		},
-		{
-			key: 'deactivate',
-			label: 'Deactivate Products',
-			icon: 'PauseCircleIcon',
-			variant: 'outlined',
-			color: 'warning'
-		},
-		{
-			key: 'archive',
-			label: 'Archive Products',
-			icon: 'ArchiveIcon',
-			variant: 'outlined',
-			color: 'error'
-		},
-		{
-			key: 'export',
-			label: 'Export',
-			icon: 'DownloadIcon',
-			variant: 'outlined',
-			color: 'primary'
-		}
-	];
-
-	// Handle bulk actions
-	const handleBulkAction = useCallback((actionKey, selectedData, selectedIds) => {
-		switch (actionKey) {
-			case 'activate':
-				console.log('Activating products:', selectedIds);
-				// TODO: Implement activate action
-				break;
-			case 'deactivate':
-				console.log('Deactivating products:', selectedIds);
-				// TODO: Implement deactivate action
-				break;
-			case 'archive':
-				if (window.confirm(`Archive ${selectedIds.length} products?`)) {
-					console.log('Archiving products:', selectedIds);
-					// TODO: Implement archive action
-				}
-				break;
-			case 'export':
-				console.log('Exporting products:', selectedData);
-				// TODO: Implement export action
-				break;
-		}
-	}, []);
-
 	return (
 		<Box
 			sx={{
@@ -284,30 +217,22 @@ export function ProductsTable({
 				onPaginationChange={handlePaginationChange}
 				sortModel={sortModel}
 				onSortChange={handleSortChange}
-				onRowClick={handleRowClick}
 				tableHeight={tableHeight}
 				hideFooter={false}
 				enableSearch={true}
 				searchTerm={searchTerm}
 				onSearchChange={updateSearch}
 				searchPlaceholder="Search products by title, description, vendor, type, tags, or handle..."
-				enableFilters={true}
-				filterConfigs={PRODUCTS_FILTER_CONFIG}
-				activeFilters={filters}
-				onFiltersChange={updateFilters}
-				bulkActions={bulkActions}
-				onBulkAction={handleBulkAction}
-				checkboxSelection={true}
+			enableFilters={true}
+			filterConfigs={PRODUCTS_FILTER_CONFIG}
+			activeFilters={filters}
+			onFiltersChange={updateFilters}
+			checkboxSelection={true}
 				getRowId={(row) => row.id}
 				rowHeight={55}
 				emptyStateProps={{
 					title: 'No products found',
 					description: 'There are no products to display',
-				}}
-				sx={{
-					"& .MuiDataGrid-row": {
-						cursor: "pointer",
-					},
 				}}
 			/>
 		</Box>

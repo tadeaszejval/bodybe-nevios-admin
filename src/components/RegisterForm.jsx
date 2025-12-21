@@ -152,7 +152,6 @@ export function RegisterForm() {
             autoComplete="email"
             required
             disabled={success}
-            height="40px"
           />
           
           <NeviosInput
@@ -164,7 +163,6 @@ export function RegisterForm() {
             autoComplete="new-password"
             required
             disabled={success}
-            height="40px"
             endAdornment={
               <IconButton
                 aria-label="toggle password visibility"
@@ -186,7 +184,6 @@ export function RegisterForm() {
             autoComplete="new-password"
             required
             disabled={success}
-            height="40px"
           />
           
           <NeviosPrimaryButton
@@ -194,7 +191,6 @@ export function RegisterForm() {
             loading={isLoading}
             disabled={isLoading || success}
             iconBefore={<TbUserPlus size={18} />}
-            height="40px"
             width="100%"
           >
             {isLoading ? "Creating account..." : "Create account"}

@@ -22,6 +22,7 @@ import { NeviosCopyBlock } from "../../../components/nevios/NeviosCopyBlock";
 import NeviosGroupButton from "../../../components/nevios/NeviosGroupButton";
 import NeviosPaginationButtons from "../../../components/nevios/NeviosPaginationButtons";
 import { getCountryName } from "../../../core/countryName";
+import { ContentLoadingScreen } from "../../../components/ContentLoadingScreen";
 
 // Import the badge components from PaymentsTable
 const PAYMENT_STATUSES = {
@@ -229,13 +230,7 @@ export function PaymentView({ paymentId }) {
 	};
 
 	if (loading) {
-		return (
-			<PageContainer>
-				<Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '50vh' }}>
-					<CircularProgress />
-				</Box>
-			</PageContainer>
-		);
+		return <ContentLoadingScreen />;
 	}
 
 	if (error || !payment) {

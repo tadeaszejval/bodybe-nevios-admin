@@ -9,7 +9,6 @@ import {
 import { NeviosEnhancedTable } from "../../nevios/NeviosEnhancedTable";
 import { formatReadableDatetime } from "../../../core/formatters";
 import { EmailStatusBadge } from "./EmailStatusBadge";
-import { useRouter } from "next/navigation";
 import { useModuleQuery } from "../../../hooks/useModuleQuery";
 import { EMAILS_FILTER_CONFIG } from "../../nevios/NeviosFilters/EmailsFilterConfig";
 
@@ -18,7 +17,6 @@ export function EmailTable({
 	initialFilters = {},
 	initialSearch = ""
 }) {
-	const router = useRouter();
 
 	// Transform raw email data to table format
 	const transformEmailData = useCallback((emails) => {
@@ -117,15 +115,6 @@ export function EmailTable({
 		}),
 	];
 
-	// Handle row clicks
-	const handleRowClick = (params, event) => {
-		if (event.ctrlKey || event.metaKey) {
-			window.open(`/dashboard/emails/${params.id}`, '_blank');
-		} else {
-			router.push(`/dashboard/emails/${params.id}`);
-		}
-	};
-
 	return (
 		<Box
 			sx={{
@@ -144,10 +133,9 @@ export function EmailTable({
 				totalCount={totalCount}
 				pagination={pagination}
 				onPaginationChange={handlePaginationChange}
-				sortModel={sortModel}
-				onSortChange={handleSortChange}
-				onRowClick={handleRowClick}
-				tableHeight={tableHeight}
+			sortModel={sortModel}
+			onSortChange={handleSortChange}
+			tableHeight={tableHeight}
 				hideFooter={false}
 				enableSearch={true}
 				searchTerm={searchTerm}
@@ -157,16 +145,11 @@ export function EmailTable({
 				filterConfigs={EMAILS_FILTER_CONFIG}
 				activeFilters={filters}
 				onFiltersChange={updateFilters}
-				emptyStateProps={{
-					title: 'No emails found',
-					description: 'There are no emails to display',
-				}}
-				sx={{
-					"& .MuiDataGrid-row": {
-						cursor: "pointer",
-					},
-				}}
-			/>
+			emptyStateProps={{
+				title: 'No emails found',
+				description: 'There are no emails to display',
+			}}
+		/>
 		</Box>
 	);
 }

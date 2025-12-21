@@ -11,7 +11,6 @@ import { formatReadableDatetime } from "../../../core/formatters";
 import { GenderBadge } from "./GenderBadge";
 import { AccountStatusBadge } from "./AccountStatusBadge";
 import { SubscribedBadge } from "./SubscribedBadge";
-import { useRouter } from "next/navigation";
 import { useModuleQuery } from "../../../hooks/useModuleQuery";
 import { CUSTOMERS_FILTER_CONFIG } from "../../nevios/NeviosFilters/CustomersFilterConfig";
 
@@ -20,7 +19,6 @@ export function CustomersTable({
 	initialFilters = {},
 	initialSearch = ""
 }) {
-	const router = useRouter();
 
 	// Transform raw customer data to table format
 	const transformCustomerData = useCallback((customers) => {
@@ -162,15 +160,6 @@ export function CustomersTable({
 		}),
 	];
 
-	// Handle row clicks
-	const handleRowClick = (params, event) => {
-		if (event.ctrlKey || event.metaKey) {
-			window.open(`/dashboard/customers/${params.id}`, '_blank');
-		} else {
-			router.push(`/dashboard/customers/${params.id}`);
-		}
-	};
-
 	return (
 		<Box
 			sx={{
@@ -189,10 +178,9 @@ export function CustomersTable({
 				totalCount={totalCount}
 				pagination={pagination}
 				onPaginationChange={handlePaginationChange}
-				sortModel={sortModel}
-				onSortChange={handleSortChange}
-				onRowClick={handleRowClick}
-				tableHeight={tableHeight}
+			sortModel={sortModel}
+			onSortChange={handleSortChange}
+			tableHeight={tableHeight}
 				hideFooter={false}
 				enableSearch={true}
 				searchTerm={searchTerm}
@@ -202,16 +190,11 @@ export function CustomersTable({
 				filterConfigs={CUSTOMERS_FILTER_CONFIG}
 				activeFilters={filters}
 				onFiltersChange={updateFilters}
-				emptyStateProps={{
-					title: 'No customers found',
-					description: 'There are no customers to display',
-				}}
-				sx={{
-					"& .MuiDataGrid-row": {
-						cursor: "pointer",
-					},
-				}}
-			/>
+			emptyStateProps={{
+				title: 'No customers found',
+				description: 'There are no customers to display',
+			}}
+		/>
 		</Box>
 	);
 }

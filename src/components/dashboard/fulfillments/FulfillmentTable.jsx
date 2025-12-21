@@ -10,7 +10,6 @@ import { NeviosEnhancedTable } from "../../nevios/NeviosEnhancedTable";
 import { formatReadableDatetime } from "../../../core/formatters";
 import { FulfillmentStatusBadge } from "./FulfillmentStatusBadge";
 import { DeliveryStatusBadge } from "./DeliveryStatusBadge";
-import { useRouter } from "next/navigation";
 import { useModuleQuery } from "../../../hooks/useModuleQuery";
 import { FULFILLMENTS_FILTER_CONFIG } from "../../nevios/NeviosFilters/FulfillmentsFilterConfig";
 import { TbExternalLink } from "react-icons/tb";
@@ -20,7 +19,6 @@ export function FulfillmentTable({
 	initialFilters = {},
 	initialSearch = ""
 }) {
-	const router = useRouter();
 
 	// Transform raw fulfillment data to table format
 	const transformFulfillmentData = useCallback((fulfillments) => {
@@ -241,15 +239,6 @@ export function FulfillmentTable({
 		}),
 	];
 
-	// Handle row clicks
-	const handleRowClick = (params, event) => {
-		if (event.ctrlKey || event.metaKey) {
-			window.open(`/dashboard/fulfillments/${params.id}`, '_blank');
-		} else {
-			router.push(`/dashboard/fulfillments/${params.id}`);
-		}
-	};
-
 	// Bulk actions configuration
 	const bulkActions = [
 		{
@@ -313,10 +302,9 @@ export function FulfillmentTable({
 				totalCount={totalCount}
 				pagination={pagination}
 				onPaginationChange={handlePaginationChange}
-				sortModel={sortModel}
-				onSortChange={handleSortChange}
-				onRowClick={handleRowClick}
-				tableHeight={tableHeight}
+			sortModel={sortModel}
+			onSortChange={handleSortChange}
+			tableHeight={tableHeight}
 				hideFooter={false}
 				enableSearch={true}
 				searchTerm={searchTerm}
@@ -330,16 +318,11 @@ export function FulfillmentTable({
 				onBulkAction={handleBulkAction}
 				checkboxSelection={true}
 				getRowId={(row) => row.id}
-				emptyStateProps={{
-					title: 'No fulfillments found',
-					description: 'There are no fulfillments to display',
-				}}
-				sx={{
-					"& .MuiDataGrid-row": {
-						cursor: "pointer",
-					},
-				}}
-			/>
+			emptyStateProps={{
+				title: 'No fulfillments found',
+				description: 'There are no fulfillments to display',
+			}}
+		/>
 		</Box>
 	);
 }

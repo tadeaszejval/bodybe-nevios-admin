@@ -37,6 +37,7 @@ import { createBillingAddress } from "../../../../actions/customers/billing-addr
 import { createShippingAddress } from "../../../../actions/customers/shipping-address/create";
 import { FulfillmentStatusBadge } from "../../../components/dashboard/orders/FulfillmentStatusBadge";
 import { PaymentStatusBadge } from "../../../components/dashboard/orders/PaymentStatusBadge";
+import { ContentLoadingScreen } from "../../../components/ContentLoadingScreen";
 // Sample customer activity data for testing
 const sampleCustomerActivities = [
   {
@@ -409,13 +410,7 @@ export function CustomerView({ customerId }) {
   } : {};
 
   if (loading) {
-    return (
-      <PageContainer>
-        <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '50vh' }}>
-          <CircularProgress />
-        </Box>
-      </PageContainer>
-    );
+    return <ContentLoadingScreen />;
   }
 
   if (error || !customer) {

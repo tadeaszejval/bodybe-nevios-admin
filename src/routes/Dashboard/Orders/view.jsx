@@ -28,6 +28,7 @@ import { supabase } from "../../../utils/supabase";
 import { NeviosFormPaperBlock } from "../../../components/nevios/NeviosFormPaperBlock";
 import { NeviosCopyBlock } from "../../../components/nevios/NeviosCopyBlock";
 import { getCountryName } from "../../../core/countryName";
+import { ContentLoadingScreen } from "../../../components/ContentLoadingScreen";
 
 export function OrderView({ orderId }) {
   const [order, setOrder] = useState({ name: '', created_at: null });
@@ -224,18 +225,17 @@ export function OrderView({ orderId }) {
     }
   };
 
+  if (loading) {
+    return <ContentLoadingScreen />;
+  }
+
   return (
     <PageContainer
       customSx={{
         maxWidth: "1000px"
       }}
     >
-      {loading ? (
-        <Box sx={{ display: 'flex', justifyContent: 'center', p: 4 }}>
-          <CircularProgress />
-        </Box>
-      ) : (
-        <>
+      <>
           <DashboardHeader
             title={`${order.name || 'Order details'}`}
             icon={<TbShoppingCart size={24} />}
@@ -503,7 +503,6 @@ export function OrderView({ orderId }) {
             }
           />
         </>
-      )}
     </PageContainer>
   );
 }

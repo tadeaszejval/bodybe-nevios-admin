@@ -1,11 +1,13 @@
 "use client";
+import * as React from "react";
 import { Box } from "@mui/material";
 import { darken } from "@mui/material/styles";
 import { MobileNav } from "../components/MobileNav";
 import { Sidebar, SIDEBAR_WIDTH } from "../components/Sidebar";
 import { useRegisterTours } from "../context/TourProvider";
 import { NavigationBackButton } from "./NavigationBackButton";
-import { OrganizationSelector } from "./OrganizationSelector";
+import { ContentLoadingScreen } from "./ContentLoadingScreen";
+
 export function DashboardLayout({ children }) {
 	useRegisterTours();
 	return (
@@ -45,9 +47,7 @@ export function DashboardLayout({ children }) {
 
 				</Box>
 				<Box sx={{ width: "33%", display: "flex", flexDirection: "row", alignItems: "center", justifyContent: "flex-end", gap: 2 }}>
-					<Box sx={{maxWidth: "250px"	}}>
-						<OrganizationSelector />
-					</Box>
+	
 				</Box>
 			</Box>
 			
@@ -84,19 +84,21 @@ export function DashboardLayout({ children }) {
 						overflow: "hidden",
 					}}
 				>
-					<Box
-						sx={{
-							height: "100%",
-							width: "100%",
-							overflowY: "auto",
-							scrollbarWidth: "thin",
-							display: "flex",
-							flexDirection: "column",
-							gap: 2,
-						}}
-					>
+				<Box
+					sx={{
+						height: "100%",
+						width: "100%",
+						overflowY: "auto",
+						scrollbarWidth: "thin",
+						display: "flex",
+						flexDirection: "column",
+						gap: 2,
+					}}
+				>
+					<React.Suspense fallback={<ContentLoadingScreen />}>
 						{children}
-					</Box>
+					</React.Suspense>
+				</Box>
 				</Box>
 			</Box>
 		</Box>

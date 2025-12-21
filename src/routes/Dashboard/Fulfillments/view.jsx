@@ -23,6 +23,7 @@ import { FulfillmentStatusBadge } from "../../../components/dashboard/fulfillmen
 import { DeliveryStatusBadge } from "../../../components/dashboard/fulfillments/DeliveryStatusBadge";
 import NeviosPaginationButtons from "../../../components/nevios/NeviosPaginationButtons";
 import { getCountryName } from "../../../core/countryName";
+import { ContentLoadingScreen } from "../../../components/ContentLoadingScreen";
 
 export function FulfillmentView({ fulfillmentId }) {
   const router = useRouter();
@@ -83,13 +84,7 @@ export function FulfillmentView({ fulfillmentId }) {
   };
 
   if (loading) {
-    return (
-      <PageContainer>
-        <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '50vh' }}>
-          <CircularProgress />
-        </Box>
-      </PageContainer>
-    );
+    return <ContentLoadingScreen />;
   }
 
   if (!fulfillment) {

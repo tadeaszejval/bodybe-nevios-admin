@@ -3,7 +3,8 @@ import { Box } from "@mui/material";
 import React, { useCallback } from "react";
 import {
   genericColumnFactory,
-  numericColumnFactory
+  numericColumnFactory,
+  clickableColumnFactory
 } from "../../../components/ColumnDefinitions";
 import { NeviosEnhancedTable } from "../../nevios/NeviosEnhancedTable";
 import { formatCurrencyNumber } from "../../../core/formatters";
@@ -45,11 +46,13 @@ export function InventoryTable({
     return inventoryItems.map(item => {
       // Check if expansion worked (variant/location would be objects, not strings)
       const variant = typeof item.variant === 'object' ? item.variant : null;
+      const product = variant?.product || null;
       const location = typeof item.location === 'object' ? item.location : null;
 
       return {
         id: item.id,
-        variant_full_title: variant?.full_title || 'Unknown Variant',
+        product_title: product?.title || 'Unknown Product',
+        variant_title: variant?.title || 'Default Variant',
         sku: item.sku || variant?.sku || 'N/A',
         location_name: location?.name || 'Unknown Location',
         location_type: location?.type || 'N/A',
@@ -59,6 +62,7 @@ export function InventoryTable({
         // Store IDs for reference
         variant_id: typeof item.variant === 'string' ? item.variant : item.variant?.id,
         location_id: typeof item.location === 'string' ? item.location : item.location?.id,
+        product_id: product?.id,
         // Keep original data for reference
         _original: item
       };
@@ -81,7 +85,7 @@ export function InventoryTable({
     updateFilters,
     updateSearch
   } = useModuleQuery('inventory', {
-    expand: ["variant", "location"],
+    expand: ["variant", "location", "variant.product"],
     initialFilters,
     initialSearch,
     enableSearch: true,
@@ -96,11 +100,28 @@ export function InventoryTable({
   }, [updateFilters]);
 
   const columnDefinitions = [
-    genericColumnFactory({
-      field: "variant_full_title",
+    clickableColumnFactory({
+      field: "product_title",
       headerName: "Product",
-      minWidth: 140,
-      flex: 2.5,
+      minWidth: 250,
+      flex: 2,
+      link: (params) => params.row.product_id ? `/dashboard/products/${params.row.product_id}` : null,
+      renderCell: (params) => (
+        <Box>
+          <Box>{params.value}</Box>
+          <Box 
+            component="span"
+            sx={{ 
+              fontSize: "s", 
+              fontWeight: 600, 
+              backgroundColor: "gray.200", 
+              padding: "2px 6px", 
+              borderRadius: "4px",
+            }}>
+            {params.row.variant_title}
+          </Box>
+        </Box>
+      ),
     }),
     genericColumnFactory({
       field: "sku",

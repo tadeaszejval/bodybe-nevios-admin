@@ -7,6 +7,7 @@ import * as React from "react";
 import { CircularProgress } from "@mui/material";
 import { NeviosSearchBar } from "./NeviosSearchBar";
 import { NeviosEnhancedTableFilters } from "./NeviosFilters/NeviosEnhancedTableFilters";
+import { Logo } from "../Logo";
 export const defaultAscendingSortOrder = ["asc", "desc", null];
 export const defaultDescendingSortOrder = ["desc", "asc", null];
 
@@ -43,8 +44,6 @@ const GLOBAL_PAGE_SIZE = 50;
  * @param {Array} props.rowSelectionModel - Selected row IDs
  * @param {Function} props.onRowSelectionModelChange - Callback when row selection changes
  * @param {boolean} props.checkboxSelection - Whether to show checkboxes for selection (default: true)
- * @param {Array} props.bulkActions - Array of bulk action configurations
- * @param {Function} props.onBulkAction - Callback when a bulk action is performed
  * @param {string|number} props.buttonHeight - Custom height for all buttons in the table
  * @param {string|number} props.buttonWidth - Custom width for all buttons in the table
  */
@@ -76,10 +75,9 @@ export function NeviosEnhancedTable({
   rowSelectionModel = [],
   onRowSelectionModelChange,
   checkboxSelection = true,
-  bulkActions = [],
-  onBulkAction,
   buttonHeight,
   buttonWidth,
+  sx: customSx,
   ...props
 }) {
   const theme = useTheme();
@@ -228,21 +226,6 @@ export function NeviosEnhancedTable({
 
   // Check if we have any filters configured
   const hasFilters = filterConfigs && filterConfigs.length > 0;
-  
-  // Get selected rows data
-  const selectedRowsData = React.useMemo(() => {
-    return data.filter(row => {
-      const rowId = row.id || row._id || row.key;
-      return currentRowSelectionModel.includes(rowId);
-    });
-  }, [data, currentRowSelectionModel]);
-  
-  // Handle bulk actions
-  const handleBulkAction = React.useCallback((actionKey) => {
-    if (onBulkAction && selectedRowsData.length > 0) {
-      onBulkAction(actionKey, selectedRowsData, currentRowSelectionModel);
-    }
-  }, [onBulkAction, selectedRowsData, currentRowSelectionModel]);
 
   // Footer component
   const FooterComponent = React.memo(({ 
@@ -374,89 +357,50 @@ export function NeviosEnhancedTable({
               borderBottom: (theme) => `0.75px solid ${theme.palette.gray[200]}`,
               flexShrink: 0, // Prevent controls from shrinking
             }}>
-              {/* Bulk Actions - Show when rows are selected */}
-              {currentRowSelectionModel.length > 0 && bulkActions.length > 0 ? (
+              <Box sx={{
+                display: "none",
+                maxWidth: "200px",
+                flexDirection: "row",
+                alignItems: "center",
+                gap: 0.5,
+              }}>
+                <NeviosSimpleToggleButton 
+                  toggled={true}
+                  height={buttonHeight}
+                  width={buttonWidth}
+                >
+                  Active
+                </NeviosSimpleToggleButton>
+                <NeviosSimpleToggleButton
+                  height={buttonHeight}
+                  width={buttonWidth}
+                >
+                  Inactive
+                </NeviosSimpleToggleButton>
+              </Box>
+              <Box sx={{
+                display: "flex",
+                width: "100%",
+                flexDirection: "row",
+                alignItems: "center",
+                gap: 0.5,
+              }}>
                 <Box sx={{
-                  display: "flex",
-                  flexDirection: "row",
-                  alignItems: "center",
-                  gap: 1,
-                  backgroundColor: 'primary.50',
-                  px: 2,
-                  py: 1,
-                  borderRadius: 1,
-                  border: '1px solid',
-                  borderColor: 'primary.200'
+                  width: "100%",
                 }}>
-                  <Typography variant="body2" sx={{ color: 'primary.700', fontWeight: 500 }}>
-                    {currentRowSelectionModel.length} selected
-                  </Typography>
-                  {bulkActions.map((action) => (
-                    <Button
-                      key={action.key}
-                      size="small"
-                      variant={action.variant || "outlined"}
-                      color={action.color || "primary"}
-                      onClick={() => handleBulkAction(action.key)}
-                      disabled={loading}
-                      startIcon={action.icon}
-                      sx={{
-                        ...(buttonHeight && { height: buttonHeight }),
-                        ...(buttonWidth && { width: buttonWidth, minWidth: buttonWidth }),
-                      }}
-                    >
-                      {action.label}
-                    </Button>
-                  ))}
+                  <NeviosSearchBar 
+                    loading={loading}
+                    placeholder={searchPlaceholder}
+                    value={searchTerm}
+                    onChange={(e) => onSearchChange?.(e.target.value)}
+                    disabled={!enableSearch}
+                    sx={{
+                      opacity: enableSearch ? 1 : 0.5,
+                      pointerEvents: enableSearch ? 'auto' : 'none'
+                    }}
+                  />
                 </Box>
-              ) : (
-                <>
-                  <Box sx={{
-                    display: "none",
-                    maxWidth: "200px",
-                    flexDirection: "row",
-                    alignItems: "center",
-                    gap: 0.5,
-                  }}>
-                    <NeviosSimpleToggleButton 
-                      toggled={true}
-                      height={buttonHeight}
-                      width={buttonWidth}
-                    >
-                      Active
-                    </NeviosSimpleToggleButton>
-                    <NeviosSimpleToggleButton
-                      height={buttonHeight}
-                      width={buttonWidth}
-                    >
-                      Inactive
-                    </NeviosSimpleToggleButton>
-                  </Box>
-                  <Box sx={{
-                    display: "flex",
-                    width: "100%",
-                    flexDirection: "row",
-                    alignItems: "center",
-                    gap: 0.5,
-                  }}>
-                    <Box sx={{
-                      width: "100%",
-                    }}>
-                      <NeviosSearchBar 
-                        loading={loading}
-                        placeholder={searchPlaceholder}
-                        value={searchTerm}
-                        onChange={(e) => onSearchChange?.(e.target.value)}
-                        disabled={!enableSearch}
-                        sx={{
-                          opacity: enableSearch ? 1 : 0.5,
-                          pointerEvents: enableSearch ? 'auto' : 'none'
-                        }}
-                      />
-                    </Box>
-                  </Box>
-                </>
-              )}
+              </Box>
               
               {enableFilters && hasFilters && (
                 <Box sx={{
@@ -521,6 +465,7 @@ export function NeviosEnhancedTable({
                 width: "100%",
                 overflow: "auto", // Enable both horizontal and vertical scrolling
                 minHeight: 0, // Allow flex child to shrink below content size
+                position: 'relative', // For absolute positioning of empty state
               }}
             >
               {/* Data Grid */}
@@ -537,6 +482,9 @@ export function NeviosEnhancedTable({
                 loading={loading}
                 columns={columns}
                 rows={data}
+                hideFooterPagination={true}
+                disableColumnSelector={true}
+                disableColumnFilter={true}
                 
                 // Remove autoHeight to enable proper scrolling
                 // autoHeight
@@ -560,10 +508,25 @@ export function NeviosEnhancedTable({
                 onRowClick={handleRowClick}
                 
                 sx={{
-                  height: data.length === 0 ? '250px' : '100%', // Minimum 250px height when no rows
+                  height: '100%', // Always fill container height
                   width: '100%',
-                  minWidth: 'max-content', // Ensure table doesn't compress below content width
+                  minWidth: data.length === 0 ? '100%' : 'max-content', // Full width when empty, content width when data
                   position: 'relative', // Ensure overlays position correctly
+                  // Merge custom sx from props first
+                  ...(customSx || {}),
+                  // Hide column headers when no data - apply after custom sx to ensure it takes precedence
+                  ...(data.length === 0 && {
+                    '.MuiDataGrid-columnHeaders': {
+                      display: 'none !important',
+                    },
+                    '.MuiDataGrid-virtualScroller': {
+                      marginTop: '0 !important',
+                      height: '100% !important',
+                    },
+                    '.MuiDataGrid-main': {
+                      height: '100%',
+                    },
+                  }),
                   [`.${gridClasses.cell}:focus, .${gridClasses.cell}:focus-within`]: {
                     outline: "none",
                   },
@@ -613,7 +576,7 @@ export function NeviosEnhancedTable({
                     bottom: 0,
                     width: '100%',
                     height: '100%',
-                    minHeight: '250px',
+                    minHeight: data.length === 0 ? '100%' : '250px',
                     zIndex: 10,
                   },
                   '.MuiDataGrid-overlayWrapperInner': {
@@ -656,19 +619,7 @@ export function NeviosEnhancedTable({
                         minHeight: '250px',
                       }}
                     >
-                      <Box
-                        sx={{
-                          display: "flex",
-                          flexDirection: "column",
-                          alignItems: "center",
-                          gap: 2,
-                        }}
-                      >
-                        <CircularProgress size={24} />
-                        <Typography variant="body2" color="text.secondary">
-                          Loading...
-                        </Typography>
-                      </Box>
+                      <Logo animate height={24} />
                     </Box>
                   ),
                   noRowsOverlay: () => (
