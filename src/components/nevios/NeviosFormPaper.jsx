@@ -1,6 +1,17 @@
 import { Paper, Typography, IconButton, Box } from "@mui/material";
 
-export function NeviosFormPaper({ children, title, titleIcon, icon, onClick, description, footerDescription, gap = 1.5 }) {
+export function NeviosFormPaper({ 
+  children, 
+  title, 
+  titleIcon, 
+  icon, 
+  onClick, 
+  description, 
+  footerDescription,
+  gap = 1.5, 
+  removeSidePadding = false
+   }) {
+
   return (
     <Paper 
       elevation={2} 
@@ -17,8 +28,8 @@ export function NeviosFormPaper({ children, title, titleIcon, icon, onClick, des
             flexDirection: "row", 
             alignItems: "center", 
             justifyContent: "space-between",
-            paddingLeft: 2, 
-            paddingRight: 2,
+            paddingLeft: removeSidePadding ? 0 : 2, 
+            paddingRight: removeSidePadding ? 0 : 2,
             paddingBottom: 1
           }}
         >
@@ -49,9 +60,9 @@ export function NeviosFormPaper({ children, title, titleIcon, icon, onClick, des
           display: "flex", 
           flexDirection: "column", 
           gap: gap,
-          paddingLeft: 2, 
-          paddingRight: 2, 
-          paddingBottom: footerDescription ? 2 : 2,
+          paddingLeft: removeSidePadding ? 0 : 2, 
+          paddingRight: removeSidePadding ? 0 : 2, 
+          paddingBottom: footerDescription ? removeSidePadding ? 0 : 2 : 2,
         }}
       >
         {children}

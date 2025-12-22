@@ -27,9 +27,7 @@ export default function SettingsLayout({ children }) {
 				<Box
 					sx={{
 						display: { xs: "none", sm: "block" },
-						borderRight: "1px solid",
-						borderColor: "divider",
-						pr: 3,
+						pr: 1,
 					}}
 				>
 					<SettingsSidebar />
