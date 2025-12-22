@@ -2,7 +2,7 @@
 import { Box, IconButton } from "@mui/material";
 import { darken } from "@mui/material/styles";
 import { usePathname, useRouter } from "next/navigation";
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import { TbX } from "react-icons/tb";
 
 /**
@@ -27,6 +27,7 @@ export function DashboardOverlay({
 	const [isOpen, setIsOpen] = useState(false);
 	const [isAnimating, setIsAnimating] = useState(false);
 	const [wasOverlayRoute, setWasOverlayRoute] = useState(false);
+	const previousRouteRef = useRef(null);
 
 	// Check if current route matches any trigger pattern
 	const isOverlayRoute = triggerPatterns.some(pattern => 
@@ -34,6 +35,11 @@ export function DashboardOverlay({
 	);
 
 	useEffect(() => {
+		// Save the route when we're NOT in an overlay (track where we came from)
+		if (!isOverlayRoute && pathname) {
+			previousRouteRef.current = pathname;
+		}
+		
 		// Only animate if transitioning FROM non-overlay TO overlay or vice versa
 		// Don't animate when navigating WITHIN overlay routes
 		if (isOverlayRoute && !wasOverlayRoute) {
@@ -53,7 +59,7 @@ export function DashboardOverlay({
 				setIsAnimating(true);
 			}
 		}
-	}, [isOverlayRoute, wasOverlayRoute, isOpen]);
+	}, [isOverlayRoute, wasOverlayRoute, isOpen, pathname]);
 
 	const handleClose = () => {
 		// Trigger close animation first
@@ -64,7 +70,10 @@ export function DashboardOverlay({
 			if (onClose) {
 				onClose();
 			}
-			router.back();
+			// Navigate to the route we were on before entering overlay
+			// If no previous route saved, default to dashboard home
+			const targetRoute = previousRouteRef.current || '/dashboard/home';
+			router.push(targetRoute);
 		}, 300); // Match the transition duration
 	};
 
