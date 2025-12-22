@@ -4,6 +4,9 @@ export const metadata = {
 	title: "Vasky | Nevios",
 	description:
 		"Nevios is the all-in-one eCommerce platform for creating, managing, and growing your online store. Fast setup, flexible design, and powerful sales tools.",
+	icons: {
+		icon: "/favicon.png",
+	},
 };
 export default function RootLayout({ children }) {
 	return (

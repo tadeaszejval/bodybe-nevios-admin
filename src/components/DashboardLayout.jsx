@@ -1,6 +1,6 @@
 "use client";
 import * as React from "react";
-import { Box } from "@mui/material";
+import { Box, useTheme } from "@mui/material";
 import { darken } from "@mui/material/styles";
 import { MobileNav } from "../components/MobileNav";
 import { Sidebar, SIDEBAR_WIDTH } from "../components/Sidebar";
@@ -8,9 +8,23 @@ import { useRegisterTours } from "../context/TourProvider";
 import { NavigationBackButton } from "./NavigationBackButton";
 import { ContentLoadingScreen } from "./ContentLoadingScreen";
 import { Logo } from "./Logo";
+import { DashboardOverlay } from "./DashboardOverlay";
+import { usePathname } from "next/navigation";
+import { getOverlayPatterns } from "../config/overlayRoutes";
 
 export function DashboardLayout({ children }) {
 	useRegisterTours();
+	const theme = useTheme();
+	const pathname = usePathname();
+	
+	// Get all overlay patterns from configuration
+	const overlayPatterns = getOverlayPatterns();
+	
+	// Check if we're on any overlay route
+	const isOverlayRoute = overlayPatterns.some(pattern => 
+		pathname?.startsWith(pattern)
+	);
+	
 	return (
 		<Box sx={{
 			display: "flex",
@@ -35,11 +49,12 @@ export function DashboardLayout({ children }) {
 					gap: 2,
 					flexShrink: 0, // Prevent shrinking
 					px: 2,
+					zIndex: 1001, // Above settings overlay
 				}}
 			>
 			<Box sx={{ width: "33%", display: "flex", flexDirection: "row", alignItems: "center", justifyContent: "flex-start", paddingLeft: 1, gap: 2 }}>
 				<Box>
-					<Logo animate width={100} textColor="white" />
+					<Logo width={100} textColor="white" symbolColor={theme.palette.primary[500]} stripeColor="white" />
 				</Box>
 			</Box>
 				<Box sx={{ width: "33%", display: "flex", flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 2 }}>
@@ -98,11 +113,24 @@ export function DashboardLayout({ children }) {
 					}}
 				>
 					<React.Suspense fallback={<ContentLoadingScreen />}>
-						{children}
+						{/* Only render main dashboard content if NOT on overlay route */}
+						{!isOverlayRoute && children}
 					</React.Suspense>
 				</Box>
 				</Box>
 			</Box>
+			
+			{/* Dashboard Overlay - reusable for settings and other modules */}
+			<DashboardOverlay 
+				triggerPatterns={overlayPatterns}
+				showCloseButton={true}
+				hasBackdrop={true}
+				backdropBlur={true}
+			>
+				<React.Suspense fallback={<ContentLoadingScreen />}>
+					{isOverlayRoute && children}
+				</React.Suspense>
+			</DashboardOverlay>
 		</Box>
 	);
 }

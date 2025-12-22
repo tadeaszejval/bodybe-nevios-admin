@@ -189,33 +189,6 @@ export default function DashboardHome() {
         maxWidth: "850px"
       }}
     >
-      <NeviosAnalyticsGroupMetricCard data={customerMetrics} />
-      <Box sx={{ display: 'flex', flexDirection: 'row', gap: 2, width: '100%' }}>
-        {/* Sales Chart with CZK */}
-        <Box sx={{ flex: 1, minWidth: 0 }}>
-          <NeviosAnalyticsLineChart
-            title="Total sales over time"
-            value="CZK 11,961,958.70"
-            data={salesData}
-            height={250}
-            valueLabel="CZK"
-          />
-        </Box>
-
-
-        {/* Orders Chart with unit label */}
-        <Box sx={{ flex: 1, minWidth: 0 }}>
-          <NeviosAnalyticsLineChart
-            title="Orders over time"
-            value="1,234 orders"
-            data={ordersData}
-            height={250}
-            primaryColor="#10B981"
-            secondaryColor="#D1FAE5"
-          />
-        </Box>
-      </Box>
-
       <Box sx={{ display: 'flex', flexDirection: 'row', gap: 2, width: '100%' }}>
         <Box sx={{ flex: 1, minWidth: 0 }}>
           <NeviosAnalyticsMetricCard
@@ -239,6 +212,31 @@ export default function DashboardHome() {
             value="4.8/5"
             data={returningCustomerData}
             color="#F59E0B"
+          />
+        </Box>
+      </Box>
+      <Box sx={{ display: 'flex', flexDirection: 'row', gap: 2, width: '100%' }}>
+        {/* Sales Chart with CZK */}
+        <Box sx={{ flex: 1, minWidth: 0 }}>
+          <NeviosAnalyticsLineChart
+            title="Total sales over time"
+            value="CZK 11,961,958.70"
+            data={salesData}
+            height={250}
+            valueLabel="CZK"
+          />
+        </Box>
+
+
+        {/* Orders Chart with unit label */}
+        <Box sx={{ flex: 1, minWidth: 0 }}>
+          <NeviosAnalyticsLineChart
+            title="Orders over time"
+            value="1,234 orders"
+            data={ordersData}
+            height={250}
+            primaryColor="#10B981"
+            secondaryColor="#D1FAE5"
           />
         </Box>
       </Box>

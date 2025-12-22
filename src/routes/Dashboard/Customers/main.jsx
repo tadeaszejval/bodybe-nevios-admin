@@ -23,7 +23,7 @@ export default function DashboardCustomers() {
         actions={
           <Box display="flex" gap={1}>
             <NeviosPrimaryButton 
-              size="small" 
+              size="medium" 
               onClick={handleNewCustomer}
             >
               Add Customer

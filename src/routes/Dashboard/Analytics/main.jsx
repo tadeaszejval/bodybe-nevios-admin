@@ -208,9 +208,6 @@ export default function DashboardAnalytics() {
           title="Analytics"
           icon={<TbChartBar size={24} />}
         />
-        <Alert severity="warning" sx={{ mt: 2 }}>
-          Currently, we are editing this page for you. Please check back later.
-        </Alert>
       </Box>
     );
   }

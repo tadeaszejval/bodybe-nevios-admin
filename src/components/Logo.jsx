@@ -11,13 +11,14 @@ export function Logo({
 	animate = false,
 	symbolColor,
 	textColor,
+	stripeColor,
 }) {
 	const theme = useTheme();
 
 	// Default colors
 	const finalSymbolColor = symbolColor || theme.palette.primary.main;
 	const finalTextColor = textColor || theme.palette.text?.primary || "black";
-
+	const finalStripeColor = stripeColor || "white";
 	return (
 		<Box
 			sx={{
@@ -39,7 +40,7 @@ export function Logo({
 				/>
 				<path
 					d="M54.2109 16.6781C55.7944 15.1379 58.3268 15.1728 59.8671 16.7562C61.4074 18.3398 61.3724 20.8722 59.789 22.4125L54.8818 27.1859C49.5056 32.4151 40.9633 32.4788 35.5097 27.3305L34.6152 26.4867C32.2779 24.2804 28.6175 24.3073 26.3134 26.5482L18.789 33.8676C17.2054 35.4077 14.673 35.372 13.1327 33.7885C11.5925 32.2049 11.6273 29.6725 13.2109 28.1322L20.7353 20.8139C26.1115 15.5847 34.6537 15.5209 40.1073 20.6693L41.0009 21.5131C43.3381 23.7195 46.9995 23.6926 49.3036 21.4516L54.2109 16.6781Z"
-					fill="white"
+					fill={finalStripeColor}
 				/>
 				<path
 					d="M92.8941 46.2872H84V5.71279H92.8941L113.017 35.6501H110.237V5.71279H119.132V46.2872H110.237L90.1147 16.4047H92.8941V46.2872Z"

@@ -10,7 +10,6 @@ import {
 	TbHeartSpark,
 	TbChartBar,
 	TbReportAnalytics,
-	TbUser,
 	TbLogout,
 	TbShoe,
 	TbBuildingStore,
@@ -18,16 +17,13 @@ import {
 	TbCash,
 	TbFileDescription,
 	TbMail,
-	TbToolsKitchen2,
-	TbSun,
-	TbMoon,
+	TbSettings,
 	TbPackage,
 } from "react-icons/tb";
 import { useColorScheme } from "@mui/material";
 import { SidebarItem } from "../components/SidebarItem";
 import { useAuth } from "../context/AuthProvider";
 import { useRouter } from "next/navigation";
-import { NeviosShadowButton } from "./nevios/NeviosButtons";
 
 export const SIDEBAR_WIDTH = 250;
 const ICON_SIZE = 18;
@@ -193,8 +189,13 @@ export function Sidebar() {
 								pt: 0.5,
 								pb: 0,
 							}}
-						>
+						>	
 							<SidebarDivider />
+							<SidebarItem
+								href="/dashboard/settings/general"
+								title="Settings"
+								icon={<TbSettings size={ICON_SIZE} />}
+							/>
 							<SidebarItem
 								title="Logout"
 								icon={<TbLogout size={ICON_SIZE} />}
