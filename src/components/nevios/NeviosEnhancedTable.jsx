@@ -320,7 +320,7 @@ export function NeviosEnhancedTable({
           display: "flex", 
           flexDirection: "column",
           marginBottom: isFooterSticky ? '45px' : '0', // Add margin when footer is sticky
-          height: tableHeight || '250px', // Set a default height to enable proper scrolling
+          height: tableHeight || '350px', // Set a default height to enable proper scrolling
           minHeight: '250px' // Minimum height to ensure table is usable
         }}
       >

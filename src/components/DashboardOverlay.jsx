@@ -24,42 +24,55 @@ export function DashboardOverlay({
 }) {
 	const pathname = usePathname();
 	const router = useRouter();
-	const [isOpen, setIsOpen] = useState(false);
-	const [isAnimating, setIsAnimating] = useState(false);
-	const [wasOverlayRoute, setWasOverlayRoute] = useState(false);
 	const previousRouteRef = useRef(null);
 
 	// Check if current route matches any trigger pattern
 	const isOverlayRoute = triggerPatterns.some(pattern => 
 		pathname?.startsWith(pattern)
 	);
+	
+	// Initialize state based on whether we're already on an overlay route
+	const [isOpen, setIsOpen] = useState(isOverlayRoute);
+	const [isAnimating, setIsAnimating] = useState(isOverlayRoute);
+	const [wasOverlayRoute, setWasOverlayRoute] = useState(isOverlayRoute);
+	const isInitialMount = useRef(true);
 
 	useEffect(() => {
 		// Save the route when we're NOT in an overlay (track where we came from)
 		if (!isOverlayRoute && pathname) {
 			previousRouteRef.current = pathname;
 		}
+	}, [isOverlayRoute, pathname]);
+
+	useEffect(() => {
+		// Skip animation logic on initial mount if already on overlay route
+		if (isInitialMount.current) {
+			isInitialMount.current = false;
+			// If we're already on an overlay route on mount, don't animate
+		if (isOverlayRoute) {
+				return;
+			}
+		}
 		
 		// Only animate if transitioning FROM non-overlay TO overlay or vice versa
-		// Don't animate when navigating WITHIN overlay routes
+		// Don't animate or change state when navigating WITHIN overlay routes
 		if (isOverlayRoute && !wasOverlayRoute) {
 			// Entering overlay route from outside
 			setIsAnimating(true);
-			setTimeout(() => setIsOpen(true), 10);
+			setIsOpen(false); // Start closed
+			setTimeout(() => setIsOpen(true), 10); // Open with animation
 			setWasOverlayRoute(true);
 		} else if (!isOverlayRoute && wasOverlayRoute) {
 			// Leaving overlay route
 			setIsOpen(false);
-			setTimeout(() => setIsAnimating(false), 300);
-			setWasOverlayRoute(false);
-		} else if (isOverlayRoute && wasOverlayRoute) {
-			// Already in overlay, just ensure it stays open without animation
-			if (!isOpen) {
-				setIsOpen(true);
-				setIsAnimating(true);
-			}
+			setTimeout(() => {
+				setIsAnimating(false);
+				setWasOverlayRoute(false);
+			}, 300);
 		}
-	}, [isOverlayRoute, wasOverlayRoute, isOpen, pathname]);
+		// When isOverlayRoute && wasOverlayRoute (navigating within overlay)
+		// Do nothing - states remain unchanged, no re-animation
+	}, [isOverlayRoute, wasOverlayRoute]);
 
 	const handleClose = () => {
 		// Trigger close animation first
@@ -83,8 +96,9 @@ export function DashboardOverlay({
 		}
 	};
 
-	// Don't render if not animating and not open
-	if (!isAnimating && !isOpen) {
+	// Don't render if not animating, not open, AND not on an overlay route
+	// Keep mounted if we're on an overlay route to prevent flashing during navigation
+	if (!isAnimating && !isOpen && !isOverlayRoute) {
 		return null;
 	}
 
