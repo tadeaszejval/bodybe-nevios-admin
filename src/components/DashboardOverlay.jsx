@@ -26,6 +26,7 @@ export function DashboardOverlay({
 	const router = useRouter();
 	const [isOpen, setIsOpen] = useState(false);
 	const [isAnimating, setIsAnimating] = useState(false);
+	const [wasOverlayRoute, setWasOverlayRoute] = useState(false);
 
 	// Check if current route matches any trigger pattern
 	const isOverlayRoute = triggerPatterns.some(pattern => 
@@ -33,18 +34,26 @@ export function DashboardOverlay({
 	);
 
 	useEffect(() => {
-		if (isOverlayRoute) {
-			// Open animation
+		// Only animate if transitioning FROM non-overlay TO overlay or vice versa
+		// Don't animate when navigating WITHIN overlay routes
+		if (isOverlayRoute && !wasOverlayRoute) {
+			// Entering overlay route from outside
 			setIsAnimating(true);
-			// Small delay to trigger animation
 			setTimeout(() => setIsOpen(true), 10);
-		} else {
-			// Close animation
+			setWasOverlayRoute(true);
+		} else if (!isOverlayRoute && wasOverlayRoute) {
+			// Leaving overlay route
 			setIsOpen(false);
-			// Wait for animation to complete before hiding
 			setTimeout(() => setIsAnimating(false), 300);
+			setWasOverlayRoute(false);
+		} else if (isOverlayRoute && wasOverlayRoute) {
+			// Already in overlay, just ensure it stays open without animation
+			if (!isOpen) {
+				setIsOpen(true);
+				setIsAnimating(true);
+			}
 		}
-	}, [isOverlayRoute]);
+	}, [isOverlayRoute, wasOverlayRoute, isOpen]);
 
 	const handleClose = () => {
 		// Trigger close animation first
