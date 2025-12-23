@@ -32,8 +32,31 @@ export const statusMatcher = (value) =>
 		.with("processing", (value) => ALL_STATUSES.processing)
 		.with("failed", (value) => ALL_STATUSES.failed)
 		.exhaustive();
-export function StatusBadge({ status, customSx = {} }) {
-	const statusMeta = statusMatcher(status);
+export function StatusBadge({ status, label, color, customSx = {} }) {
+	// If label and color are provided directly, use them
+	// Otherwise, use the status matcher for predefined statuses
+	let statusMeta;
+	
+	if (label && color) {
+		statusMeta = { label, color };
+	} else if (status) {
+		try {
+			statusMeta = statusMatcher(status);
+		} catch (error) {
+			// Fallback for unknown statuses
+			statusMeta = {
+				label: status,
+				color: "gray"
+			};
+		}
+	} else {
+		// Default fallback
+		statusMeta = {
+			label: "Unknown",
+			color: "gray"
+		};
+	}
+	
 	return (
 		<Box
 			sx={{

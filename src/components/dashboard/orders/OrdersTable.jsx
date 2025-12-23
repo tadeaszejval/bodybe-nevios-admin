@@ -26,13 +26,13 @@ export function OrdersTable({
 			order_name: order.name,
 			order_date: order.created_at,
 			customer_name: order.customer?.full_name || 'Unknown Customer',
-			total: {
-				currency: order.local_currency,
-				amount: order.total_amount || 0
-			},
+			total_price_gross: order.total_price_gross || 0,
+			total_price_net: order.total_price_net || 0,
+			total_price_vat: order.total_price_vat || 0,
+			home_currency: order.home_currency || '??',
 			fulfillment_status: order.fulfillment_status,
 			payment_status: order.payment_status,
-			item_count: order.items?.length || 0,
+			item_count: order.order_item?.length || 0,
 			shipping_method: order.shipping_method?.name || 'Not specified',
 			payment_method: order.payment_method?.name || 'Not specified',
 			// Keep original data for reference
@@ -92,17 +92,17 @@ export function OrdersTable({
 			minWidth: 180,
 			flex: 2,
 		}),
-		currencyColumnFactory({
-			field: "total",
-			headerName: "Total",
-			minWidth: 120,
-			flex: 1,
-			renderCell: (params) => (
-				<Box>
-					{params.value.currency} {formatCurrencyNumber(params.value.amount)}
-				</Box>
-			),
-		}),
+	currencyColumnFactory({
+		field: "total_price_gross",
+		headerName: "Total",
+		minWidth: 120,
+		flex: 1,
+		renderCell: (params) => (
+			<Box>
+				{params.row.home_currency} {formatCurrencyNumber(params.value)}
+			</Box>
+		),
+	}),
 		genericColumnFactory({
 			field: "fulfillment_status",
 			headerName: "Fulfillment",
