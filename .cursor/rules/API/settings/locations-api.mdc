@@ -1,0 +1,447 @@
+# Locations Configuration System Documentation
+
+## Overview
+The locations system manages physical warehouse, store, and office locations along with their shipping capabilities. It supports multi-location fulfillment with zone-based shipping rules, capacity management, and flexible location configurations.
+
+## 🚀 **Key Features**
+
+- **Location Management**: Define warehouses, stores, and offices
+- **Shipping Rules**: Configure which zones/countries each location serves
+- **Default Location**: Set a default fulfillment location
+- **Capacity Management**: Set daily order limits per location
+- **Cutoff Times**: Define order processing cutoff times
+- **Priority System**: Control which location is selected first
+- **Active/Inactive Status**: Enable or disable locations dynamically
+
+## 🔧 **API Endpoints**
+
+### Locations
+
+#### 1. Create Location
+**POST** `/server/configuration/locations/create`
+
+```bash
+curl -X POST "http://localhost:3100/server/configuration/locations/create" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "name": "Prague Main Warehouse",
+    "address": "Václavské náměstí 1",
+    "city": "Prague",
+    "country": "CZ",
+    "type": "WAREHOUSE",
+    "is_default": true,
+    "is_active": true,
+    "can_fulfill_orders": true
+  }'
+```
+
+#### 2. Query Locations
+**GET** `/server/configuration/locations/query`
+
+```bash
+# Get all locations
+curl "http://localhost:3100/server/configuration/locations/query"
+
+# Filter by type
+curl "http://localhost:3100/server/configuration/locations/query?type=WAREHOUSE"
+
+# Get fulfillment-capable locations
+curl "http://localhost:3100/server/configuration/locations/query?can_fulfill_orders=true"
+```
+
+#### 3. Retrieve Location(s)
+**GET** `/server/configuration/locations/retrieve/:id?`
+
+```bash
+# Get all locations
+curl "http://localhost:3100/server/configuration/locations/retrieve"
+
+# Get single location
+curl "http://localhost:3100/server/configuration/locations/retrieve/{location-id}"
+
+# Get default location
+curl "http://localhost:3100/server/configuration/locations/retrieve?is_default=true"
+```
+
+#### 4. Modify Location
+**PUT** `/server/configuration/locations/modify/:id`
+
+```bash
+curl -X PUT "http://localhost:3100/server/configuration/locations/modify/{location-id}" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "name": "Prague Warehouse - Updated",
+    "is_active": false
+  }'
+```
+
+#### 5. Set Default Location
+**PUT** `/server/configuration/locations/set-default/:id`
+
+```bash
+curl -X PUT "http://localhost:3100/server/configuration/locations/set-default/{location-id}"
+```
+
+**Validation:**
+- Location must exist
+- Location must be active (`is_active = true`)
+- Location must be able to fulfill orders (`can_fulfill_orders = true`)
+- Automatically unsets previous default location
+
+#### 6. Delete Location
+**DELETE** `/server/configuration/locations/delete/:id`
+
+```bash
+curl -X DELETE "http://localhost:3100/server/configuration/locations/delete/{location-id}"
+```
+
+### Location Shipping Rules
+
+#### 1. Create Shipping Rule
+**POST** `/server/configuration/location-rules/create`
+
+```bash
+curl -X POST "http://localhost:3100/server/configuration/location-rules/create" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "location": "location-uuid",
+    "name": "Prague - EU Central",
+    "description": "Ships to Central European countries",
+    "shipping_zones": ["zone-uuid-1", "zone-uuid-2"],
+    "countries": ["CZ", "SK", "PL", "HU"],
+    "priority": 1,
+    "max_daily_capacity": 100,
+    "cutoff_time": "14:00:00"
+  }'
+```
+
+#### 2. Query Shipping Rules
+**GET** `/server/configuration/location-rules/query`
+
+```bash
+# Get all rules
+curl "http://localhost:3100/server/configuration/location-rules/query"
+
+# Filter by location
+curl "http://localhost:3100/server/configuration/location-rules/query?location={location-id}"
+
+# Find rules for specific country
+curl "http://localhost:3100/server/configuration/location-rules/query?country=DE"
+```
+
+#### 3-5. Retrieve, Modify, Delete Rules
+```bash
+# Retrieve rule
+curl "http://localhost:3100/server/configuration/location-rules/retrieve/{rule-id}"
+
+# Modify rule
+curl -X PUT "http://localhost:3100/server/configuration/location-rules/modify/{rule-id}" \
+  -d '{"max_daily_capacity": 150}'
+
+# Delete rule
+curl -X DELETE "http://localhost:3100/server/configuration/location-rules/delete/{rule-id}"
+```
+
+## 📊 **Database Schema**
+
+### Locations Table
+```sql
+CREATE TABLE locations (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  name text,
+  address text,
+  city text,
+  country text,
+  type location_type DEFAULT 'WAREHOUSE',
+  is_default boolean DEFAULT false,
+  is_active boolean DEFAULT true,
+  can_fulfill_orders boolean DEFAULT true,
+  store uuid REFERENCES stores(id),
+  created_at timestamp with time zone DEFAULT now()
+);
+
+-- Location types: WAREHOUSE, STORE, OFFICE
+CREATE TYPE location_type AS ENUM ('WAREHOUSE', 'STORE', 'OFFICE');
+```
+
+### Location Shipping Rules Table
+```sql
+CREATE TABLE location_shipping_rules (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  location uuid REFERENCES locations(id) NOT NULL,
+  name text,
+  description text,
+  shipping_zones jsonb DEFAULT '[]'::jsonb,
+  countries jsonb DEFAULT '[]'::jsonb,
+  priority integer DEFAULT 1,
+  is_active boolean DEFAULT true,
+  max_daily_capacity integer,
+  cutoff_time time without time zone,
+  metadata jsonb DEFAULT '{}'::jsonb,
+  created_at timestamp with time zone DEFAULT now(),
+  updated_at timestamp with time zone DEFAULT now()
+);
+```
+
+## 🔍 **Data Relations**
+
+### Location Relationships
+- **Shipping Method Sets**: `shipping_method_sets.fulfillment_location` → `locations.id`
+- **Fulfillments**: `fulfillments.fulfillment_location` → `locations.id`
+- **Location Shipping Rules**: `location_shipping_rules.location` → `locations.id`
+- **Stores**: `locations.store` → `stores.id`
+
+### Location Shipping Rules Relationships
+- **Locations**: `location_shipping_rules.location` → `locations.id`
+- **Shipping Zones**: `location_shipping_rules.shipping_zones` (JSONB array of zone IDs)
+
+## 🛠 **Core Functions**
+
+### Location Functions
+```javascript
+const { 
+  createLocation,
+  retrieveLocation,
+  modifyLocation,
+  deleteLocation,
+  queryLocations,
+  setDefaultLocation
+} = require('./functions/configuration/locations');
+
+// Create location
+const location = await createLocation({
+  name: "Prague Main Warehouse",
+  city: "Prague",
+  country: "CZ",
+  type: "WAREHOUSE",
+  is_default: true,
+  can_fulfill_orders: true
+});
+
+// Query locations
+const locations = await queryLocations({ 
+  type: "WAREHOUSE", 
+  is_active: true,
+  page: 1, 
+  limit: 50 
+});
+
+// Modify location
+await modifyLocation(locationId, { 
+  name: "Prague Warehouse - Updated",
+  is_active: false 
+});
+
+// Set default location
+await setDefaultLocation(locationId);
+
+// Delete location
+await deleteLocation(locationId);
+```
+
+### Location Shipping Rules Functions
+```javascript
+const {
+  createLocationShippingRule,
+  retrieveLocationShippingRule,
+  modifyLocationShippingRule,
+  deleteLocationShippingRule,
+  queryLocationShippingRules
+} = require('./functions/settings/locations');
+
+// Create shipping rule
+const rule = await createLocationShippingRule({
+  location: "location-uuid",
+  name: "Prague - EU Central",
+  countries: ["CZ", "SK", "PL", "HU"],
+  shipping_zones: ["zone-uuid"],
+  priority: 1,
+  max_daily_capacity: 100,
+  cutoff_time: "14:00:00"
+});
+
+// Query rules
+const rules = await queryLocationShippingRules({ 
+  location: locationId,
+  is_active: true 
+});
+```
+
+## 💡 **Common Use Cases**
+
+### 1. Setup Multiple Warehouses
+```bash
+# Create Prague warehouse
+curl -X POST "http://localhost:3100/server/configuration/locations/create" \
+  -d '{
+    "name": "Prague Warehouse",
+    "city": "Prague",
+    "country": "CZ",
+    "type": "WAREHOUSE",
+    "is_default": true
+  }'
+
+# Create Munich warehouse
+curl -X POST "http://localhost:3100/server/configuration/locations/create" \
+  -d '{
+    "name": "Munich Warehouse",
+    "city": "Munich",
+    "country": "DE",
+    "type": "WAREHOUSE"
+  }'
+```
+
+### 2. Configure Shipping Rules for Each Location
+```bash
+# Prague ships to Central EU
+curl -X POST "http://localhost:3100/server/configuration/location-rules/create" \
+  -d '{
+    "location": "prague-warehouse-uuid",
+    "name": "Prague - Central EU",
+    "countries": ["CZ", "SK", "PL", "HU"],
+    "priority": 1,
+    "max_daily_capacity": 100,
+    "cutoff_time": "14:00:00"
+  }'
+
+# Munich ships to Western EU
+curl -X POST "http://localhost:3100/server/configuration/location-rules/create" \
+  -d '{
+    "location": "munich-warehouse-uuid",
+    "name": "Munich - Western EU",
+    "countries": ["DE", "AT", "CH"],
+    "priority": 1,
+    "max_daily_capacity": 150,
+    "cutoff_time": "15:00:00"
+  }'
+```
+
+### 3. Set Daily Capacity Limits
+```bash
+curl -X PUT "http://localhost:3100/server/configuration/location-rules/modify/{rule-id}" \
+  -d '{
+    "max_daily_capacity": 200,
+    "cutoff_time": "16:00:00"
+  }'
+```
+
+### 4. Change Default Location
+```bash
+curl -X PUT "http://localhost:3100/server/configuration/locations/set-default/{new-location-id}"
+```
+
+### 5. Temporarily Disable Location
+```bash
+curl -X PUT "http://localhost:3100/server/configuration/locations/modify/{location-id}" \
+  -d '{"is_active": false}'
+```
+
+### 6. Find Which Locations Ship to Country
+```bash
+curl "http://localhost:3100/server/configuration/location-rules/query?country=DE"
+```
+
+## 🚨 **Error Handling**
+
+### Location Errors
+```json
+{
+  "success": false,
+  "error": "Missing required field: name"
+}
+
+{
+  "success": false,
+  "error": "Cannot set location 'Prague Warehouse' as default because it is not active"
+}
+
+{
+  "success": false,
+  "error": "Cannot set location 'Prague Warehouse' as default because it cannot fulfill orders"
+}
+
+{
+  "success": false,
+  "error": "Cannot delete location 'Prague Warehouse' because it is being used by shipping method set(s)"
+}
+
+{
+  "success": false,
+  "error": "Cannot delete location 'Prague Warehouse' because it has associated fulfillment(s)"
+}
+```
+
+### Shipping Rule Errors
+```json
+{
+  "success": false,
+  "error": "Invalid location: location-uuid-123"
+}
+
+{
+  "success": false,
+  "error": "Location shipping rule not found"
+}
+```
+
+## 📋 **Best Practices**
+
+1. **Set Default Location** - Always have one default location for fallback
+2. **Use Descriptive Names** - "Prague Main Warehouse" not "Warehouse 1"
+3. **Configure Shipping Rules** - Define which countries each location serves
+4. **Set Realistic Capacities** - Use max_daily_capacity to prevent overload
+5. **Use Cutoff Times** - Define when orders stop being processed
+6. **Priority Ordering** - Use priority field for location selection logic
+7. **Monitor Active Status** - Disable locations during maintenance or issues
+8. **Type Classification** - Use correct type (WAREHOUSE, STORE, OFFICE)
+
+## 🏢 **Multi-Location Fulfillment Flow**
+
+### How It Works
+1. **Location Definition**: Create warehouses/stores with `can_fulfill_orders = true`
+2. **Shipping Rules**: Define which zones/countries each location serves
+3. **Priority System**: Set priority on rules (lower = higher priority)
+4. **Capacity Limits**: Optional max_daily_capacity per location
+5. **Selection Logic**: System can select optimal location based on:
+   - Customer country
+   - Location rules
+   - Priority
+   - Capacity
+   - Cutoff times
+
+### Integration with Shipping Configuration
+Locations integrate with the shipping configuration system:
+- Shipping method sets can be location-specific (`fulfillment_location`)
+- General sets (NULL location) work from any warehouse
+- Location-specific pricing allows different costs per warehouse
+
+## 📚 **Related Systems**
+
+- **Shipping Configuration** - Location-specific shipping prices and methods
+- **Fulfillments** - Each fulfillment can specify which location it came from
+- **Inventory** - Track stock per location (future feature)
+- **Orders** - Automatic or manual location assignment
+
+## 🤝 **Support**
+
+### Common Questions
+
+**Q: What is the difference between is_default and priority?**
+A: `is_default` sets the fallback location. `priority` on shipping rules determines selection order when multiple locations can serve a country.
+
+**Q: Can a location ship to multiple countries?**
+A: Yes! Create location_shipping_rules with multiple countries in the array.
+
+**Q: What happens when max_daily_capacity is reached?**
+A: This is informational - your fulfillment logic should check this and select an alternative location.
+
+**Q: Can I have multiple default locations?**
+A: No, only one location can be default. Setting a new default automatically unsets the previous one.
+
+**Q: What is the cutoff_time used for?**
+A: It indicates when orders stop being processed for same-day shipment. Your fulfillment logic should use this.
+
+**Q: Can stores fulfill orders?**
+A: Yes! Set `type = 'STORE'` and `can_fulfill_orders = true` for store pickup or local delivery.
+
+This locations system provides flexible multi-warehouse management for scalable e-commerce operations! 🚀

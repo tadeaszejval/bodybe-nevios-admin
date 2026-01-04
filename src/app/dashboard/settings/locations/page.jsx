@@ -1,2 +1,3 @@
-export { default } from "../../../../routes/Dashboard/Settings/Locations/main";
+import { Locations } from "../../../../routes/Dashboard/Settings/Locations/main";
 
+export default Locations;

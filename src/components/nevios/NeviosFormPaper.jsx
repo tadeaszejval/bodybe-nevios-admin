@@ -60,6 +60,7 @@ export function NeviosFormPaper({
           display: "flex", 
           flexDirection: "column", 
           gap: gap,
+          paddingTop: description ? 1.5 : 0,
           paddingLeft: removeSidePadding ? 0 : 2, 
           paddingRight: removeSidePadding ? 0 : 2, 
           paddingBottom: footerDescription ? removeSidePadding ? 0 : 2 : 2,

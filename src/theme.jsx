@@ -1305,7 +1305,7 @@ export function ThemeProvider({ children }) {
 						},
 						"& .MuiCheckbox-root": {
 							padding: 0,
-						},
+						}
 					},
 				},
 			},

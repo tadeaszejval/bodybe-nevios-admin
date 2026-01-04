@@ -89,21 +89,8 @@ export function Sidebar() {
 						title="Home"
 						icon={<TbHome size={ICON_SIZE} />}
 					/>
-					<SidebarItem
-						href="/dashboard/analytics"
-						title="Analytics"
-						icon={<TbChartBar size={ICON_SIZE} />}
-					/>
-					<SidebarItem
-						deemphasized={true}
-						href="/dashboard/reports"
-						title="Reports"
-						icon={<TbReportAnalytics size={ICON_SIZE} />}
-					/>
 					
-					<SidebarDivider />
 					
-					{/* Sales & Customers */}
 					<SidebarItem
 						href="/dashboard/orders"
 						title="Orders"
@@ -132,10 +119,15 @@ export function Sidebar() {
 						icon={<TbUsers size={ICON_SIZE} />}
 					/>
 					<SidebarItem
+						href="/dashboard/analytics"
+						title="Analytics"
+						icon={<TbChartBar size={ICON_SIZE} />}
+					/>
+					<SidebarItem
 						deemphasized={true}
-						href="/dashboard/marketing"
-						title="Marketing"
-						icon={<TbHeartSpark size={ICON_SIZE} />}
+						href="/dashboard/reports"
+						title="Reports"
+						icon={<TbReportAnalytics size={ICON_SIZE} />}
 					/>
 					
 					<SidebarDivider />
@@ -178,7 +170,7 @@ export function Sidebar() {
 					/>
 					<SidebarItem
 						href="/dashboard/bank-accounts"
-						title="Bank Account"
+						title="Bank"
 						icon={<TbBuildingBank size={ICON_SIZE} />}
 					/>
 					<SidebarItem

@@ -55,8 +55,8 @@ export function DashboardLayout({ children }) {
 			<Box sx={{ width: "33%", display: "flex", flexDirection: "row", alignItems: "center", justifyContent: "flex-start", paddingLeft: 1, gap: 2 }}>
 				<Box>
 					<Logo width={100} textColor="white" symbolColor={theme.palette.primary[500]} stripeColor="white" />
+					</Box>
 				</Box>
-			</Box>
 				<Box sx={{ width: "33%", display: "flex", flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 2 }}>
 					<Box>
 						<NavigationBackButton />
@@ -101,22 +101,22 @@ export function DashboardLayout({ children }) {
 						overflow: "hidden",
 					}}
 				>
-				<Box
-					sx={{
-						height: "100%",
-						width: "100%",
-						overflowY: "auto",
-						scrollbarWidth: "thin",
-						display: "flex",
-						flexDirection: "column",
-						gap: 2,
-					}}
-				>
+					<Box
+						sx={{
+							height: "100%",
+							width: "100%",
+							overflowY: "auto",
+							scrollbarWidth: "thin",
+							display: "flex",
+							flexDirection: "column",
+							gap: 2,
+						}}
+					>
 					<React.Suspense fallback={<ContentLoadingScreen />}>
 						{/* Only render main dashboard content if NOT on overlay route */}
 						{!isOverlayRoute && children}
 					</React.Suspense>
-				</Box>
+					</Box>
 				</Box>
 			</Box>
 			

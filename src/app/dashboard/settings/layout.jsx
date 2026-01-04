@@ -18,7 +18,7 @@ export default function SettingsLayout({ children }) {
 					gridTemplateColumns: { xs: "1fr", sm: "288px 1fr" },
 					gap: 3,
 					width: "100%",
-					maxWidth: "1000px",
+					maxWidth: "1100px",
 					height: "fit-content",
 					px: 3,
 				}}
@@ -37,6 +37,7 @@ export default function SettingsLayout({ children }) {
 				<Box
 					sx={{
 						minWidth: 0, // Prevents grid blowout
+						paddingBottom: 10,
 					}}
 				>
 					{children}

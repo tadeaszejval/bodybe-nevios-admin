@@ -9,7 +9,7 @@ export default function DashboardBankAccounts() {
 	return (
 		<PageContainer>
 			<DashboardHeader
-				title="Bank Transactions"
+				title="Bank"
 				icon={<TbBuildingBank size={20} />}
 			/>
 			<BankAccountsTable />

@@ -1,4 +1,117 @@
-import { FormControl, FormLabel, Select } from "@mui/material";
+import { FormControl, FormLabel, Select, MenuItem } from "@mui/material";
+
+export function NeviosButtonSelect({ 
+  options = [],
+  size = "small",
+  disabled = false,
+  ...props 
+}) {
+  return (
+    <Select
+      displayEmpty
+      size={size}
+      disabled={disabled}
+      sx={{
+        backgroundColor: disabled ? "gray.200" : "white",
+        color: disabled ? "gray.500" : "gray.900",
+        borderRadius: "10px",
+        boxShadow: disabled
+          ? "0rem -.065rem 0rem 0rem #d1d5db inset, 0rem 0rem 0rem .065rem rgba(0, 0, 0, .05) inset, 0rem .03125rem 0rem .09375rem #f3f4f6 inset"
+          : "0rem -.065rem 0rem 0rem #b5b5b5 inset, 0rem 0rem 0rem .065rem rgba(0, 0, 0, .1) inset, 0rem .03125rem 0rem .09375rem #FFF inset",
+        opacity: disabled ? 0.7 : 1,
+        cursor: disabled ? "not-allowed" : "pointer",
+        border: "none",
+        fontSize: "13px",
+        fontWeight: "500",
+        minWidth: "150px",
+        height: size === "small" ? "32px" : "40px",
+        "& .MuiSelect-select": {
+          paddingTop: size === "small" ? "6px" : "10px",
+          paddingBottom: size === "small" ? "6px" : "10px",
+          paddingLeft: "12px",
+          paddingRight: "32px",
+        },
+        "& .MuiOutlinedInput-notchedOutline": {
+          border: "none",
+        },
+        "&:hover": {
+          backgroundColor: disabled ? "gray.200" : "gray.100",
+          boxShadow: disabled
+            ? "0rem -.065rem 0rem 0rem #d1d5db inset, 0rem 0rem 0rem .065rem rgba(0, 0, 0, .05) inset, 0rem .03125rem 0rem .09375rem #f3f4f6 inset"
+            : "0rem -.065rem 0rem 0rem #b5b5b5 inset, 0rem 0rem 0rem .065rem rgba(0, 0, 0, .1) inset, 0rem .03125rem 0rem .09375rem #FFF inset",
+          "& .MuiOutlinedInput-notchedOutline": {
+            border: "none",
+          },
+        },
+        "&.Mui-focused": {
+          boxShadow: disabled
+            ? "0rem -.065rem 0rem 0rem #d1d5db inset, 0rem 0rem 0rem .1rem rgba(0, 0, 0, .05) inset, 0rem .03125rem 0rem .09375rem #f3f4f6 inset"
+            : "0rem -.065rem 0rem 0rem #ffffff inset, 0rem 0rem 0rem .1rem rgba(0, 0, 0, .15) inset, 0rem .03125rem 0rem .09375rem #e5e7eb inset",
+          "& .MuiOutlinedInput-notchedOutline": {
+            border: "none",
+          },
+        },
+      }}
+      {...props}
+    >
+      {options.map((option) => (
+        <MenuItem key={option.value} value={option.value}>
+          {option.label}
+        </MenuItem>
+      ))}
+    </Select>
+  );
+}
+
+export function NeviosSelect({ 
+  label, 
+  placeholder,
+  options = [],
+  ...props 
+}) {
+  return (
+    <FormControl sx={{ width: "100%" }}>
+      {label && (
+        <FormLabel sx={{ fontSize: "13px", fontWeight: 400, marginBottom: 0.8 }}>
+          {label}
+        </FormLabel>
+      )}
+      <Select
+        displayEmpty
+        sx={{
+          height: "35px",
+          border: "1px solid",
+          borderColor: "gray.300",
+          boxShadow: "none",
+          fontSize: "13px",
+          borderRadius: "8px",
+          backgroundColor: "transparent",
+          "&:hover": {
+            borderColor: "gray.400",
+          },
+          "&.Mui-focused": {
+            borderColor: "primary.500",
+          },
+          "& .MuiSelect-select": {
+            py: 0.75,
+          },
+        }}
+        {...props}
+      >
+        {placeholder && (
+          <MenuItem value="" disabled>
+            {placeholder}
+          </MenuItem>
+        )}
+        {options.map((option) => (
+          <MenuItem key={option.value} value={option.value}>
+            {option.label}
+          </MenuItem>
+        ))}
+      </Select>
+    </FormControl>
+  );
+}
 
 export function NeviosSelectCountry({ 
   label = 'Country', 

@@ -14,6 +14,9 @@ export function SettingsSidebar() {
 				display: "flex",
 				flexDirection: "column",
 				gap: 2,
+				position: "sticky",
+				top: 80,
+				alignSelf: "flex-start",
 			}}
 		>
 			<NeviosFormPaper removeSidePadding={true} gap={1}>
@@ -23,11 +26,13 @@ export function SettingsSidebar() {
                     icon={<TbSettings size={ICON_SIZE} />}
                 />
                 <SidebarItem
+                    deemphasized={true}
                     href="/dashboard/settings/billing"
                     title="Billing"
                     icon={<TbCreditCard size={ICON_SIZE} />}
                 />
                 <SidebarItem
+                    deemphasized={true}
                     href="/dashboard/settings/users"
                     title="Users"
                     icon={<TbUsers size={ICON_SIZE} />}
@@ -48,21 +53,25 @@ export function SettingsSidebar() {
                     icon={<TbTruck size={ICON_SIZE} />}
                 />
                 <SidebarItem
+
                     href="/dashboard/settings/payments"
                     title="Payments"
                     icon={<TbCreditCard size={ICON_SIZE} />}
                 />
                 <SidebarItem
+                    deemphasized={true}
                     href="/dashboard/settings/notifications"
                     title="Notifications"
                     icon={<TbBell size={ICON_SIZE} />}
                 />
                 <SidebarItem
+                    deemphasized={true}
                     href="/dashboard/settings/integrations"
                     title="Integrations"
                     icon={<TbApi size={ICON_SIZE} />}
                 />
                 <SidebarItem
+                    deemphasized={true}
                     href="/dashboard/settings/webhooks"
                     title="Webhooks"
                     icon={<TbWebhook size={ICON_SIZE} />}

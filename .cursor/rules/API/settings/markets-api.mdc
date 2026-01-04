@@ -1,0 +1,686 @@
+# Markets Configuration Documentation
+
+## Overview
+Configure sales channels, markets, and market-specific currency settings for your multi-market e-commerce platform. This three-tier system enables you to manage different sales channels (online store, wholesale, retail), geographic markets, and currency configurations with market-specific VAT rates.
+
+## 🎯 Purpose
+
+The Markets configuration system provides hierarchical management of:
+- **Sales Channels** - Top-level sales channels (online store, wholesale, B2B)
+- **Markets** - Geographic/domain-based markets within sales channels
+- **Market Currencies** - Currency configurations with market-specific VAT rates
+
+## 📊 Configuration Hierarchy
+
+```
+Sales Channel (e.g., "online-store")
+  ↓
+Market (e.g., "us-market", "eu-market")
+  ↓
+Market Currency (e.g., "USD_US", "EUR_DE")
+```
+
+## 🔧 Module 1: Sales Channels
+
+### What are Sales Channels?
+Sales channels represent different ways you sell products (online store, wholesale, retail locations, B2B portal). Each sales channel can have multiple markets.
+
+### Database Schema
+```sql
+CREATE TABLE sales_channel (
+  id text PRIMARY KEY,
+  name text,
+  account_type text,
+  order_name_format text DEFAULT '',
+  created_at timestamp with time zone DEFAULT now()
+);
+```
+
+### API Endpoints
+
+#### Create Sales Channel
+**POST** `/server/configuration/sales-channels/create`
+
+```bash
+curl -X POST http://localhost:3100/server/configuration/sales-channels/create \
+  -H "Content-Type: application/json" \
+  -d '{
+    "id": "online-store",
+    "name": "Online Store",
+    "account_type": "retail",
+    "order_name_format": "OS-{number}"
+  }'
+```
+
+**Required Fields:**
+- `id` (text) - Unique identifier (e.g., "online-store", "wholesale-b2b")
+- `name` (text) - Display name
+
+**Optional Fields:**
+- `account_type` (text) - Type of account (retail, wholesale, b2b)
+- `order_name_format` (text) - Format for order names (default: '')
+
+**Response:**
+```json
+{
+  "success": true,
+  "data": {
+    "id": "online-store",
+    "name": "Online Store",
+    "account_type": "retail",
+    "order_name_format": "OS-{number}",
+    "created_at": "2024-01-15T10:00:00Z"
+  }
+}
+```
+
+---
+
+#### Retrieve Sales Channels
+**GET** `/server/configuration/sales-channels/retrieve`
+
+Get all sales channels:
+```bash
+curl http://localhost:3100/server/configuration/sales-channels/retrieve
+```
+
+**GET** `/server/configuration/sales-channels/retrieve/:id`
+
+Get specific sales channel with optional expansion:
+```bash
+# Basic retrieval
+curl http://localhost:3100/server/configuration/sales-channels/retrieve/online-store
+
+# With markets expansion
+curl "http://localhost:3100/server/configuration/sales-channels/retrieve/online-store?expand=markets"
+```
+
+**Query Parameters:**
+- `expand` - Comma-separated relations to include (`markets`)
+
+**Response (with expansion):**
+```json
+{
+  "success": true,
+  "data": {
+    "id": "online-store",
+    "name": "Online Store",
+    "account_type": "retail",
+    "order_name_format": "OS-{number}",
+    "created_at": "2024-01-15T10:00:00Z",
+    "markets": [
+      {
+        "id": "us-market",
+        "domain": "example.com",
+        "sales_channel": "online-store",
+        "default_currency": "USD"
+      }
+    ]
+  }
+}
+```
+
+---
+
+#### Modify Sales Channel
+**PUT** `/server/configuration/sales-channels/modify/:id`
+
+```bash
+curl -X PUT http://localhost:3100/server/configuration/sales-channels/modify/online-store \
+  -H "Content-Type: application/json" \
+  -d '{
+    "name": "Updated Online Store",
+    "order_name_format": "ONLINE-{number}"
+  }'
+```
+
+**Note:** Cannot change the `id` field.
+
+---
+
+#### Delete Sales Channel
+**DELETE** `/server/configuration/sales-channels/delete/:id`
+
+```bash
+curl -X DELETE http://localhost:3100/server/configuration/sales-channels/delete/online-store
+```
+
+**Note:** Cannot delete if markets are associated with this sales channel.
+
+---
+
+## 🌍 Module 2: Markets
+
+### What are Markets?
+Markets represent geographic regions or domains within a sales channel. Each market has a default currency and can have multiple currency configurations.
+
+### Database Schema
+```sql
+CREATE TABLE markets (
+  id text PRIMARY KEY,
+  domain text,
+  sales_channel text REFERENCES sales_channel(id),
+  default_currency text REFERENCES currencies(id),
+  created_at timestamp with time zone DEFAULT now()
+);
+```
+
+### API Endpoints
+
+#### Create Market
+**POST** `/server/configuration/markets/create`
+
+```bash
+curl -X POST http://localhost:3100/server/configuration/markets/create \
+  -H "Content-Type: application/json" \
+  -d '{
+    "id": "us-market",
+    "domain": "example.com",
+    "sales_channel": "online-store",
+    "default_currency": "USD"
+  }'
+```
+
+**Required Fields:**
+- `id` (text) - Unique identifier (e.g., "us-market", "eu-market")
+- `sales_channel` (text) - Sales channel ID (must exist)
+- `default_currency` (text) - Currency code (must exist in currencies table)
+
+**Optional Fields:**
+- `domain` (text) - Domain for this market (e.g., "example.com", "example.de")
+
+**Response:**
+```json
+{
+  "success": true,
+  "data": {
+    "id": "us-market",
+    "domain": "example.com",
+    "sales_channel": "online-store",
+    "default_currency": "USD",
+    "created_at": "2024-01-15T10:00:00Z"
+  }
+}
+```
+
+---
+
+#### Retrieve Markets
+**GET** `/server/configuration/markets/retrieve`
+
+Get all markets or filter by sales channel:
+```bash
+# Get all markets
+curl http://localhost:3100/server/configuration/markets/retrieve
+
+# Filter by sales channel
+curl "http://localhost:3100/server/configuration/markets/retrieve?sales_channel=online-store"
+```
+
+**Query Parameters:**
+- `sales_channel` - Filter by sales channel ID
+
+**GET** `/server/configuration/markets/retrieve/:id`
+
+Get specific market with optional expansion:
+```bash
+# Basic retrieval
+curl http://localhost:3100/server/configuration/markets/retrieve/us-market
+
+# With currencies expansion
+curl "http://localhost:3100/server/configuration/markets/retrieve/us-market?expand=currencies"
+
+# With sales channel expansion
+curl "http://localhost:3100/server/configuration/markets/retrieve/us-market?expand=sales_channel"
+
+# Multiple expansions
+curl "http://localhost:3100/server/configuration/markets/retrieve/us-market?expand=currencies,sales_channel"
+```
+
+**Query Parameters:**
+- `expand` - Comma-separated relations (`currencies`, `sales_channel`)
+
+**Response (with expansion):**
+```json
+{
+  "success": true,
+  "data": {
+    "id": "us-market",
+    "domain": "example.com",
+    "sales_channel": "online-store",
+    "default_currency": "USD",
+    "created_at": "2024-01-15T10:00:00Z",
+    "currencies": [
+      {
+        "id": "USD_US",
+        "market": "us-market",
+        "currency": "USD",
+        "handle": "USD_US",
+        "currency_symbol": "$",
+        "vat_rate": 0
+      }
+    ],
+    "sales_channel_details": {
+      "id": "online-store",
+      "name": "Online Store",
+      "account_type": "retail"
+    }
+  }
+}
+```
+
+---
+
+#### Modify Market
+**PUT** `/server/configuration/markets/modify/:id`
+
+```bash
+curl -X PUT http://localhost:3100/server/configuration/markets/modify/us-market \
+  -H "Content-Type: application/json" \
+  -d '{
+    "domain": "newdomain.com",
+    "default_currency": "EUR"
+  }'
+```
+
+**Note:** Cannot change the `id` field.
+
+---
+
+#### Delete Market
+**DELETE** `/server/configuration/markets/delete/:id`
+
+```bash
+curl -X DELETE http://localhost:3100/server/configuration/markets/delete/us-market
+```
+
+**Note:** Cannot delete if market currencies are associated with this market.
+
+---
+
+## 💱 Module 3: Market Currencies
+
+### What are Market Currencies?
+Market currencies define currency configurations for specific markets, including VAT rates and currency symbols. These are referenced throughout the system for pricing and orders.
+
+### Database Schema
+```sql
+CREATE TABLE market_currencies (
+  id text PRIMARY KEY,
+  market text REFERENCES markets(id),
+  currency text REFERENCES currencies(id),
+  handle text,
+  currency_symbol text,
+  vat_rate numeric DEFAULT 21,
+  created_at timestamp with time zone DEFAULT now()
+);
+```
+
+### API Endpoints
+
+#### Create Market Currency
+**POST** `/server/configuration/market-currencies/create`
+
+```bash
+curl -X POST http://localhost:3100/server/configuration/market-currencies/create \
+  -H "Content-Type: application/json" \
+  -d '{
+    "id": "USD_US",
+    "market": "us-market",
+    "currency": "USD",
+    "handle": "USD_US",
+    "currency_symbol": "$",
+    "vat_rate": 0
+  }'
+```
+
+**Required Fields:**
+- `id` (text) - Unique identifier (e.g., "USD_US", "EUR_DE")
+- `market` (text) - Market ID (must exist)
+- `currency` (text) - Currency code (must exist in currencies table)
+
+**Optional Fields:**
+- `handle` (text) - Handle for the market currency (defaults to `id`)
+- `currency_symbol` (text) - Currency symbol (defaults from currencies table)
+- `vat_rate` (numeric) - VAT rate percentage (default: 21)
+
+**Response:**
+```json
+{
+  "success": true,
+  "data": {
+    "id": "USD_US",
+    "market": "us-market",
+    "currency": "USD",
+    "handle": "USD_US",
+    "currency_symbol": "$",
+    "vat_rate": 0,
+    "created_at": "2024-01-15T10:00:00Z"
+  }
+}
+```
+
+---
+
+#### Retrieve Market Currencies
+**GET** `/server/configuration/market-currencies/retrieve`
+
+Get all market currencies or filter:
+```bash
+# Get all market currencies
+curl http://localhost:3100/server/configuration/market-currencies/retrieve
+
+# Filter by market
+curl "http://localhost:3100/server/configuration/market-currencies/retrieve?market=us-market"
+
+# Filter by currency
+curl "http://localhost:3100/server/configuration/market-currencies/retrieve?currency=USD"
+```
+
+**Query Parameters:**
+- `market` - Filter by market ID
+- `currency` - Filter by currency code
+
+**GET** `/server/configuration/market-currencies/retrieve/:id`
+
+Get specific market currency with optional expansion:
+```bash
+# Basic retrieval
+curl http://localhost:3100/server/configuration/market-currencies/retrieve/USD_US
+
+# With market expansion
+curl "http://localhost:3100/server/configuration/market-currencies/retrieve/USD_US?expand=market"
+
+# With currency expansion
+curl "http://localhost:3100/server/configuration/market-currencies/retrieve/USD_US?expand=currency"
+
+# Multiple expansions
+curl "http://localhost:3100/server/configuration/market-currencies/retrieve/USD_US?expand=market,currency"
+```
+
+**Query Parameters:**
+- `expand` - Comma-separated relations (`market`, `currency`)
+
+**Response (with expansion):**
+```json
+{
+  "success": true,
+  "data": {
+    "id": "USD_US",
+    "market": "us-market",
+    "currency": "USD",
+    "handle": "USD_US",
+    "currency_symbol": "$",
+    "vat_rate": 0,
+    "created_at": "2024-01-15T10:00:00Z",
+    "market_details": {
+      "id": "us-market",
+      "domain": "example.com",
+      "sales_channel": "online-store",
+      "default_currency": "USD"
+    },
+    "currency_details": {
+      "id": "USD",
+      "symbol": "$",
+      "title": "US Dollar"
+    }
+  }
+}
+```
+
+---
+
+#### Modify Market Currency
+**PUT** `/server/configuration/market-currencies/modify/:id`
+
+```bash
+curl -X PUT http://localhost:3100/server/configuration/market-currencies/modify/USD_US \
+  -H "Content-Type: application/json" \
+  -d '{
+    "vat_rate": 5.5,
+    "currency_symbol": "US$"
+  }'
+```
+
+**Note:** Cannot change the `id` field.
+
+---
+
+#### Delete Market Currency
+**DELETE** `/server/configuration/market-currencies/delete/:id`
+
+```bash
+curl -X DELETE http://localhost:3100/server/configuration/market-currencies/delete/USD_US
+```
+
+**Warning:** This market currency might be referenced by orders, shipping sets, payment sets, and product pricing.
+
+---
+
+## 🔄 Complete Setup Example
+
+### Step 1: Create Sales Channel
+```bash
+curl -X POST http://localhost:3100/server/configuration/sales-channels/create \
+  -H "Content-Type: application/json" \
+  -d '{
+    "id": "online-store",
+    "name": "Online Store",
+    "account_type": "retail",
+    "order_name_format": "OS-{number}"
+  }'
+```
+
+### Step 2: Create US Market
+```bash
+curl -X POST http://localhost:3100/server/configuration/markets/create \
+  -H "Content-Type: application/json" \
+  -d '{
+    "id": "us-market",
+    "domain": "example.com",
+    "sales_channel": "online-store",
+    "default_currency": "USD"
+  }'
+```
+
+### Step 3: Create Market Currency for US
+```bash
+curl -X POST http://localhost:3100/server/configuration/market-currencies/create \
+  -H "Content-Type: application/json" \
+  -d '{
+    "id": "USD_US",
+    "market": "us-market",
+    "currency": "USD",
+    "handle": "USD_US",
+    "currency_symbol": "$",
+    "vat_rate": 0
+  }'
+```
+
+### Step 4: Create EU Market
+```bash
+curl -X POST http://localhost:3100/server/configuration/markets/create \
+  -H "Content-Type: application/json" \
+  -d '{
+    "id": "eu-market",
+    "domain": "example.de",
+    "sales_channel": "online-store",
+    "default_currency": "EUR"
+  }'
+```
+
+### Step 5: Create Market Currency for EU
+```bash
+curl -X POST http://localhost:3100/server/configuration/market-currencies/create \
+  -H "Content-Type: application/json" \
+  -d '{
+    "id": "EUR_DE",
+    "market": "eu-market",
+    "currency": "EUR",
+    "handle": "EUR_DE",
+    "currency_symbol": "€",
+    "vat_rate": 19
+  }'
+```
+
+**Result:** You now have an online store with US and EU markets, each with their own currency and VAT configuration!
+
+---
+
+## 🔗 Integration Points
+
+### Orders Module
+Orders reference market currencies:
+```sql
+orders.market_currency → market_currencies.id
+```
+
+### Checkout Module
+Checkout uses market currency for pricing:
+```sql
+checkout.market_currency → market_currencies.id
+```
+
+### Shipping & Payment Sets
+Both reference market currencies:
+```sql
+shipping_method_sets.market_currency → market_currencies.id
+payment_method_sets.market_currency → market_currencies.id
+```
+
+### Product Pricing
+Product variants have prices per market currency:
+```sql
+product_variant_pricing.market_currency → market_currencies.id
+```
+
+---
+
+## 📋 Best Practices
+
+### Sales Channels
+1. **Use descriptive IDs** - "online-store" not "channel1"
+2. **Define order formats** - Helps identify orders by channel
+3. **One channel per sales type** - Don't mix wholesale and retail
+
+### Markets
+1. **One market per domain** - Each domain should have its own market
+2. **Set correct default currency** - Should match primary market currency
+3. **Use geographic identifiers** - "us-market", "eu-market", "uk-market"
+
+### Market Currencies
+1. **Follow naming convention** - Use "{CURRENCY}_{COUNTRY}" format (USD_US, EUR_DE)
+2. **Set correct VAT rates** - Verify rates for each country
+3. **Match currency symbols** - Use standard symbols ($, €, £)
+4. **One currency per market minimum** - Every market needs at least one currency
+
+---
+
+## 🚨 Common Errors
+
+### Sales Channels
+- `Missing required field: id`
+- `Missing required field: name`
+- `Sales channel with ID "{id}" already exists`
+- `Cannot delete sales channel "{id}": N market(s) are associated with it`
+
+### Markets
+- `Missing required field: id`
+- `Missing required field: sales_channel`
+- `Missing required field: default_currency`
+- `Sales channel "{id}" not found`
+- `Currency "{id}" not found`
+- `Market with ID "{id}" already exists`
+- `Cannot delete market "{id}": N market currency/currencies are associated with it`
+
+### Market Currencies
+- `Missing required field: id`
+- `Missing required field: market`
+- `Missing required field: currency`
+- `Market "{id}" not found`
+- `Currency "{id}" not found`
+- `Market currency with ID "{id}" already exists`
+
+---
+
+## 📊 Response Format
+
+All endpoints return consistent format:
+
+**Success:**
+```json
+{
+  "success": true,
+  "data": { ... }
+}
+```
+
+**Error:**
+```json
+{
+  "success": false,
+  "error": "Error message description"
+}
+```
+
+---
+
+## 🎯 Common Use Cases
+
+### Use Case 1: Multi-Country Online Store
+```bash
+# Create online store channel
+POST /server/configuration/sales-channels/create
+{ "id": "online-store", "name": "Online Store" }
+
+# Create markets for each country
+POST /server/configuration/markets/create
+{ "id": "us-market", "domain": "example.com", "sales_channel": "online-store", "default_currency": "USD" }
+
+POST /server/configuration/markets/create
+{ "id": "uk-market", "domain": "example.co.uk", "sales_channel": "online-store", "default_currency": "GBP" }
+
+# Create market currencies with appropriate VAT
+POST /server/configuration/market-currencies/create
+{ "id": "USD_US", "market": "us-market", "currency": "USD", "vat_rate": 0 }
+
+POST /server/configuration/market-currencies/create
+{ "id": "GBP_UK", "market": "uk-market", "currency": "GBP", "vat_rate": 20 }
+```
+
+### Use Case 2: Wholesale + Retail Channels
+```bash
+# Create two sales channels
+POST /server/configuration/sales-channels/create
+{ "id": "retail", "name": "Retail Store", "order_name_format": "R-{number}" }
+
+POST /server/configuration/sales-channels/create
+{ "id": "wholesale", "name": "Wholesale B2B", "order_name_format": "W-{number}" }
+
+# Each can have their own markets and pricing
+```
+
+### Use Case 3: Query All Markets for a Sales Channel
+```bash
+curl "http://localhost:3100/server/configuration/markets/retrieve?sales_channel=online-store"
+```
+
+### Use Case 4: Get Complete Market Configuration
+```bash
+curl "http://localhost:3100/server/configuration/markets/retrieve/us-market?expand=currencies,sales_channel"
+```
+
+---
+
+## 📚 Related Documentation
+
+- [Configuration Module Overview](../README.md)
+- [Shipping Configuration](../SHIPPING/README.md)
+- [Payment Configuration](../PAYMENTS/README.md)
+- [Bank Accounts Configuration](../BANK_ACCOUNTS/README.md)
+- [Checkout System](../../CHECKOUT/README.md)
+- [Order System](../../ORDER/README.md)
+
+---
+
+This markets configuration system provides the foundation for multi-market, multi-currency e-commerce operations! 🌍💱

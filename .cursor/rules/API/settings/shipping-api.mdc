@@ -1,0 +1,399 @@
+# Shipping Configuration System Documentation
+
+## Overview
+The shipping configuration system provides a three-level structure for managing shipping methods, geographical zones, and market-specific pricing. It supports home delivery, pickup points, and store pickup with flexible country and currency configuration.
+
+## 🚀 **Key Features**
+
+- **Shipping Methods**: Define delivery types (HOME, POINT, STORE)
+- **Shipping Zones**: Group countries for reusable configuration
+- **Shipping Sets**: Configure pricing per market/zone
+- **Multi-Currency**: Support for different currencies and markets
+- **Country Targeting**: Specify available countries via zones
+- **Widget Support**: Custom delivery widgets (pickup point selectors)
+- **Flexible Management**: Update zones once, affects all shipping sets
+
+## 🔧 **API Endpoints**
+
+### Shipping Methods
+
+#### 1. Create Shipping Method
+**POST** `/server/configuration/shipping-methods/create`
+
+```bash
+curl -X POST "http://localhost:3100/server/configuration/shipping-methods/create" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "handle": "standard-home",
+    "name": "Standard Home Delivery",
+    "type": "HOME",
+    "description": "Delivery to your door in 3-5 business days"
+  }'
+```
+
+#### 2-4. Retrieve, Modify, Delete
+```bash
+# Retrieve all
+curl -X GET "http://localhost:3100/server/configuration/shipping-methods/retrieve"
+
+# Modify
+curl -X PUT "http://localhost:3100/server/configuration/shipping-methods/modify/{id}" \
+  -H "Content-Type: application/json" \
+  -d '{"name": "Updated Name"}'
+
+# Delete
+curl -X DELETE "http://localhost:3100/server/configuration/shipping-methods/delete/{id}"
+```
+
+### Shipping Zones
+
+#### 1. Create Shipping Zone
+**POST** `/server/configuration/shipping-zones/create`
+
+```bash
+curl -X POST "http://localhost:3100/server/configuration/shipping-zones/create" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "name": "DACH",
+    "description": "Germany, Austria, Switzerland",
+    "countries": ["DE", "AT", "CH"],
+    "is_active": true
+  }'
+```
+
+#### 2. Query Shipping Zones
+**GET** `/server/configuration/shipping-zones/query`
+
+```bash
+# Get all zones
+curl "http://localhost:3100/server/configuration/shipping-zones/query"
+
+# Filter by country
+curl "http://localhost:3100/server/configuration/shipping-zones/query?country=DE"
+```
+
+📖 **[Complete Zones Documentation](./ZONES_README.md)**
+
+### Shipping Sets
+
+#### 1. Create Shipping Set
+**POST** `/server/configuration/shipping-sets/create`
+
+**General set (any warehouse):**
+```bash
+curl -X POST "http://localhost:3100/server/configuration/shipping-sets/create" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "shipping_method": "method-uuid",
+    "market_currency": "EUR_DE",
+    "price": 5,
+    "shipping_zone": "zone-uuid",
+    "position": 1
+  }'
+```
+
+**Location-specific set (warehouse-specific pricing):**
+```bash
+curl -X POST "http://localhost:3100/server/configuration/shipping-sets/create" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "shipping_method": "method-uuid",
+    "market_currency": "EUR_DE",
+    "price": 5,
+    "shipping_zone": "zone-uuid",
+    "fulfillment_location": "warehouse-uuid",
+    "position": 1
+  }'
+```
+
+**Old format (still supported for backward compatibility):**
+```bash
+curl -X POST "http://localhost:3100/server/configuration/shipping-sets/create" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "shipping_method": "method-uuid",
+    "market_currency": "USD_US",
+    "price": 999,
+    "country": ["US", "CA"],
+    "position": 1
+  }'
+```
+
+## 📊 **Database Schema**
+
+### Shipping Zones Table
+```sql
+CREATE TABLE shipping_zones (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  name text NOT NULL UNIQUE,
+  description text,
+  countries jsonb NOT NULL DEFAULT '[]'::jsonb,
+  is_active boolean DEFAULT true,
+  created_at timestamp with time zone DEFAULT now(),
+  updated_at timestamp with time zone DEFAULT now()
+);
+
+-- Indexes for performance
+CREATE INDEX idx_shipping_zones_countries ON shipping_zones USING gin (countries);
+CREATE INDEX idx_shipping_zones_is_active ON shipping_zones (is_active);
+```
+
+### Shipping Method Table
+```sql
+CREATE TABLE shipping_method (
+  id UUID PRIMARY KEY,
+  handle TEXT UNIQUE NOT NULL,
+  name TEXT NOT NULL,
+  type TEXT CHECK (type IN ('HOME', 'POINT', 'STORE')),
+  description TEXT,
+  widget TEXT,
+  widget_code TEXT,
+  config JSONB,
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);
+```
+
+### Shipping Method Sets Table
+```sql
+CREATE TABLE shipping_method_sets (
+  id UUID PRIMARY KEY,
+  shipping_method UUID REFERENCES shipping_method(id),
+  market_currency TEXT REFERENCES market_currencies(id),
+  price NUMERIC NOT NULL,
+  shipping_zone UUID REFERENCES shipping_zones(id),
+  fulfillment_location UUID REFERENCES locations(id),  -- NEW: Optional warehouse-specific pricing
+  country JSONB,  -- DEPRECATED: Use shipping_zone instead
+  position INTEGER,
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);
+
+CREATE INDEX idx_shipping_method_sets_zone ON shipping_method_sets (shipping_zone);
+CREATE INDEX idx_shipping_method_sets_location ON shipping_method_sets (fulfillment_location);
+```
+
+### Location Shipping Rules Table
+```sql
+CREATE TABLE location_shipping_rules (
+  id UUID PRIMARY KEY,
+  location UUID REFERENCES locations(id),
+  name TEXT,
+  shipping_zones JSONB DEFAULT '[]',  -- Which zones this location serves
+  countries JSONB DEFAULT '[]',       -- Which countries
+  priority INTEGER DEFAULT 1,         -- Selection priority
+  is_active BOOLEAN DEFAULT true,
+  max_daily_capacity INTEGER,         -- Optional: order limit
+  cutoff_time TIME,                   -- Optional: order cutoff
+  created_at TIMESTAMP DEFAULT NOW()
+);
+```
+
+## 📋 **Best Practices**
+
+1. **Use Shipping Zones** - Create reusable zones instead of repeating countries
+2. **Descriptive Zone Names** - "EU Central" not "Zone1"
+3. **Use descriptive handles** - `standard-home` not `ship1`
+4. **Set position values** - Control display order
+5. **Group countries logically** - Regional or economic groupings
+6. **Price in base units** - Use cents (999 = $9.99)
+7. **Test zone changes** - Changes affect all sets using that zone
+5. **Include widget_code** - For custom delivery UI
+
+## 🛠 **Core Functions**
+
+### Shipping Zone Functions
+```javascript
+const { 
+  createShippingZone, 
+  retrieveShippingZone, 
+  modifyShippingZone, 
+  deleteShippingZone,
+  queryShippingZones 
+} = require('./functions/configuration/shipping');
+
+// Create zone
+const zone = await createShippingZone({
+  name: "EU Central",
+  description: "Central European countries",
+  countries: ["CZ", "SK", "PL", "HU"],
+  is_active: true
+});
+
+// Query zones
+const zones = await queryShippingZones({ country: "DE", page: 1, limit: 50 });
+
+// Modify zone
+await modifyShippingZone(zoneId, { countries: ["CZ", "SK", "PL", "HU", "SI"] });
+
+// Delete zone
+await deleteShippingZone(zoneId);
+```
+
+## 🏢 **Multi-Location Fulfillment**
+
+### Location-Specific Pricing
+
+When shipping costs vary by warehouse location:
+
+```bash
+# Munich warehouse (local to Germany) - cheaper
+curl -X POST "http://localhost:3100/server/configuration/shipping-sets/create" \
+  -d '{
+    "shipping_method": "express-uuid",
+    "market_currency": "EUR_DE",
+    "price": 5,
+    "shipping_zone": "dach-zone-uuid",
+    "fulfillment_location": "munich-warehouse-uuid"
+  }'
+
+# Prague warehouse (cross-border to Germany) - more expensive
+curl -X POST "http://localhost:3100/server/configuration/shipping-sets/create" \
+  -d '{
+    "shipping_method": "express-uuid",
+    "market_currency": "EUR_DE",
+    "price": 8,
+    "shipping_zone": "dach-zone-uuid",
+    "fulfillment_location": "prague-warehouse-uuid"
+  }'
+```
+
+### Configure Location Rules
+
+```bash
+# Create location rule for warehouse
+curl -X POST "http://localhost:3100/server/configuration/location-rules/create" \
+  -d '{
+    "location": "prague-warehouse-uuid",
+    "name": "Prague Warehouse Rules",
+    "countries": ["CZ", "SK", "PL"],
+    "shipping_zones": ["eu-central-zone-uuid"],
+    "priority": 1
+  }'
+```
+
+## 💡 **Common Use Cases**
+
+### 1. Multi-Market with Shipping Zones
+```bash
+# Create DACH zone
+curl -X POST "http://localhost:3100/server/configuration/shipping-zones/create" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "name": "DACH",
+    "description": "Germany, Austria, Switzerland",
+    "countries": ["DE", "AT", "CH"]
+  }'
+
+# Create Express method
+curl -X POST "http://localhost:3100/server/configuration/shipping-methods/create" \
+  -d '{"handle": "express", "name": "Express Delivery", "type": "HOME"}'
+
+# Configure for German market
+curl -X POST "http://localhost:3100/server/configuration/shipping-sets/create" \
+  -d '{
+    "shipping_method": "express-uuid",
+    "market_currency": "EUR_DE",
+    "price": 5,
+    "shipping_zone": "dach-zone-uuid"
+  }'
+
+# Same zone, Czech market (exports) - different price
+curl -X POST "http://localhost:3100/server/configuration/shipping-sets/create" \
+  -d '{
+    "shipping_method": "express-uuid",
+    "market_currency": "EUR_CZ",
+    "price": 150,
+    "shipping_zone": "dach-zone-uuid"
+  }'
+```
+
+### 2. Expanding to New Country
+```bash
+# Add Liechtenstein to DACH zone
+curl -X PUT "http://localhost:3100/server/configuration/shipping-zones/modify/dach-zone-uuid" \
+  -d '{"countries": ["DE", "AT", "CH", "LI"]}'
+
+# All shipping sets using DACH zone now include Liechtenstein!
+```
+
+### 3. Common Zone Configurations
+```bash
+# EU Central
+curl -X POST "http://localhost:3100/server/configuration/shipping-zones/create" \
+  -d '{"name": "EU Central", "countries": ["CZ", "SK", "PL", "HU", "SI", "HR"]}'
+
+# Benelux
+curl -X POST "http://localhost:3100/server/configuration/shipping-zones/create" \
+  -d '{"name": "Benelux", "countries": ["BE", "NL", "LU"]}'
+
+# Scandinavia
+curl -X POST "http://localhost:3100/server/configuration/shipping-zones/create" \
+  -d '{"name": "Scandinavia", "countries": ["SE", "NO", "DK", "FI"]}'
+
+# Worldwide (empty array = all countries)
+curl -X POST "http://localhost:3100/server/configuration/shipping-zones/create" \
+  -d '{"name": "Worldwide", "countries": []}'
+```
+
+### 4. Pickup Point Delivery
+```bash
+curl -X POST "http://localhost:3100/server/configuration/shipping-methods/create" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "handle": "pickup-point",
+    "name": "Pickup Point",
+    "type": "POINT",
+    "widget": "pickup-selector",
+    "widget_code": "<div>...</div>"
+  }'
+```
+
+## 🚨 **Error Handling**
+
+### Zone Errors
+```json
+{
+  "success": false,
+  "error": "Shipping zone with name 'DACH' already exists"
+}
+
+{
+  "success": false,
+  "error": "Cannot delete shipping zone 'DACH' because it is being used by 5 shipping method set(s)"
+}
+```
+
+## 📚 **Related Systems**
+
+- **Market Currencies** - Define available markets and currencies
+- **Checkout System** - Automatically filters shipping by customer country
+- **Payment Configuration** - Can be linked to specific shipping methods
+- **Order Management** - Uses shipping configuration for fulfillment
+
+## 🤝 **Support**
+
+### Common Questions
+
+**Q: Can a country be in multiple zones?**
+A: Yes! Overlap is allowed (e.g., "EU All" and "DACH").
+
+**Q: What does empty countries array mean?**
+A: Worldwide zone - available to all countries.
+
+**Q: Can I change zone countries after creation?**
+A: Yes! Changes affect all shipping sets using that zone.
+
+**Q: How do I temporarily disable shipping to a region?**
+A: Set `is_active: false` on the zone.
+
+**Q: When should I use location-specific shipping sets?**
+A: When shipping costs vary significantly between warehouses. Otherwise, use general sets (fulfillment_location = NULL).
+
+**Q: Can I mix general and location-specific sets?**
+A: Yes! General sets (NULL location) work from any warehouse. Location-specific sets only apply when that warehouse fulfills.
+
+**Q: How does warehouse selection work?**
+A: Set `fulfillment_location` on the fulfillment record. The system can determine this based on inventory, geography, or business rules.
+
+This shipping configuration system provides flexible delivery management for multi-market, multi-location e-commerce! 🚀
+
+

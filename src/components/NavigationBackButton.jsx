@@ -7,20 +7,6 @@ import { useNavigationHistory } from '../context/NavigationHistoryContext';
 export function NavigationBackButton() {
   const { canGoBack, backButtonText, previousModule, goBack, navigationHistory, previousPageUrl, backUrl, isBackNavigation } = useNavigationHistory();
 
-  // Debug logging (remove in production)
-  React.useEffect(() => {
-    console.log('NavigationBackButton state:', {
-      canGoBack,
-      backButtonText,
-      previousModule,
-      previousPageUrl,
-      backUrl,
-      isBackNavigation,
-      historyLength: navigationHistory?.length || 0,
-      fullHistory: navigationHistory
-    });
-  }, [canGoBack, backButtonText, previousModule, navigationHistory, previousPageUrl, backUrl, isBackNavigation]);
-
   if (!canGoBack || !previousModule) {
     return null;
   }
@@ -28,7 +14,6 @@ export function NavigationBackButton() {
   const IconComponent = previousModule.icon;
 
   const handleClick = () => {
-    console.log('Back button clicked, navigating back to:', backUrl);
     goBack();
   };
 
