@@ -1,0 +1,493 @@
+# Discount Codes Query API
+
+## Endpoint
+
+**POST** `/server/discounts/query`
+
+## Description
+
+Query discount codes with advanced filtering, pagination, sorting, and expansion of related records (customer, checkout, voucher order items). This endpoint supports filtering by discount type, status, availability, market currency, and voucher-specific filters. Perfect for managing promotional codes, gift cards, and customer-specific discounts.
+
+**Flexible Parameter Handling:** This endpoint accepts parameters via both URL query parameters and request body (JSON). Request body parameters take precedence over URL parameters when both are provided.
+
+## Request Parameters
+
+### URL Query Parameters (Optional)
+
+All parameters can be passed as URL query parameters:
+
+**Pagination & Sorting:**
+- `page` (integer): Page number (default: 1)
+- `limit` (integer): Records per page (default: 50, max: 100)
+- `orderBy` (string): Column to sort by (default: 'created_at')
+- `ascending` (boolean): Sort order - use `true` or `false` (default: false)
+
+**Search:**
+- `search` (string): Search term for code/description
+
+**Expansion:**
+- `expand` (string): Comma-separated list of relations to expand
+  - `customer` - Include customer details
+  - `checkout` - Include checkout details
+  - `voucher_order_item` - Include order item that generated the voucher
+
+**Discount Filters:**
+- `discount_type` (string): PERCENTAGE, FIXED, FREE_SHIPPING, VOUCHER
+- `status` (string): ACTIVE, RESERVED, USED
+- `customer` (string): Customer UUID
+- `is_voucher` (boolean): `true` or `false`
+- `available` (boolean): `true` or `false`
+- `market_currency` (string): Market currency code (e.g., USD_US)
+
+### Request Body (JSON) - Optional
+
+All parameters can also be passed in the request body (takes precedence over URL parameters):
+
+**Pagination & Sorting:**
+- `page` (integer): Page number (default: 1)
+- `limit` (integer): Records per page (default: 50, max: 100)
+- `orderBy` (string): Column to sort by (default: 'created_at')
+- `ascending` (boolean): Sort order (default: false)
+
+**Search:**
+- `search` (string): Search term for multi-field search across:
+  - Code (discount code)
+  - Description (discount description)
+
+**Expansion:**
+- `expand` (array): Array of relations to expand
+  - `customer` - Include customer details
+  - `checkout` - Include checkout details (for reserved discounts)
+  - `voucher_order_item` - Include order item that generated the voucher (for gift cards)
+
+**Discount Filters:**
+- `discount_type` (string): Filter by type
+  - `PERCENTAGE` - Percentage-based discount
+  - `FIXED` - Fixed amount discount
+  - `FREE_SHIPPING` - Free shipping discount
+  - `VOUCHER` - Gift card voucher
+- `status` (string): Filter by status
+  - `ACTIVE` - Available for use
+  - `RESERVED` - Reserved by a checkout
+  - `USED` - Already used (reached usage limit)
+- `customer` (string): Filter by customer UUID (customer-specific codes)
+- `is_voucher` (boolean): Filter only vouchers (true) or exclude vouchers (false)
+- `available` (boolean): Filter only available discounts (ACTIVE status, under usage limit)
+- `market_currency` (string): Filter by allowed market currency code
+
+## Available Expansions
+
+- **`customer`**: Expands customer information
+  - Returns: Customer details (name, email, etc.)
+- **`checkout`**: Expands checkout information (for reserved discounts)
+  - Returns: Checkout details
+- **`voucher_order_item`**: Expands order item that generated the voucher
+  - Returns: Order item details + variant + product information
+
+## Common Use Cases
+
+### 1. List All Active Discounts (URL Parameters)
+View all currently active discount codes using URL parameters:
+```bash
+curl -X POST "http://localhost:3100/server/discounts/query?status=ACTIVE&orderBy=created_at&ascending=false"
+```
+
+**Or using request body:**
+```bash
+curl -X POST "http://localhost:3100/server/discounts/query" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "status": "ACTIVE",
+    "orderBy": "created_at",
+    "ascending": false
+  }'
+```
+
+### 2. Find Available Discounts for a Market (URL Parameters)
+Get discounts valid for a specific market currency using URL parameters:
+```bash
+curl -X POST "http://localhost:3100/server/discounts/query?available=true&market_currency=USD_US"
+```
+
+**Or using request body:**
+```bash
+curl -X POST "http://localhost:3100/server/discounts/query" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "available": true,
+    "market_currency": "USD_US"
+  }'
+```
+
+### 3. List All Gift Card Vouchers (URL Parameters)
+View all generated gift card vouchers using URL parameters:
+```bash
+curl -X POST "http://localhost:3100/server/discounts/query?is_voucher=true&expand=voucher_order_item"
+```
+
+**Or using request body:**
+```bash
+curl -X POST "http://localhost:3100/server/discounts/query" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "is_voucher": true,
+    "expand": ["voucher_order_item"]
+  }'
+```
+
+### 4. Search Discount by Code (URL Parameters)
+Find a specific discount by searching for its code using URL parameters:
+```bash
+curl -X POST "http://localhost:3100/server/discounts/query?search=SUMMER20&limit=10"
+```
+
+**Or using request body:**
+```bash
+curl -X POST "http://localhost:3100/server/discounts/query" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "search": "SUMMER20",
+    "limit": 10
+  }'
+```
+
+### 5. Customer-Specific Discounts
+View all discounts assigned to a specific customer:
+```bash
+curl -X POST "http://localhost:3100/server/discounts/query" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "customer": "customer-uuid-here",
+    "expand": ["customer"]
+  }'
+```
+
+### 6. Percentage Discounts Only
+List all percentage-based discount codes:
+```bash
+curl -X POST "http://localhost:3100/server/discounts/query" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "discount_type": "PERCENTAGE",
+    "available": true
+  }'
+```
+
+### 7. Used Discounts Report
+View all discount codes that have reached their usage limit:
+```bash
+curl -X POST "http://localhost:3100/server/discounts/query" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "status": "USED",
+    "orderBy": "used_count",
+    "ascending": false
+  }'
+```
+
+### 8. Reserved Discounts (In Active Checkouts)
+See discounts currently reserved by checkouts:
+```bash
+curl -X POST "http://localhost:3100/server/discounts/query" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "status": "RESERVED",
+    "expand": ["checkout"]
+  }'
+```
+
+### 9. Free Shipping Codes
+List all free shipping discount codes:
+```bash
+curl -X POST "http://localhost:3100/server/discounts/query" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "discount_type": "FREE_SHIPPING",
+    "status": "ACTIVE"
+  }'
+```
+
+### 10. Multi-Market Discounts
+Find discounts valid across multiple market currencies:
+```bash
+curl -X POST "http://localhost:3100/server/discounts/query" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "available": true,
+    "page": 1,
+    "limit": 50
+  }'
+```
+
+## Response Format
+
+### Success Response (200 OK)
+
+```json
+{
+  "success": true,
+  "data": {
+    "discounts": [
+      {
+        "id": "discount-uuid",
+        "code": "SUMMER20",
+        "description": "20% off summer sale",
+        "discount_type": "PERCENTAGE",
+        "discount_value": 20,
+        "min_subtotal": 50,
+        "max_discount": null,
+        "usage_limit": 100,
+        "used_count": 23,
+        "status": "ACTIVE",
+        "allowed_products": [],
+        "allowed_market_currencies": ["USD_US", "EUR_DE"],
+        "discounted_allowed": true,
+        "customer": null,
+        "voucher_order_item": null,
+        "checkout": null,
+        "validate_on_checkout": false,
+        "created_at": "2024-01-15T10:00:00Z"
+      }
+    ],
+    "pagination": {
+      "page": 1,
+      "limit": 50,
+      "total": 23,
+      "totalPages": 1
+    }
+  }
+}
+```
+
+### With Expansions
+
+```json
+{
+  "success": true,
+  "data": {
+    "discounts": [
+      {
+        "id": "voucher-uuid",
+        "code": "A3B7K2M",
+        "description": "Gift Card Voucher - Premium Gift Card",
+        "discount_type": "VOUCHER",
+        "discount_value": 100,
+        "usage_limit": 1,
+        "used_count": 0,
+        "status": "ACTIVE",
+        "voucher_order_item": "order-item-uuid",
+        "voucher_order_item_data": {
+          "id": "order-item-uuid",
+          "order": "order-uuid",
+          "variant": {
+            "id": "variant-uuid",
+            "sku": "GC-100",
+            "gift_card_metadata": {
+              "value": 100,
+              "restrictions": {
+                "min_subtotal": 10
+              }
+            },
+            "product": {
+              "title": "Premium Gift Card",
+              "type": "gift-card"
+            }
+          }
+        },
+        "created_at": "2024-01-20T14:30:00Z"
+      }
+    ],
+    "pagination": {
+      "page": 1,
+      "limit": 50,
+      "total": 1,
+      "totalPages": 1
+    }
+  }
+}
+```
+
+### Error Response (500 Internal Server Error)
+
+```json
+{
+  "success": false,
+  "error": "Failed to query discounts: [error message]"
+}
+```
+
+## Dashboard Integration Example
+
+### React/TypeScript Component
+
+```typescript
+import { useState, useEffect } from 'react';
+
+interface Discount {
+  id: string;
+  code: string;
+  description: string;
+  discount_type: 'PERCENTAGE' | 'FIXED' | 'FREE_SHIPPING' | 'VOUCHER';
+  discount_value: number;
+  usage_limit: number | null;
+  used_count: number;
+  status: 'ACTIVE' | 'RESERVED' | 'USED';
+  created_at: string;
+}
+
+interface DiscountQueryParams {
+  page?: number;
+  limit?: number;
+  orderBy?: string;
+  ascending?: boolean;
+  search?: string;
+  discount_type?: string;
+  status?: string;
+  available?: boolean;
+  expand?: string[];
+}
+
+async function queryDiscounts(params: DiscountQueryParams) {
+  const response = await fetch('http://localhost:3100/server/discounts/query', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(params)
+  });
+  
+  return response.json();
+}
+
+function DiscountsDashboard() {
+  const [discounts, setDiscounts] = useState<Discount[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [filters, setFilters] = useState({
+    status: 'ACTIVE',
+    page: 1,
+    limit: 20
+  });
+  
+  useEffect(() => {
+    loadDiscounts();
+  }, [filters]);
+  
+  async function loadDiscounts() {
+    setLoading(true);
+    const result = await queryDiscounts(filters);
+    if (result.success) {
+      setDiscounts(result.data.discounts);
+    }
+    setLoading(false);
+  }
+  
+  return (
+    <div>
+      <h1>Discount Codes</h1>
+      
+      {/* Filter Controls */}
+      <div>
+        <select 
+          value={filters.status} 
+          onChange={(e) => setFilters({...filters, status: e.target.value})}
+        >
+          <option value="">All Statuses</option>
+          <option value="ACTIVE">Active</option>
+          <option value="RESERVED">Reserved</option>
+          <option value="USED">Used</option>
+        </select>
+      </div>
+      
+      {/* Discount List */}
+      {loading ? (
+        <p>Loading...</p>
+      ) : (
+        <table>
+          <thead>
+            <tr>
+              <th>Code</th>
+              <th>Type</th>
+              <th>Value</th>
+              <th>Usage</th>
+              <th>Status</th>
+            </tr>
+          </thead>
+          <tbody>
+            {discounts.map(discount => (
+              <tr key={discount.id}>
+                <td>{discount.code}</td>
+                <td>{discount.discount_type}</td>
+                <td>
+                  {discount.discount_type === 'PERCENTAGE' 
+                    ? `${discount.discount_value}%` 
+                    : `$${discount.discount_value}`}
+                </td>
+                <td>
+                  {discount.used_count} / {discount.usage_limit || '∞'}
+                </td>
+                <td>{discount.status}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      )}
+    </div>
+  );
+}
+```
+
+## Performance Notes
+
+- **Indexed fields**: `code`, `status`, `discount_type` for fast filtering
+- **Search performance**: Multi-field search uses `ilike` queries - consider caching for high-traffic scenarios
+- **Expansion overhead**: Each expansion adds a JOIN - use only when needed
+- **Pagination**: Always use pagination for large datasets (thousands of discounts)
+
+## Best Practices
+
+1. **Use `available: true` filter** for customer-facing discount selection
+2. **Search by code** for quick admin lookups
+3. **Expand voucher_order_item** when displaying gift card voucher details
+4. **Filter by market_currency** when showing discounts to customers in specific regions
+5. **Monitor used_count** to track discount campaign performance
+6. **Use status filters** to separate active, reserved, and expired codes
+7. **Combine filters** for complex queries (e.g., active percentage discounts for USD market)
+
+## Related Endpoints
+
+- **POST** `/server/discounts/create` - Create new discount code
+- **GET** `/server/discounts/retrieve/:id` - Retrieve single discount
+- **PUT** `/server/discounts/modify/:id` - Modify discount
+- **DELETE** `/server/discounts/delete/:id` - Delete discount
+- **POST** `/server/discounts/validate` - Validate discount without applying
+- **POST** `/server/discounts/generate-voucher` - Generate gift card voucher
+
+## Filter Combinations
+
+### Active Percentage Discounts for EUR Market
+```json
+{
+  "discount_type": "PERCENTAGE",
+  "status": "ACTIVE",
+  "market_currency": "EUR_DE"
+}
+```
+
+### Unused Gift Card Vouchers
+```json
+{
+  "is_voucher": true,
+  "status": "ACTIVE",
+  "expand": ["voucher_order_item"]
+}
+```
+
+### Customer-Specific Active Codes
+```json
+{
+  "customer": "customer-uuid",
+  "status": "ACTIVE",
+  "expand": ["customer"]
+}
+```
+
+### Low Usage Discount Codes
+Query discounts with low usage to identify underperforming campaigns. Note: This requires fetching and filtering client-side or using database views.

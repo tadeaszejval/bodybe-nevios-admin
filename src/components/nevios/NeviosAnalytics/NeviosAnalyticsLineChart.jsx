@@ -29,7 +29,7 @@ const NeviosAnalyticsLineChart = ({
   const getActualChartHeight = () => {
     if (height !== '100%' && height) {
       // Subtract space for title block (~80px), legend (~50px), and padding (~20px)
-      return height - 150;
+      return height - 180;
     }
     return chartHeight;
   };
@@ -250,16 +250,17 @@ const NeviosAnalyticsLineChart = ({
     >
         <Box sx={{ 
           width: '100%', 
-          height: actualChartHeight
+          flex: 1,
+          minHeight: 0
         }}>
           <ResponsiveContainer width="100%" height="100%">
             <ComposedChart
               data={data}
               margin={{
                 top: 5,
-                right: 5,
+                right: 10,
                 left: 0,
-                bottom: 5
+                bottom: 0
               }}
             >
               <defs>
@@ -361,7 +362,7 @@ const NeviosAnalyticsLineChart = ({
               
               <Legend 
                 content={<CustomLegend />}
-                wrapperStyle={{ paddingTop: '30px', paddingBottom: '0px' }}
+                wrapperStyle={{ paddingTop: '10px', paddingBottom: '0px' }}
               />
             </ComposedChart>
           </ResponsiveContainer>
