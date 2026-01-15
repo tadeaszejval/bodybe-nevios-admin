@@ -141,7 +141,8 @@ export function useModuleQuery(module, options = {}) {
           orderBy,
           ascending,
           ...(expand.length > 0 && { expand }),
-          ...(Object.keys(filters).length > 0 && { filters }),
+          // Spread filters directly into the request body (not nested)
+          ...filters,
           ...(enableSearch && debouncedSearchTerm?.trim() && { search: debouncedSearchTerm.trim() })
         };
 
@@ -151,6 +152,8 @@ export function useModuleQuery(module, options = {}) {
             delete requestBody[key];
           }
         });
+
+        console.log(`[useModuleQuery] ${module} POST request body:`, requestBody);
 
         response = await fetch(`${API_BASE_URL}/server/${module}/query`, {
           method: 'POST',
@@ -171,6 +174,12 @@ export function useModuleQuery(module, options = {}) {
         throw new Error(result.error || `Failed to fetch ${module} data`);
       }
 
+      console.log(`[useModuleQuery] ${module} API response structure:`, {
+        hasData: !!result.data,
+        dataType: Array.isArray(result.data) ? 'array' : typeof result.data,
+        dataKeys: result.data && typeof result.data === 'object' ? Object.keys(result.data) : []
+      });
+
       // Handle different API response formats
       let records = result.data;
       let paginationInfo = result.pagination;
@@ -185,6 +194,16 @@ export function useModuleQuery(module, options = {}) {
         // Check for data.records
         else if (result.data.records && Array.isArray(result.data.records)) {
           records = result.data.records;
+          paginationInfo = result.data.pagination || result.pagination;
+        }
+        // Check for module-specific array keys (e.g., data.discounts, data.orders, data.customers)
+        else if (result.data[module] && Array.isArray(result.data[module])) {
+          records = result.data[module];
+          paginationInfo = result.data.pagination || result.pagination;
+        }
+        // Check for pluralized module names (e.g., data.discounts for module 'discount')
+        else if (result.data[module + 's'] && Array.isArray(result.data[module + 's'])) {
+          records = result.data[module + 's'];
           paginationInfo = result.data.pagination || result.pagination;
         }
       }

@@ -3,11 +3,10 @@ import { Box, Divider, List } from "@mui/material";
 import { darken } from "@mui/material/styles";
 import {
 	TbHome,
-	TbSpeakerphone,
+	TbDiscountFilled,
 	TbTicket,
 	TbArchive,
 	TbUsers,
-	TbHeartSpark,
 	TbChartBar,
 	TbReportAnalytics,
 	TbLogout,
@@ -76,115 +75,121 @@ export function Sidebar() {
 						minHeight: "100%",
 					}}
 				>
-				<List
-					sx={{
-						pt: 0.5,
-						pb: 0,
-						flex: 1,
-					}}
-				>
-					{/* Overview */}
-					<SidebarItem
-						href="/dashboard/home"
-						title="Home"
-						icon={<TbHome size={ICON_SIZE} />}
-					/>
-					
-					
-					<SidebarItem
-						href="/dashboard/orders"
-						title="Orders"
-						icon={<TbTicket size={ICON_SIZE} />}
-						rightAdornment={
-							<Box
-								sx={{
-									display: "flex",
-									alignItems: "center",
-									justifyContent: "center",
-									fontSize: "xs",
-									fontWeight: "600",
-									color: "gray.600",
-									bgcolor: "background.defaultDarker",
-									borderRadius: "8px",
-									padding: "1px 5px",
-								}}
-							>
-								1,225
-							</Box>
-						}
-					/>
-					<SidebarItem
-						href="/dashboard/customers"
-						title="Customers"
-						icon={<TbUsers size={ICON_SIZE} />}
-					/>
-					<SidebarItem
-						href="/dashboard/analytics"
-						title="Analytics"
-						icon={<TbChartBar size={ICON_SIZE} />}
-					/>
-					<SidebarItem
-						deemphasized={true}
-						href="/dashboard/reports"
-						title="Reports"
-						icon={<TbReportAnalytics size={ICON_SIZE} />}
-					/>
-					
-					<SidebarDivider />
-					
-					{/* Products & Inventory */}
-					<SidebarItem
-						href="/dashboard/products"
-						title="Products"
-						icon={<TbShoe size={ICON_SIZE} />}
-					/>
-					<SidebarItem
-						href="/dashboard/fulfillments"
-						title="Fulfillments"
-						icon={<TbPackage size={ICON_SIZE} />}
-					/>
-					<SidebarItem
-						href="/dashboard/inventory"
-						title="Inventory"
-						icon={<TbArchive size={ICON_SIZE} />}
-					/>
-					<SidebarItem
-						deemphasized={true}
-						href="/dashboard/stock-movements"
-						title="Stock Movements"
-						icon={<TbReplace size={ICON_SIZE} />}
-					/>
-					<SidebarItem
-						href="/dashboard/stores"
-						title="Stores"
-						icon={<TbBuildingStore size={ICON_SIZE} />}
-					/>
-					
-					<SidebarDivider />
-					
-					{/* Finance & Admin */}
-					<SidebarItem
-						href="/dashboard/payments"
-						title="Payments"
-						icon={<TbCash size={ICON_SIZE} />}
-					/>
-					<SidebarItem
-						href="/dashboard/bank-accounts"
-						title="Bank"
-						icon={<TbBuildingBank size={ICON_SIZE} />}
-					/>
-					<SidebarItem
-						href="/dashboard/documents"
-						title="Documents"
-						icon={<TbFileDescription size={ICON_SIZE} />}
-					/>
-					<SidebarItem
-						href="/dashboard/emails"
-						title="Emails"
-						icon={<TbMail size={ICON_SIZE} />}
-					/>
-				</List>
-					
+					<List
+						sx={{
+							pt: 0.5,
+							pb: 0,
+							flex: 1,
+						}}
+					>
+						{/* Overview */}
+						<SidebarItem
+							href="/dashboard/home"
+							title="Home"
+							icon={<TbHome size={ICON_SIZE} />}
+						/>
+
+
+						<SidebarItem
+							href="/dashboard/orders"
+							title="Orders"
+							icon={<TbTicket size={ICON_SIZE} />}
+							rightAdornment={
+								<Box
+									sx={{
+										display: "flex",
+										alignItems: "center",
+										justifyContent: "center",
+										fontSize: "xs",
+										fontWeight: "600",
+										color: "gray.600",
+										bgcolor: "background.defaultDarker",
+										borderRadius: "8px",
+										padding: "1px 5px",
+									}}
+								>
+									1,225
+								</Box>
+							}
+						/>
+						<SidebarItem
+							href="/dashboard/customers"
+							title="Customers"
+							icon={<TbUsers size={ICON_SIZE} />}
+						/>
+						<SidebarItem
+							href="/dashboard/discounts"
+							title="Discounts"
+							icon={<TbDiscountFilled size={ICON_SIZE} />}
+						/>
+						<SidebarItem
+							href="/dashboard/analytics"
+							title="Analytics"
+							icon={<TbChartBar size={ICON_SIZE} />}
+						/>
+						{/*<SidebarItem
+							deemphasized={true}
+							href="/dashboard/reports"
+							title="Reports"
+							icon={<TbReportAnalytics size={ICON_SIZE} />}
+						/>
+						*/}
+
+						<SidebarDivider />
+
+						{/* Products & Inventory */}
+						<SidebarItem
+							href="/dashboard/products"
+							title="Products"
+							icon={<TbShoe size={ICON_SIZE} />}
+						/>
+						<SidebarItem
+							href="/dashboard/fulfillments"
+							title="Fulfillments"
+							icon={<TbPackage size={ICON_SIZE} />}
+						/>
+						<SidebarItem
+							href="/dashboard/inventory"
+							title="Inventory"
+							icon={<TbArchive size={ICON_SIZE} />}
+						/>
+						<SidebarItem
+							deemphasized={true}
+							href="/dashboard/stock-movements"
+							title="Stock Movements"
+							icon={<TbReplace size={ICON_SIZE} />}
+						/>
+						<SidebarItem
+							href="/dashboard/stores"
+							title="Stores"
+							icon={<TbBuildingStore size={ICON_SIZE} />}
+						/>
+
+						<SidebarDivider />
+
+						{/* Finance & Admin */}
+						<SidebarItem
+							href="/dashboard/payments"
+							title="Payments"
+							icon={<TbCash size={ICON_SIZE} />}
+						/>
+						<SidebarItem
+							href="/dashboard/bank-accounts"
+							title="Bank"
+							icon={<TbBuildingBank size={ICON_SIZE} />}
+						/>
+						<SidebarItem
+							href="/dashboard/documents"
+							title="Documents"
+							icon={<TbFileDescription size={ICON_SIZE} />}
+						/>
+						<SidebarItem
+							href="/dashboard/emails"
+							title="Emails"
+							icon={<TbMail size={ICON_SIZE} />}
+						/>
+					</List>
+
 					{/* Bottom section with profile, logout, etc. */}
 					<Box
 						sx={{
@@ -197,7 +202,7 @@ export function Sidebar() {
 								pt: 0.5,
 								pb: 0,
 							}}
-						>	
+						>
 							<SidebarDivider />
 							<SidebarItem
 								href="/dashboard/settings/general"

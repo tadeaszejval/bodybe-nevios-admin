@@ -1,12 +1,13 @@
 "use client";
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { usePathname, useRouter } from 'next/navigation';
-import { TbTicket, TbUser, TbMail, TbCash, TbChartBar, TbFileText, TbPackage, TbSpeakerphone, TbClipboardList, TbBuilding, TbHome } from 'react-icons/tb';
+import { TbTicket, TbUser, TbMail, TbCash, TbChartBar, TbFileText, TbPackage, TbSpeakerphone, TbClipboardList, TbBuilding, TbHome, TbDiscount } from 'react-icons/tb';
 
 // Module mapping configuration
 const MODULE_MAPPING = {
   '/dashboard/orders': { name: 'Orders', icon: TbTicket },
   '/dashboard/customers': { name: 'Customers', icon: TbUser },
+  '/dashboard/discounts': { name: 'Discounts', icon: TbDiscount },
   '/dashboard/emails': { name: 'Emails', icon: TbMail },
   '/dashboard/payments': { name: 'Payments', icon: TbCash },
   '/dashboard/analytics': { name: 'Analytics', icon: TbChartBar },

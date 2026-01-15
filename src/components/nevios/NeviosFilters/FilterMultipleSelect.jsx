@@ -1,5 +1,5 @@
 "use client";
-import React from 'react';
+import React, { useState, useMemo } from 'react';
 import { 
   FormControl, 
   Select, 
@@ -8,8 +8,11 @@ import {
   Typography, 
   Checkbox, 
   ListItemText,
-  Chip
+  Chip,
+  TextField,
+  InputAdornment
 } from '@mui/material';
+import { TbSearch } from 'react-icons/tb';
 
 /**
  * Multiple Select Filter Component
@@ -21,15 +24,30 @@ import {
  * @param {Array} props.options - Array of {value, label} options
  * @param {string} props.placeholder - Placeholder text
  * @param {number} props.maxDisplayChips - Maximum chips to display before showing count
+ * @param {boolean} props.showSearch - Whether to show search input (default: false)
  */
 export function FilterMultipleSelect({
   value = [],
   onChange,
   options = [],
   placeholder = 'Select...',
-  maxDisplayChips = 2
+  maxDisplayChips = 2,
+  showSearch = false
 }) {
   const selectedValues = Array.isArray(value) ? value : [];
+  const [searchQuery, setSearchQuery] = useState('');
+
+  // Filter options based on search query
+  const filteredOptions = useMemo(() => {
+    if (!showSearch || !searchQuery.trim()) {
+      return options;
+    }
+    const query = searchQuery.toLowerCase();
+    return options.filter(option => 
+      option.label.toLowerCase().includes(query) ||
+      (option.value && option.value.toString().toLowerCase().includes(query))
+    );
+  }, [options, searchQuery, showSearch]);
 
   const handleChange = (event) => {
     const newValue = event.target.value;
@@ -147,12 +165,53 @@ export function FilterMultipleSelect({
             sx: {
               maxHeight: 300
             }
-          }
+          },
+          autoFocus: false
         }}
       >
+        {/* Search Input */}
+        {showSearch && (
+          <Box sx={{ px: 2, py: 1, position: 'sticky', top: 0, bgcolor: 'background.paper', zIndex: 1 }}>
+            <TextField
+              size="small"
+              fullWidth
+              placeholder="Search..."
+              value={searchQuery}
+              onChange={(e) => {
+                e.stopPropagation();
+                setSearchQuery(e.target.value);
+              }}
+              onKeyDown={(e) => {
+                e.stopPropagation();
+              }}
+              onClick={(e) => {
+                e.stopPropagation();
+              }}
+              InputProps={{
+                startAdornment: (
+                  <InputAdornment position="start">
+                    <TbSearch size={16} />
+                  </InputAdornment>
+                ),
+              }}
+              sx={{
+                '& .MuiOutlinedInput-root': {
+                  fontSize: '0.875rem'
+                }
+              }}
+            />
+          </Box>
+        )}
 
         {/* Options */}
-        {options.map((option) => (
+        {filteredOptions.length === 0 && showSearch ? (
+          <MenuItem disabled>
+            <Typography variant="body2" color="text.secondary">
+              No results found
+            </Typography>
+          </MenuItem>
+        ) : (
+          filteredOptions.map((option) => (
           <MenuItem key={option.value} value={option.value}>
             <Checkbox 
               checked={selectedValues.includes(option.value)}
@@ -168,7 +227,8 @@ export function FilterMultipleSelect({
               </Box>
             </ListItemText>
           </MenuItem>
-        ))}
+          ))
+        )}
       </Select>
     </FormControl>
   );

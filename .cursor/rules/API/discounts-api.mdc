@@ -1,0 +1,797 @@
+# Discount Codes System Documentation
+
+## Overview
+The discount system provides comprehensive discount code management with support for multiple discount types (percentage, fixed amount, free shipping, gift card vouchers), multi-market restrictions, product-specific discounts, customer-specific codes, and automatic gift card voucher generation. It handles everything from creating promotional campaigns to tracking usage and validating codes at checkout.
+
+## 🚀 **Key Features**
+
+### Discount Types
+- **Percentage Discounts**: Apply percentage-based discounts (e.g., 20% off)
+- **Fixed Amount Discounts**: Apply fixed amount off (e.g., $10 off)
+- **Free Shipping**: Provide free shipping with a code
+- **Gift Card Vouchers**: Automatically generated from gift card purchases
+
+### Advanced Targeting
+- **Market-Specific**: Restrict discounts to specific market currencies
+- **Product-Specific**: Apply discounts only to specific products
+- **Customer-Specific**: Create unique codes for individual customers
+- **Minimum Order Value**: Set minimum subtotal requirements
+
+### Usage Control
+- **Usage Limits**: Set maximum number of uses per code
+- **Usage Tracking**: Track how many times a code has been used
+- **Status Management**: ACTIVE, RESERVED (in checkout), USED (exhausted)
+- **Validation Modes**: Validate on checkout or on order creation
+
+### Gift Card Vouchers
+- **Automatic Generation**: Auto-create vouchers when gift cards are purchased
+- **Unique Codes**: 7-character alphanumeric codes (e.g., A3B7K2M)
+- **Value Transfer**: Gift card value becomes voucher discount value
+- **Restriction Inheritance**: Vouchers inherit restrictions from gift card metadata
+
+## 🔧 **API Endpoints**
+
+### 1. Query Discounts
+**POST** `/server/discounts/query`
+
+Query discount codes with advanced filtering, searching, and expansion.
+
+#### Request Body
+```json
+{
+  "page": 1,
+  "limit": 50,
+  "orderBy": "created_at",
+  "ascending": false,
+  "search": "SUMMER",
+  "discount_type": "PERCENTAGE",
+  "status": "ACTIVE",
+  "available": true,
+  "market_currency": "USD_US",
+  "is_voucher": false,
+  "expand": ["customer", "voucher_order_item"]
+}
+```
+
+#### Example Requests
+
+**All Active Discounts:**
+```bash
+curl -X POST "http://localhost:3100/server/discounts/query" \
+  -H "Content-Type: application/json" \
+  -d '{"status": "ACTIVE"}'
+```
+
+**Available Discounts for Market:**
+```bash
+curl -X POST "http://localhost:3100/server/discounts/query" \
+  -H "Content-Type: application/json" \
+  -d '{"available": true, "market_currency": "USD_US"}'
+```
+
+**Gift Card Vouchers:**
+```bash
+curl -X POST "http://localhost:3100/server/discounts/query" \
+  -H "Content-Type: application/json" \
+  -d '{"is_voucher": true, "expand": ["voucher_order_item"]}'
+```
+
+#### Response Format
+```json
+{
+  "success": true,
+  "data": {
+    "discounts": [
+      {
+        "id": "discount-uuid",
+        "code": "SUMMER20",
+        "description": "20% off summer sale",
+        "discount_type": "PERCENTAGE",
+        "discount_value": 20,
+        "min_subtotal": 50,
+        "max_discount": null,
+        "usage_limit": 100,
+        "used_count": 23,
+        "status": "ACTIVE",
+        "allowed_products": [],
+        "allowed_market_currencies": ["USD_US", "EUR_DE"],
+        "discounted_allowed": true,
+        "customer": null,
+        "voucher_order_item": null,
+        "checkout": null,
+        "validate_on_checkout": false,
+        "created_at": "2024-01-15T10:00:00Z"
+      }
+    ],
+    "pagination": {
+      "page": 1,
+      "limit": 50,
+      "total": 23,
+      "totalPages": 1
+    }
+  }
+}
+```
+
+### 2. Create Discount
+**POST** `/server/discounts/create`
+
+Create a new discount code.
+
+#### Request Body
+```json
+{
+  "code": "SUMMER20",
+  "description": "20% off summer sale",
+  "discount_type": "PERCENTAGE",
+  "discount_value": 20,
+  "min_subtotal": 50,
+  "max_discount": 100,
+  "usage_limit": 100,
+  "allowed_products": [],
+  "allowed_market_currencies": ["USD_US", "EUR_DE"],
+  "discounted_allowed": true,
+  "validate_on_checkout": false
+}
+```
+
+#### Example Requests
+
+**Create Percentage Discount:**
+```bash
+curl -X POST "http://localhost:3100/server/discounts/create" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "code": "SAVE20",
+    "description": "20% off your order",
+    "discount_type": "PERCENTAGE",
+    "discount_value": 20,
+    "usage_limit": 50
+  }'
+```
+
+**Create Fixed Amount Discount:**
+```bash
+curl -X POST "http://localhost:3100/server/discounts/create" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "code": "SAVE10",
+    "description": "$10 off your order",
+    "discount_type": "FIXED",
+    "discount_value": 10,
+    "min_subtotal": 50,
+    "usage_limit": null
+  }'
+```
+
+**Create Free Shipping Code:**
+```bash
+curl -X POST "http://localhost:3100/server/discounts/create" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "code": "FREESHIP",
+    "description": "Free shipping on all orders",
+    "discount_type": "FREE_SHIPPING",
+    "usage_limit": 200
+  }'
+```
+
+**Create Customer-Specific Code:**
+```bash
+curl -X POST "http://localhost:3100/server/discounts/create" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "code": "VIP50",
+    "description": "VIP customer discount",
+    "discount_type": "PERCENTAGE",
+    "discount_value": 50,
+    "customer": "customer-uuid-here",
+    "usage_limit": 1
+  }'
+```
+
+#### Response Format
+```json
+{
+  "success": true,
+  "data": {
+    "id": "discount-uuid",
+    "code": "SUMMER20",
+    "description": "20% off summer sale",
+    "discount_type": "PERCENTAGE",
+    "discount_value": 20,
+    "status": "ACTIVE",
+    "used_count": 0,
+    "created_at": "2024-01-15T10:00:00Z"
+  }
+}
+```
+
+### 3. Retrieve Discount
+**GET** `/server/discounts/retrieve/:id`
+**POST** `/server/discounts/retrieve`
+
+Retrieve a single discount by ID or code.
+
+#### URL Parameters (GET)
+- `id` (string, required): Discount UUID
+
+#### Request Body (POST)
+```json
+{
+  "id": "discount-uuid",
+  "code": "SUMMER20",
+  "expand": ["customer", "voucher_order_item"]
+}
+```
+
+#### Example Requests
+
+**By ID:**
+```bash
+curl -X GET "http://localhost:3100/server/discounts/retrieve/discount-uuid-here?expand=customer"
+```
+
+**By Code:**
+```bash
+curl -X POST "http://localhost:3100/server/discounts/retrieve" \
+  -H "Content-Type: application/json" \
+  -d '{"code": "SUMMER20", "expand": ["customer"]}'
+```
+
+### 4. Modify Discount
+**PUT** `/server/discounts/modify/:id`
+
+Update an existing discount code.
+
+#### Request Body
+```json
+{
+  "description": "Updated description",
+  "discount_value": 25,
+  "usage_limit": 150,
+  "status": "ACTIVE"
+}
+```
+
+#### Example Requests
+
+**Update Discount Value:**
+```bash
+curl -X PUT "http://localhost:3100/server/discounts/modify/discount-uuid-here" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "discount_value": 25,
+    "description": "25% off summer sale (extended)"
+  }'
+```
+
+**Increase Usage Limit:**
+```bash
+curl -X PUT "http://localhost:3100/server/discounts/modify/discount-uuid-here" \
+  -H "Content-Type: application/json" \
+  -d '{"usage_limit": 200}'
+```
+
+**Deactivate Discount:**
+```bash
+curl -X PUT "http://localhost:3100/server/discounts/modify/discount-uuid-here" \
+  -H "Content-Type: application/json" \
+  -d '{"status": "USED"}'
+```
+
+### 5. Delete Discount
+**DELETE** `/server/discounts/delete/:id`
+
+Delete a discount code. Prevents deletion of used discounts unless force parameter is provided.
+
+#### Query Parameters
+- `force` (boolean): Force delete even if used (default: false)
+
+#### Example Requests
+
+**Normal Delete (unused discount):**
+```bash
+curl -X DELETE "http://localhost:3100/server/discounts/delete/discount-uuid-here"
+```
+
+**Force Delete (used discount):**
+```bash
+curl -X DELETE "http://localhost:3100/server/discounts/delete/discount-uuid-here?force=true"
+```
+
+#### Response Format
+```json
+{
+  "success": true,
+  "message": "Discount \"SUMMER20\" has been deleted",
+  "deleted_discount": {
+    "id": "discount-uuid",
+    "code": "SUMMER20",
+    "used_count": 23
+  }
+}
+```
+
+### 6. Validate Discount
+**POST** `/server/discounts/validate`
+
+Validate a discount code without applying it. Useful for previewing discount details before checkout.
+
+#### Request Body
+```json
+{
+  "code": "SUMMER20",
+  "market_currency": "USD_US",
+  "customer_id": "customer-uuid",
+  "subtotal": 100,
+  "product_eids": [123, 456]
+}
+```
+
+#### Example Requests
+
+**Basic Validation:**
+```bash
+curl -X POST "http://localhost:3100/server/discounts/validate" \
+  -H "Content-Type: application/json" \
+  -d '{"code": "SUMMER20"}'
+```
+
+**Full Validation with Context:**
+```bash
+curl -X POST "http://localhost:3100/server/discounts/validate" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "code": "SUMMER20",
+    "market_currency": "USD_US",
+    "customer_id": "customer-uuid",
+    "subtotal": 100,
+    "product_eids": [123, 456, 789]
+  }'
+```
+
+#### Response Format
+```json
+{
+  "success": true,
+  "data": {
+    "valid": true,
+    "discount": {
+      "id": "discount-uuid",
+      "code": "SUMMER20",
+      "description": "20% off summer sale",
+      "type": "PERCENTAGE",
+      "value": 20,
+      "status": "ACTIVE",
+      "usage": {
+        "used_count": 23,
+        "usage_limit": 100,
+        "remaining": 77
+      },
+      "restrictions": {
+        "market_currencies": ["USD_US", "EUR_DE"],
+        "products": [],
+        "customer_specific": false,
+        "min_subtotal": 50,
+        "max_discount": null,
+        "discounted_allowed": true
+      }
+    },
+    "checks": {
+      "status": true,
+      "usage_limit": true,
+      "market_currency": true,
+      "customer": true,
+      "min_subtotal": true,
+      "products": true
+    },
+    "warnings": []
+  }
+}
+```
+
+### 7. Generate Voucher
+**POST** `/server/discounts/generate-voucher`
+
+Manually generate a gift card voucher from an order item. (Normally happens automatically when orders are created)
+
+#### Request Body
+```json
+{
+  "order_item_id": "order-item-uuid",
+  "order_id": "order-uuid",
+  "customer_id": "customer-uuid"
+}
+```
+
+#### Example Request
+```bash
+curl -X POST "http://localhost:3100/server/discounts/generate-voucher" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "order_item_id": "order-item-uuid",
+    "order_id": "order-uuid"
+  }'
+```
+
+#### Response Format
+```json
+{
+  "success": true,
+  "data": {
+    "id": "discount-uuid",
+    "code": "A3B7K2M",
+    "description": "Gift Card Voucher - Premium Gift Card",
+    "discount_type": "VOUCHER",
+    "discount_value": 100,
+    "voucher_order_item": "order-item-uuid",
+    "usage_limit": 1,
+    "used_count": 0,
+    "status": "ACTIVE",
+    "created_at": "2024-01-20T14:30:00Z"
+  }
+}
+```
+
+## 📊 **Database Schema**
+
+### Discounts Table
+```sql
+CREATE TABLE public.discounts (
+  id uuid NOT NULL DEFAULT uuid_generate_v4(),
+  code text NOT NULL UNIQUE,
+  description text,
+  discount_type text CHECK (discount_type = ANY (ARRAY['PERCENTAGE'::text, 'FIXED'::text, 'FREE_SHIPPING'::text, 'VOUCHER'::text])),
+  discount_value numeric,
+  min_subtotal numeric,
+  max_discount numeric,
+  usage_limit numeric,
+  allowed_products jsonb DEFAULT '[]'::jsonb,
+  discounted_allowed boolean,
+  customer uuid,
+  voucher_order_item uuid,
+  allowed_market_currencies jsonb DEFAULT '[]'::jsonb,
+  used_count numeric DEFAULT '0'::numeric,
+  checkout uuid,
+  status text DEFAULT 'ACTIVE'::text CHECK (status = ANY (ARRAY['ACTIVE'::text, 'RESERVED'::text, 'USED'::text])),
+  validate_on_checkout boolean DEFAULT false,
+  created_at timestamp with time zone DEFAULT now(),
+  CONSTRAINT discounts_pkey PRIMARY KEY (id),
+  CONSTRAINT discounts_checkout_fkey FOREIGN KEY (checkout) REFERENCES public.checkout(id),
+  CONSTRAINT discounts_customer_fkey FOREIGN KEY (customer) REFERENCES public.customers(id),
+  CONSTRAINT discounts_voucher_order_item_fkey FOREIGN KEY (voucher_order_item) REFERENCES public.order_item(id)
+);
+```
+
+### Product Variants Table (Gift Card Metadata)
+```sql
+-- Gift card metadata on product_variants
+gift_card_metadata jsonb DEFAULT NULL
+
+-- Structure:
+{
+  "value": 100,                          -- Monetary value
+  "validity_days": 365,                  -- Optional expiry
+  "restrictions": {
+    "allowed_products": [],              -- Product restrictions
+    "allowed_market_currencies": [],     -- Market restrictions
+    "min_subtotal": 10                   -- Minimum order value
+  }
+}
+```
+
+## 🔍 **Data Relations**
+
+### Discount Relations
+- **customer** → `customers` table (for customer-specific codes)
+- **checkout** → `checkout` table (for reserved single-use codes)
+- **voucher_order_item** → `order_item` table (for gift card vouchers)
+
+### Expansion Options
+When querying discounts, you can expand related data:
+- `expand: ["customer"]` - Include customer details
+- `expand: ["checkout"]` - Include checkout details
+- `expand: ["voucher_order_item"]` - Include order item + variant + product
+
+## 🛠 **Core Functions**
+
+### Query Discounts
+```javascript
+const { queryDiscounts } = require('./functions/discounts/query');
+
+const result = await queryDiscounts({
+  discount_type: 'PERCENTAGE',
+  status: 'ACTIVE',
+  available: true,
+  page: 1,
+  limit: 50,
+  expand: ['customer']
+});
+```
+
+### Create Discount
+```javascript
+const { createDiscount } = require('./functions/discounts/create');
+
+const discount = await createDiscount({
+  code: 'SUMMER20',
+  description: '20% off summer sale',
+  discount_type: 'PERCENTAGE',
+  discount_value: 20,
+  usage_limit: 100,
+  allowed_market_currencies: ['USD_US', 'EUR_DE']
+});
+```
+
+### Modify Discount
+```javascript
+const { modifyDiscount } = require('./functions/discounts/modify');
+
+const updated = await modifyDiscount('discount-uuid', {
+  discount_value: 25,
+  usage_limit: 150
+});
+```
+
+### Delete Discount
+```javascript
+const { deleteDiscount } = require('./functions/discounts/delete');
+
+const result = await deleteDiscount('discount-uuid', false); // force = false
+```
+
+### Validate Discount
+```javascript
+const { validateDiscountCode } = require('./functions/discounts/validate');
+
+const validation = await validateDiscountCode({
+  code: 'SUMMER20',
+  market_currency: 'USD_US',
+  subtotal: 100
+});
+
+if (validation.valid) {
+  console.log('Discount is valid!');
+  console.log('Remaining uses:', validation.discount.usage.remaining);
+}
+```
+
+### Generate Voucher
+```javascript
+const { generateVoucher } = require('./functions/discounts/generate-voucher');
+
+const voucher = await generateVoucher({
+  order_item_id: 'order-item-uuid',
+  order_id: 'order-uuid',
+  customer_id: 'customer-uuid'
+});
+
+console.log('Voucher code:', voucher.code); // e.g., "A3B7K2M"
+```
+
+### Auto-Generate Vouchers (Order Creation)
+Vouchers are automatically generated when orders containing gift card products are created:
+
+```javascript
+const { createOrder } = require('./functions/order/create');
+
+// When order contains gift card variants with gift_card_metadata,
+// vouchers are auto-generated in the background
+const order = await createOrder(orderData);
+// Vouchers are created automatically (non-blocking)
+```
+
+## 🚨 **Error Handling**
+
+### Common Errors
+
+#### Validation Errors (400 Bad Request)
+```json
+{
+  "success": false,
+  "error": "Discount code is required"
+}
+```
+
+```json
+{
+  "success": false,
+  "error": "Usage limit cannot be less than current usage count (23)"
+}
+```
+
+#### Not Found Errors (404 Not Found)
+```json
+{
+  "success": false,
+  "error": "Discount not found"
+}
+```
+
+#### Conflict Errors (400 Bad Request)
+```json
+{
+  "success": false,
+  "error": "Discount code \"SUMMER20\" already exists"
+}
+```
+
+### Error Response Format
+All errors follow the same format:
+```json
+{
+  "success": false,
+  "error": "Error message here"
+}
+```
+
+## 📋 **Best Practices**
+
+### Creating Discounts
+1. **Use clear, memorable codes** (e.g., SUMMER20, not XJ8K2P)
+2. **Set appropriate usage limits** to prevent abuse
+3. **Use min_subtotal** to ensure profitability
+4. **Set max_discount** for percentage discounts to cap losses
+5. **Target specific markets** with allowed_market_currencies
+6. **Validate discounts** before activating campaigns
+
+### Managing Discounts
+1. **Monitor usage** regularly to track campaign performance
+2. **Update descriptions** to reflect current campaigns
+3. **Don't delete used discounts** - they're part of order history
+4. **Use status changes** instead of deletion to end campaigns
+5. **Archive expired codes** by setting status to 'USED'
+
+### Gift Card Vouchers
+1. **Don't modify vouchers** - they represent real value
+2. **Don't delete vouchers** - they're permanent records
+3. **Track voucher usage** for accounting purposes
+4. **Inherit restrictions** from gift card metadata automatically
+5. **Use 7-character codes** for easy customer entry
+
+### Validation
+1. **Validate before checkout** to show preview to customers
+2. **Check market restrictions** early in checkout flow
+3. **Provide helpful error messages** when validation fails
+4. **Show remaining uses** for transparency
+5. **Warn about minimum order values** upfront
+
+## 💡 **Common Use Cases**
+
+### 1. Summer Sale Campaign
+```bash
+curl -X POST "http://localhost:3100/server/discounts/create" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "code": "SUMMER25",
+    "description": "Summer Sale - 25% off everything",
+    "discount_type": "PERCENTAGE",
+    "discount_value": 25,
+    "min_subtotal": 50,
+    "max_discount": 100,
+    "usage_limit": 500,
+    "allowed_market_currencies": ["USD_US", "CAD_CA"]
+  }'
+```
+
+### 2. First-Time Customer Discount
+```bash
+curl -X POST "http://localhost:3100/server/discounts/create" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "code": "WELCOME10",
+    "description": "Welcome! $10 off your first order",
+    "discount_type": "FIXED",
+    "discount_value": 10,
+    "min_subtotal": 30,
+    "usage_limit": null,
+    "validate_on_checkout": true
+  }'
+```
+
+### 3. Product-Specific Launch Discount
+```bash
+curl -X POST "http://localhost:3100/server/discounts/create" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "code": "NEWPRODUCT",
+    "description": "20% off new product line",
+    "discount_type": "PERCENTAGE",
+    "discount_value": 20,
+    "allowed_products": [123, 456, 789],
+    "usage_limit": 200
+  }'
+```
+
+### 4. VIP Customer Exclusive
+```bash
+curl -X POST "http://localhost:3100/server/discounts/create" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "code": "VIP50OFF",
+    "description": "VIP exclusive - 50% off",
+    "discount_type": "PERCENTAGE",
+    "discount_value": 50,
+    "customer": "customer-uuid-here",
+    "usage_limit": 1
+  }'
+```
+
+### 5. Free Shipping Threshold
+```bash
+curl -X POST "http://localhost:3100/server/discounts/create" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "code": "SHIPFREE",
+    "description": "Free shipping on orders over $75",
+    "discount_type": "FREE_SHIPPING",
+    "min_subtotal": 75,
+    "usage_limit": null
+  }'
+```
+
+### 6. Gift Card Purchase and Voucher Generation
+When a customer purchases a gift card, a voucher is automatically generated:
+
+1. **Customer buys gift card** (product variant with `gift_card_metadata`)
+2. **Order is created** via `/server/order/create`
+3. **Voucher auto-generates** in the background
+4. **Customer receives** 7-character voucher code (e.g., A3B7K2M)
+5. **Voucher can be used** on any future order
+
+## 📚 **Related Systems**
+
+### Checkout Module
+- **Apply Discount**: `/server/checkout/discount` (POST)
+- **Remove Discount**: `/server/checkout/discount` (DELETE)
+- Discounts are validated and applied to checkouts
+- Single-use discounts are reserved when applied
+- Usage count increments based on `validate_on_checkout` setting
+
+### Order Module
+- **Apply Discount**: `/server/order/discount` (POST)
+- Discounts are applied after order creation
+- Usage count always increments on order application
+- Vouchers are validated for single-use
+
+### Product Module
+- Product variants can have `gift_card_metadata`
+- Gift cards automatically generate vouchers on purchase
+- Voucher value and restrictions inherit from metadata
+
+### Customer Module
+- Customer-specific discount codes
+- Track which customer used which codes
+- Expansion support for customer details
+
+## 🤝 **Support**
+
+### Troubleshooting
+
+**Problem**: Discount code not found
+- **Solution**: Check if code is spelled correctly (case-insensitive)
+- **Solution**: Verify code exists in database
+- **Solution**: Use `/server/discounts/query` to search
+
+**Problem**: Discount cannot be applied
+- **Solution**: Use `/server/discounts/validate` to see specific validation errors
+- **Solution**: Check market currency restrictions
+- **Solution**: Verify minimum subtotal is met
+- **Solution**: Check if discount has reached usage limit
+
+**Problem**: Cannot delete discount
+- **Solution**: Check if discount has been used (`used_count > 0`)
+- **Solution**: Use `force=true` parameter to force deletion
+- **Solution**: Cannot delete vouchers - they are permanent records
+
+**Problem**: Voucher not generated
+- **Solution**: Verify product variant has `gift_card_metadata`
+- **Solution**: Check order was successfully created
+- **Solution**: Look for errors in server logs (non-blocking operation)
+- **Solution**: Manually generate using `/server/discounts/generate-voucher`
+
+**Problem**: Usage limit exceeded
+- **Solution**: Increase usage limit via `/server/discounts/modify`
+- **Solution**: Create new discount code with different code
+- **Solution**: Check current usage with `/server/discounts/retrieve`

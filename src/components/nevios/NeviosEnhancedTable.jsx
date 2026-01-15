@@ -282,7 +282,7 @@ export function NeviosEnhancedTable({
           </>
         ) : (
           <Typography variant="body2" color="gray.600">
-            Nothing
+            That's it :D
           </Typography>
         )}
       </Box>

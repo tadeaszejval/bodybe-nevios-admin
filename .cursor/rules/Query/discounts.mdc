@@ -316,8 +316,6 @@ curl -X POST "http://localhost:3100/server/discounts/query" \
 }
 ```
 
-## Dashboard Integration Example
-
 ### React/TypeScript Component
 
 ```typescript
