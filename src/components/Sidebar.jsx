@@ -48,7 +48,6 @@ export function Sidebar() {
 	return (
 		<Box
 			component="nav"
-			data-tour="sidebar"
 			sx={{
 				display: { xs: "none", sm: "flex" },
 				flexDirection: "column",

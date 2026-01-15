@@ -50,7 +50,7 @@ export function EmailTable({
 		refreshData,
 		updateFilters,
 		updateSearch
-	} = useModuleQuery('emails', {
+	} = useModuleQuery('email', {
 		expand: ["customer"],
 		initialFilters,
 		initialSearch,

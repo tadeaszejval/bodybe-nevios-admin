@@ -89,8 +89,7 @@ export function InventoryTable({
     initialFilters,
     initialSearch,
     enableSearch: true,
-    transformData: transformInventoryData,
-    method: 'GET' // Inventory uses GET requests
+    transformData: transformInventoryData
   });
 
   // Handle filter changes with transformation for numeric operators

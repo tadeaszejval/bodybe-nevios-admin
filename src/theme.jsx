@@ -599,13 +599,31 @@ export const ALL_AVAIL_FONTS_LIST = Object.values(ALL_AVAIL_FONTS);
 // -------------------------------
 const DARK_THEME_STRING = "*:where(.dark) &";
 export function ThemeProvider({ children }) {
-	// Force light mode - always set to light on mount
+	// Force light mode - always set to light on mount and prevent dark mode
 	React.useEffect(() => {
 		// Set the color scheme to light
 		if (typeof window !== 'undefined') {
 			localStorage.setItem('mui-mode', 'light');
 			// Remove dark class if it exists
 			document.documentElement.classList.remove('dark');
+			
+			// Watch for any attempts to change to dark mode and prevent them
+			const observer = new MutationObserver((mutations) => {
+				mutations.forEach((mutation) => {
+					if (mutation.attributeName === 'class') {
+						if (document.documentElement.classList.contains('dark')) {
+							document.documentElement.classList.remove('dark');
+						}
+					}
+				});
+			});
+			
+			observer.observe(document.documentElement, {
+				attributes: true,
+				attributeFilter: ['class']
+			});
+			
+			return () => observer.disconnect();
 		}
 	}, []);
 	
@@ -1542,7 +1560,7 @@ export function ThemeProvider({ children }) {
 		},
 	});
 	return (
-		<MuiThemeProvider theme={theme}>
+		<MuiThemeProvider theme={theme} defaultMode="light" disableTransitionOnChange>
 			{/* Set global MUI styles */}
 			<GlobalStyles
 				styles={{

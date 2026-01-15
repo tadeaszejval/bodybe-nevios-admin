@@ -20,7 +20,7 @@ export function BankAccountsTable({
 	initialSearch = ""
 }) {
 	// Transform raw bank transaction data to table format
-	const transformBankData = useCallback((transactions) => {
+	const transformBankTransactionData = useCallback((transactions) => {
 		return transactions.map(transaction => ({
 			id: transaction.id,
 			transaction_date: transaction.transaction_date,
@@ -65,15 +65,16 @@ export function BankAccountsTable({
 		initialFilters,
 		initialSearch,
 		enableSearch: true,
-		transformData: transformBankData
+		transformData: transformBankTransactionData
 	});
 
 	const columnDefinitions = [
-		dateColumnFactory({
+		clickableColumnFactory({
 			field: "transaction_date",
 			headerName: "Date",
 			flex: 1.2,
 			minWidth: 120,
+			link: (params) => `/dashboard/bank-transactions/${params.id}`,
 			renderCell: (params) => (
 				<Box
 					sx={{

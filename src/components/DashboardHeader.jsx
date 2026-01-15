@@ -3,7 +3,6 @@ import { Box, IconButton } from "@mui/material";
 import * as React from "react";
 import { TbChevronRight } from "react-icons/tb";
 import { Breadcrumb } from "../components/Breadcrumb";
-import { usePageTitle } from "../framework/usePageTitle";
 import { Tooltip } from "@mui/material";
 export function DashboardHeader({
 	title,
@@ -16,10 +15,8 @@ export function DashboardHeader({
 	iconOnClick = () => {},
 	badges,
 }) {
-	usePageTitle(title);
 	return (
 		<Box
-			data-tour="dashboard-header"
 			sx={{
 				display: "flex",
 				flexDirection: "column",

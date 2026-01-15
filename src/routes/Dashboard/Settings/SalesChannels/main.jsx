@@ -23,8 +23,7 @@ export default function DashboardSalesChannels() {
 	} = useModuleQuery("configuration/sales-channels", {
 		enableSearch: true,
 		defaultOrderBy: "name",
-		defaultAscending: true,
-		method: "GET",
+		defaultAscending: true
 	});
 
 	const columns = [

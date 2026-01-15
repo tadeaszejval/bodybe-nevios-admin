@@ -29,8 +29,7 @@ export default function DashboardLocations() {
 	} = useModuleQuery("configuration/locations", {
 		enableSearch: true,
 		defaultOrderBy: "name",
-		defaultAscending: true,
-		method: "GET",
+		defaultAscending: true
 	});
 
 	const columns = [

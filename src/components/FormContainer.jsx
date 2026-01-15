@@ -8,7 +8,6 @@ export function FormContainer({
 }) {
 	return (
 		<Container
-			data-tour="form-container"
 			maxWidth={maxWidth}
 			component="main"
 			sx={{

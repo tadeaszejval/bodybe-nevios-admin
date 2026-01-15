@@ -83,7 +83,7 @@ export function DiscountsTable({
 		refreshData,
 		updateFilters,
 		updateSearch
-	} = useModuleQuery('discounts', {
+	} = useModuleQuery('discount', {
 		expand: ["customer", "voucher_order_item"],
 		initialFilters,
 		initialSearch,

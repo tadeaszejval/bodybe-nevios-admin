@@ -4,7 +4,6 @@ import { Box, useTheme } from "@mui/material";
 import { darken } from "@mui/material/styles";
 import { MobileNav } from "../components/MobileNav";
 import { Sidebar, SIDEBAR_WIDTH } from "../components/Sidebar";
-import { useRegisterTours } from "../context/TourProvider";
 import { NavigationBackButton } from "./NavigationBackButton";
 import { ContentLoadingScreen } from "./ContentLoadingScreen";
 import { Logo } from "./Logo";
@@ -13,7 +12,6 @@ import { usePathname } from "next/navigation";
 import { getOverlayPatterns } from "../config/overlayRoutes";
 
 export function DashboardLayout({ children }) {
-	useRegisterTours();
 	const theme = useTheme();
 	const pathname = usePathname();
 	

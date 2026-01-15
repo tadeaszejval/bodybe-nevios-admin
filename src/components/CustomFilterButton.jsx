@@ -172,7 +172,6 @@ export function NewCustomFilterButton({
 	return (
 		<>
 			<Button
-				data-tour={`new-filter-button-${placeholder || "default"}`}
 				sx={{
 					height: "20px",
 					minWidth: "unset",

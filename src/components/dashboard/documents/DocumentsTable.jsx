@@ -70,7 +70,7 @@ export function DocumentsTable({
 		refreshData,
 		updateFilters,
 		updateSearch
-	} = useModuleQuery('documents', {
+	} = useModuleQuery('document', {
 		expand: ["customer", "items"],
 		initialFilters,
 		initialSearch,

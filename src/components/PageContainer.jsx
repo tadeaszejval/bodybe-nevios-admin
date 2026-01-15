@@ -9,7 +9,6 @@ export function PageContainer({
 }) {
 	return (
 		<Container
-			data-tour="page-container"
 			maxWidth={fullWidth ? false : maxWidth}
 			component="main"
 			sx={{

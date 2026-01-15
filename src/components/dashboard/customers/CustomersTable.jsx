@@ -55,7 +55,7 @@ export function CustomersTable({
 		refreshData,
 		updateFilters,
 		updateSearch
-	} = useModuleQuery('customers', {
+	} = useModuleQuery('customer', {
 		expand: ["orders", "addresses"],
 		initialFilters,
 		initialSearch,

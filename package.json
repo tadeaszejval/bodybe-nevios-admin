@@ -18,7 +18,6 @@
     "@mui/x-data-grid": "latest",
     "@mui/x-date-pickers": "latest",
     "@mui/x-date-pickers-pro": "latest",
-    "@reactour/tour": "^3.7.0",
     "@supabase/ssr": "^0.6.1",
     "@supabase/supabase-js": "^2.49.4",
     "cmdk": "^1.0.0",

@@ -59,7 +59,7 @@ export function FulfillmentTable({
 		refreshData,
 		updateFilters,
 		updateSearch
-	} = useModuleQuery('fulfilment', {
+	} = useModuleQuery('fulfillment', {
 		expand: ["customer", "order", "shipping_address"],
 		initialFilters,
 		initialSearch,
