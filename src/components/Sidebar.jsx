@@ -24,7 +24,7 @@ import {
 	TbReturn,
 } from "react-icons/tb";
 import { useColorScheme } from "@mui/material";
-import { SidebarItem } from "../components/SidebarItem";
+import { SidebarItem } from "./SidebarItem";
 import { useAuth } from "../context/AuthProvider";
 import { useRouter } from "next/navigation";
 
