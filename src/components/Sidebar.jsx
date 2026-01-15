@@ -19,6 +19,8 @@ import {
 	TbSettings,
 	TbPackage,
 	TbBuildingBank,
+	TbAlertTriangle,
+	TbReturn,
 } from "react-icons/tb";
 import { useColorScheme } from "@mui/material";
 import { SidebarItem } from "../components/SidebarItem";
@@ -127,6 +129,11 @@ export function Sidebar() {
 							title="Analytics"
 							icon={<TbChartBar size={ICON_SIZE} />}
 						/>
+						<SidebarItem
+							href="/dashboard/returns"
+							title="Returns"
+							icon={<TbReturn size={ICON_SIZE} />}
+						/>
 						{/*<SidebarItem
 							deemphasized={true}
 							href="/dashboard/reports"
@@ -158,6 +165,16 @@ export function Sidebar() {
 							href="/dashboard/stock-movements"
 							title="Stock Movements"
 							icon={<TbReplace size={ICON_SIZE} />}
+						/>
+						<SidebarItem
+							href="/dashboard/inventory-operations"
+							title="Inventory Operations"
+							icon={<TbPackage size={ICON_SIZE} />}
+						/>
+						<SidebarItem
+							href="/dashboard/inventory-locations"
+							title="Backorders"
+							icon={<TbAlertTriangle size={ICON_SIZE} />}
 						/>
 						<SidebarItem
 							href="/dashboard/stores"
