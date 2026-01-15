@@ -19,7 +19,8 @@ import {
 	TbSettings,
 	TbPackage,
 	TbBuildingBank,
-	TbAlertTriangle,
+	TbPackages,
+	TbProgressAlert,
 	TbReturn,
 } from "react-icons/tb";
 import { useColorScheme } from "@mui/material";
@@ -169,12 +170,12 @@ export function Sidebar() {
 						<SidebarItem
 							href="/dashboard/inventory-operations"
 							title="Inventory Operations"
-							icon={<TbPackage size={ICON_SIZE} />}
+							icon={<TbPackages size={ICON_SIZE} />}
 						/>
 						<SidebarItem
 							href="/dashboard/inventory-locations"
 							title="Backorders"
-							icon={<TbAlertTriangle size={ICON_SIZE} />}
+							icon={<TbProgressAlert size={ICON_SIZE} />}
 						/>
 						<SidebarItem
 							href="/dashboard/stores"
