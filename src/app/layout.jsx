@@ -1,7 +1,7 @@
 import * as React from "react";
 import { AppProviders } from "../context/AppProviders";
 export const metadata = {
-	title: "Vasky | Nevios",
+	title: process.env.NEXT_PUBLIC_META_TITLE || "Vasky | Nevios",
 	description:
 		"Nevios is the all-in-one eCommerce platform for creating, managing, and growing your online store. Fast setup, flexible design, and powerful sales tools.",
 	icons: {

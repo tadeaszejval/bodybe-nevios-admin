@@ -5,5 +5,5 @@ export default function Page() {
 }
 
 export const metadata = {
-	title: 'Shipping • Settings • Vasky | Nevios',
+	title: `Shipping • Settings • ${process.env.NEXT_PUBLIC_META_TITLE || 'Vasky | Nevios'}`,
 };

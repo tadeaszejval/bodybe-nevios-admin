@@ -3,7 +3,7 @@
  * Handles table queries with pagination, sorting, and filtering
  */
 
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:3001';
+const API_BASE_URL = process.env.NEXT_PUBLIC_NEVIOS_EXPRESS_URL || 'http://localhost:3001/api';
 
 /**
  * Query data from backend API endpoints

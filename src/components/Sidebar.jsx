@@ -21,7 +21,7 @@ import {
 	TbBuildingBank,
 	TbPackages,
 	TbProgressAlert,
-	TbReturn,
+	TbArrowBackUp,
 } from "react-icons/tb";
 import { useColorScheme } from "@mui/material";
 import { SidebarItem } from "./SidebarItem";
@@ -133,7 +133,7 @@ export function Sidebar() {
 						<SidebarItem
 							href="/dashboard/returns"
 							title="Returns"
-							icon={<TbReturn size={ICON_SIZE} />}
+							icon={<TbArrowBackUp size={ICON_SIZE} />}
 						/>
 						{/*<SidebarItem
 							deemphasized={true}

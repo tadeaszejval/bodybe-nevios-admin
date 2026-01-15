@@ -3,7 +3,7 @@ export default function Page() {
     return <Marketing />;
 }
 export const metadata = {
-    title: 'Marketing • Vasky | Nevios',
+    title: `Marketing • ${process.env.NEXT_PUBLIC_META_TITLE || 'Vasky | Nevios'}`,
 };
 
 

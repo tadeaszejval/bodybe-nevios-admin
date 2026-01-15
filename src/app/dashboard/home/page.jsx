@@ -3,5 +3,5 @@ export default function Page() {
     return <Home />;
 }
 export const metadata = {
-    title: 'Dashboard • Vasky | Nevios',
+    title: `Dashboard • ${process.env.NEXT_PUBLIC_META_TITLE || 'Vasky | Nevios'}`,
 };

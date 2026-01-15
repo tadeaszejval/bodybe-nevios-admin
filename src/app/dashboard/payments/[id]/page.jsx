@@ -5,5 +5,5 @@ export default function PaymentDetailPage({ params }) {
 }
 
 export const metadata = {
-    title: 'Payment Details • Vasky | Nevios',
+    title: `Payment Details • ${process.env.NEXT_PUBLIC_META_TITLE || 'Vasky | Nevios'}`,
 }; 

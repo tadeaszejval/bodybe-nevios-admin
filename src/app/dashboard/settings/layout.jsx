@@ -48,6 +48,6 @@ export default function SettingsLayout({ children }) {
 }
 
 export const metadata = {
-	title: "Settings • Vasky | Nevios",
+	title: `Settings • ${process.env.NEXT_PUBLIC_META_TITLE || 'Vasky | Nevios'}`,
 };
 
