@@ -12,7 +12,7 @@ import { postRequest, getRequest } from "../../../utils/neviosExpress";
 import dayjs from "dayjs";
 import { ContentLoadingScreen } from "../../../components/ContentLoadingScreen";
 
-const MARKET = "vasky/czechia";
+const MARKET = "woo/czechia";
 
 // Helper function to format currency
 const formatCurrency = (value) => {
