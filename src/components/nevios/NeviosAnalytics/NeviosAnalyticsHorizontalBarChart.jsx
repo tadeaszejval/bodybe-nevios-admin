@@ -20,6 +20,7 @@ const NeviosAnalyticsHorizontalBarChart = ({
 
   // Format large numbers - show whole numbers with commas
   const formatValue = (value) => {
+    if (value === null || value === undefined) return '0';
     return value.toLocaleString();
   };
 

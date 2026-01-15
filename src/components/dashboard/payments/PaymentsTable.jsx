@@ -433,9 +433,7 @@ export function PaymentsTable({
 				onBulkAction={handleBulkAction}
 				emptyStateProps={{
 					title: 'No payments found',
-					description: 'There are no payment records to display',
-					buttonText: 'Create Payment',
-					action: () => console.log('Create payment clicked') // Replace with actual navigation
+					description: 'There are no payment records to display'
 				}}
 			/>
 		</Box>

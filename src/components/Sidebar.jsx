@@ -111,7 +111,7 @@ export function Sidebar() {
 										padding: "1px 5px",
 									}}
 								>
-									1,225
+									0
 								</Box>
 							}
 						/>
@@ -229,6 +229,7 @@ export function Sidebar() {
 							<SidebarItem
 								href="/dashboard/settings/general"
 								title="Settings"
+								deemphasized={true}
 								icon={<TbSettings size={ICON_SIZE} />}
 							/>
 							<SidebarItem

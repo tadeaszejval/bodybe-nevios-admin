@@ -5,8 +5,7 @@ import React, { useCallback } from "react";
 import {
 	dateColumnFactory,
 	genericColumnFactory,
-	idColumnFactory,
-	clickableColumnFactory
+	idColumnFactory
 } from "../../../components/ColumnDefinitions";
 import { NeviosEnhancedTable } from "../../nevios/NeviosEnhancedTable";
 import { formatReadableDatetime } from "../../../core/formatters";
@@ -114,12 +113,11 @@ export function ProductsTable({
 				</Box>
 			),
 		}),
-		clickableColumnFactory({
+		genericColumnFactory({
 			field: "title",
 			headerName: "Title",
 			minWidth: 220,
 			flex: 2,
-			link: (params) => `/dashboard/products/${params.id}`,
 			renderCell: (params) => (
 				<Box
 					sx={{
