@@ -564,5 +564,475 @@ When creating or reviewing a table component:
 
 ---
 
+## 13. Filter System
+
+**Standard filter implementation** using the Nevios Filter System:
+
+### Filter Configuration Files
+
+**Pattern**: `{Module}FilterConfig.js` (e.g., `OrdersFilterConfig.js`)
+
+```javascript
+// src/components/nevios/NeviosFilters/OrdersFilterConfig.js
+"use client";
+import { FilterSelect } from './FilterSelect';
+import { FilterMultipleSelect } from './FilterMultipleSelect';
+import { FilterProductSelect } from './FilterProductSelect';
+import { FilterContains } from './FilterContains';
+import { FilterDateRange } from './FilterDateRange';
+
+// Define filter options
+const STATUS_OPTIONS = [
+  { value: 'ACTIVE', label: 'Active' },
+  { value: 'INACTIVE', label: 'Inactive' }
+];
+
+// ✅ Export filter configuration array
+export const MODULE_FILTER_CONFIG = [
+  {
+    id: 'created_at',  // Must match API filter field prefix
+    label: 'Created Date',
+    component: FilterDateRange,
+    props: {
+      fromLabel: 'From Date',
+      toLabel: 'To Date',
+      fieldPrefix: 'created_at'  // API will receive created_at_from, created_at_to
+    }
+  },
+  {
+    id: 'status',
+    label: 'Status',
+    component: FilterMultipleSelect,  // or FilterSelect for single-select
+    options: STATUS_OPTIONS,
+    props: {
+      placeholder: 'All statuses',
+      maxDisplayChips: 2  // For FilterMultipleSelect
+    }
+  },
+  {
+    id: 'products',
+    label: 'Products',
+    component: FilterProductSelect,
+    props: {
+      placeholder: 'All products',
+      maxDisplayChips: 2
+    }
+  },
+  {
+    id: 'search_field',
+    label: 'Search Field',
+    component: FilterContains,
+    props: {
+      placeholder: 'Enter text...',
+      debounceMs: 500
+    }
+  }
+];
+
+// ✅ Export options for flexibility
+export { STATUS_OPTIONS };
+```
+
+### Available Filter Components
+
+**1. FilterDateRange** - Date range picker with calendar
+```javascript
+{
+  id: 'created_at',
+  label: 'Order Date',
+  component: FilterDateRange,
+  props: {
+    fromLabel: 'From Date',
+    toLabel: 'To Date',
+    fieldPrefix: 'created_at'  // Sends: created_at_from, created_at_to
+  }
+}
+```
+
+**2. FilterMultipleSelect** - Multi-select dropdown with chips
+```javascript
+{
+  id: 'payment_status',
+  label: 'Payment Status',
+  component: FilterMultipleSelect,
+  options: PAYMENT_STATUS_OPTIONS,
+  props: {
+    placeholder: 'All payment statuses',
+    maxDisplayChips: 2  // Show "2 selected" after 2 items
+  }
+}
+```
+
+**3. FilterSelect** - Single-select dropdown
+```javascript
+{
+  id: 'fulfillment_status',
+  label: 'Fulfillment Status',
+  component: FilterSelect,
+  options: FULFILLMENT_OPTIONS,
+  props: {
+    placeholder: 'All statuses'
+  }
+}
+```
+
+**4. FilterProductSelect** - Product search/select
+```javascript
+{
+  id: 'products',
+  label: 'Products',
+  component: FilterProductSelect,
+  props: {
+    placeholder: 'All products',
+    maxDisplayChips: 2
+  }
+}
+```
+
+**5. FilterContains** - Text input with debounce
+```javascript
+{
+  id: 'product_variant',
+  label: 'Product Variant',
+  component: FilterContains,
+  props: {
+    placeholder: 'Enter variant name...',
+    debounceMs: 500
+  }
+}
+```
+
+### Filter Integration in Tables
+
+**Step 1**: Import filter config and URL persistence hook
+```javascript
+import { ORDERS_FILTER_CONFIG } from "../../nevios/NeviosFilters/OrdersFilterConfig";
+import { useUrlFilters } from "../../../hooks/useUrlFilters";
+```
+
+**Step 2**: Initialize URL filters
+```javascript
+export function OrdersTable({ 
+  tableHeight,
+  initialFilters = {},
+  initialSearch = ""
+}) {
+  // ✅ Use URL filters for persistence
+  const { 
+    filters: urlFilters, 
+    updateFilters: updateUrlFilters, 
+    isInitialized 
+  } = useUrlFilters(initialFilters);
+  
+  // ... rest of component
+}
+```
+
+**Step 3**: Connect to useModuleQuery
+```javascript
+const {
+  data,
+  loading,
+  error,
+  totalCount,
+  pagination,
+  sortModel,
+  searchTerm,
+  // ... other returns
+} = useModuleQuery('order', {
+  expand: ["customer", "items"],
+  // ✅ Pass URL filters as external state
+  externalFilters: isInitialized ? urlFilters : initialFilters,
+  onFiltersChange: updateUrlFilters,
+  autoFetch: isInitialized,  // Wait for URL to parse
+  initialSearch,
+  enableSearch: true,
+  transformData: transformOrderData
+});
+```
+
+**Step 4**: Add to NeviosEnhancedTable
+```javascript
+<NeviosEnhancedTable
+  columns={columnDefinitions}
+  data={data}
+  loading={loading}
+  // ... other props
+  enableFilters={true}
+  filterConfigs={ORDERS_FILTER_CONFIG}
+  activeFilters={urlFilters}
+  onFiltersChange={updateUrlFilters}
+  // ... rest of props
+/>
+```
+
+### Filter API Structure
+
+**Filters are sent flat in the `filters` object**:
+
+```javascript
+// ✅ CORRECT API Request Body
+{
+  "page": 1,
+  "limit": 50,
+  "orderBy": "created_at",
+  "ascending": false,
+  "expand": ["customer", "items"],
+  "filters": {
+    "created_at_from": "2026-01-10",  // ✅ Flat structure
+    "created_at_to": "2026-01-16",
+    "payment_status": ["PAID", "UNPAID"],
+    "products": ["uuid-1", "uuid-2"]
+  }
+}
+
+// ❌ WRONG - Nested date ranges
+{
+  "filters": {
+    "created_at": {  // ❌ Don't nest
+      "created_at_from": "2026-01-10",
+      "created_at_to": "2026-01-16"
+    }
+  }
+}
+```
+
+### Filter Field Naming Rules
+
+**Date Range Filters:**
+- `id`: Use field prefix (e.g., `'created_at'`, `'updated_at'`)
+- API receives: `{prefix}_from` and `{prefix}_to`
+- Example: `created_at` → `created_at_from`, `created_at_to`
+
+**Multi-Select Filters:**
+- `id`: Exact API field name (e.g., `'payment_status'`)
+- API receives: Array of values `["PAID", "UNPAID"]`
+
+**Single-Select Filters:**
+- `id`: Exact API field name (e.g., `'status'`)
+- API receives: Single value `"ACTIVE"`
+
+**Text Filters (FilterContains):**
+- `id`: Exact API field name (e.g., `'product_variant'`)
+- API receives: String value `"XL Black"`
+
+### URL Parameter Persistence
+
+**Filters automatically persist in URL**:
+```
+/dashboard/orders?filters=%7B%22created_at_from%22%3A%222026-01-16%22%2C%22created_at_to%22%3A%222026-01-16%22%7D
+```
+
+**Benefits**:
+- ✅ Bookmarkable filter states
+- ✅ Survives page refresh
+- ✅ Shareable URLs
+- ✅ Browser back/forward navigation
+
+**How it works**:
+1. `useUrlFilters` hook syncs filters with URL
+2. On page load, filters are parsed from URL
+3. On filter change, URL is updated via `router.replace`
+4. Filter bar auto-opens if URL contains filters
+
+### Filter Best Practices
+
+**1. Always create a config file for each module with filters**
+```javascript
+// ✅ Good
+OrdersFilterConfig.js
+CustomersFilterConfig.js
+ProductsFilterConfig.js
+
+// ❌ Bad - Inline filter definitions
+// Don't define filters directly in table component
+```
+
+**2. Match filter IDs to API field names**
+```javascript
+// ✅ Good - ID matches API
+{ id: 'payment_status', ... }  // API expects 'payment_status'
+{ id: 'created_at', ... }       // API expects 'created_at_from', 'created_at_to'
+
+// ❌ Bad - ID doesn't match API
+{ id: 'status', ... }  // But API expects 'payment_status'
+```
+
+**3. Use appropriate filter components**
+```javascript
+// ✅ Good - Right component for data type
+Date ranges → FilterDateRange
+Multiple values → FilterMultipleSelect
+Single value → FilterSelect
+Text search → FilterContains
+Products → FilterProductSelect
+
+// ❌ Bad - Wrong component
+Date ranges → FilterContains
+Multiple statuses → FilterSelect (limits to one)
+```
+
+**4. Provide clear labels and placeholders**
+```javascript
+// ✅ Good
+{
+  id: 'payment_status',
+  label: 'Payment Status',  // Clear label
+  props: {
+    placeholder: 'All payment statuses'  // Descriptive
+  }
+}
+
+// ❌ Bad
+{
+  id: 'payment_status',
+  label: 'Status',  // Too vague
+  props: {
+    placeholder: 'Select...'  // Not helpful
+  }
+}
+```
+
+**5. Order filters logically**
+```javascript
+// ✅ Good order - Most important first
+export const ORDERS_FILTER_CONFIG = [
+  // Date range first (most common)
+  { id: 'created_at', label: 'Order Date', ... },
+  // Then statuses
+  { id: 'payment_status', ... },
+  { id: 'fulfillment_status', ... },
+  // Then specific filters
+  { id: 'products', ... },
+  { id: 'customer', ... }
+];
+```
+
+### Complete Filter Example
+
+```javascript
+"use client";
+import { Box } from "@mui/material";
+import React, { useCallback } from "react";
+import { useModuleQuery } from "../../../hooks/useModuleQuery";
+import { useUrlFilters } from "../../../hooks/useUrlFilters";
+import { NeviosEnhancedTable } from "../../nevios/NeviosEnhancedTable";
+import { ORDERS_FILTER_CONFIG } from "../../nevios/NeviosFilters/OrdersFilterConfig";
+import { clickableColumnFactory, dateColumnFactory } from "../../../components/ColumnDefinitions";
+
+export function OrdersTable({ 
+  tableHeight,
+  initialFilters = {},
+  initialSearch = ""
+}) {
+  // ✅ URL persistence
+  const { filters: urlFilters, updateFilters: updateUrlFilters, isInitialized } = useUrlFilters(initialFilters);
+
+  const transformOrderData = useCallback((orders) => {
+    if (!Array.isArray(orders)) return [];
+    return orders.map(order => ({
+      id: order.id,
+      order_name: order.name,
+      created_at: order.created_at,
+      _original: order
+    }));
+  }, []);
+
+  // ✅ Connect filters to query
+  const {
+    data,
+    loading,
+    error,
+    totalCount,
+    pagination,
+    sortModel,
+    searchTerm,
+    handlePaginationChange,
+    handleSortChange,
+    updateSearch
+  } = useModuleQuery('order', {
+    expand: ["customer", "items"],
+    externalFilters: isInitialized ? urlFilters : initialFilters,
+    onFiltersChange: updateUrlFilters,
+    autoFetch: isInitialized,
+    initialSearch,
+    enableSearch: true,
+    transformData: transformOrderData
+  });
+
+  const columnDefinitions = [
+    clickableColumnFactory({
+      field: "order_name",
+      headerName: "Order",
+      minWidth: 150,
+      link: (params) => `/dashboard/orders/${params.id}`
+    }),
+    dateColumnFactory({
+      field: "created_at",
+      headerName: "Created",
+      minWidth: 180
+    })
+  ];
+
+  return (
+    <Box sx={{ flex: 1, display: "flex", height: "100%", width: "100%", flexDirection: "column" }}>
+      <NeviosEnhancedTable
+        columns={columnDefinitions}
+        data={data}
+        loading={loading}
+        error={error}
+        totalCount={totalCount}
+        pagination={pagination}
+        onPaginationChange={handlePaginationChange}
+        sortModel={sortModel}
+        onSortChange={handleSortChange}
+        tableHeight={tableHeight}
+        enableSearch={true}
+        searchTerm={searchTerm}
+        onSearchChange={updateSearch}
+        searchPlaceholder="Search orders..."
+        // ✅ Enable filters
+        enableFilters={true}
+        filterConfigs={ORDERS_FILTER_CONFIG}
+        activeFilters={urlFilters}
+        onFiltersChange={updateUrlFilters}
+        checkboxSelection={true}
+        getRowId={(row) => row.id}
+        emptyStateProps={{
+          title: 'No orders found',
+          description: 'There are no orders to display'
+        }}
+      />
+    </Box>
+  );
+}
+```
+
+---
+
+## Quick Checklist (Updated)
+
+When creating or reviewing a table component:
+
+- [ ] Module name is singular (e.g., `'customer'` not `'customers'`)
+- [ ] No `method: 'GET'` specified (uses POST default)
+- [ ] Transform function follows naming: `transform{Module}Data`
+- [ ] Transform function validates array input
+- [ ] Standard props: `tableHeight`, `initialFilters`, `initialSearch`
+- [ ] Data includes: `id`, `{module}_name`, `created_at`, `_original`
+- [ ] First column uses `clickableColumnFactory` with detail link
+- [ ] Date columns use `formatReadableDatetime()`
+- [ ] Expands all displayed relationships
+- [ ] Descriptive search placeholder (lists searchable fields)
+- [ ] Consistent empty state messages
+- [ ] Checkbox selection enabled (for future bulk actions)
+- [ ] **Filter config file created** (if filters needed)
+- [ ] **`useUrlFilters` hook integrated** (if filters enabled)
+- [ ] **Filter IDs match API field names**
+- [ ] **Appropriate filter components used**
+- [ ] Zero linter errors
+
+---
+
 **Last Updated**: January 2026  
-**Version**: 1.0
+**Version**: 1.1
