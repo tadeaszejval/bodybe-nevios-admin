@@ -11,6 +11,7 @@ import { NeviosDatePicker, NeviosCompareDatePicker, formatDateRange } from "../.
 import { postRequest, getRequest } from "../../../utils/neviosExpress";
 import dayjs from "dayjs";
 import { ContentLoadingScreen } from "../../../components/ContentLoadingScreen";
+import { useAnalyticsUrlParams } from "../../../hooks/useAnalyticsUrlParams";
 
 const MARKET = "bodybe/czechia";
 
@@ -41,10 +42,19 @@ const formatDateRangeForDisplay = (dateRange) => {
 };
 
 export default function DashboardAnalytics() {
+  // Use URL params hook for date ranges with persistence
+  const {
+    dateRange,
+    compareDateRange,
+    compareLabel,
+    updateDateRange,
+    updateCompareDateRange,
+    updateCompareLabel,
+    isInitialized
+  } = useAnalyticsUrlParams();
+
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
-  const [dateRange, setDateRange] = useState([dayjs().subtract(7, 'day'), dayjs()]);
-  const [compareDateRange, setCompareDateRange] = useState(null);
   const [data, setData] = useState({
     revenueGross: null,
     ordersTotal: null,
@@ -85,6 +95,9 @@ export default function DashboardAnalytics() {
   };
 
   useEffect(() => {
+    // Don't fetch until URL params are initialized
+    if (!isInitialized) return;
+
     const fetchAnalyticsData = async () => {
       try {
         setLoading(true);
@@ -195,7 +208,7 @@ export default function DashboardAnalytics() {
     };
 
     fetchAnalyticsData();
-  }, [dateRange, compareDateRange]);
+  }, [dateRange, compareDateRange, isInitialized]);
 
   if (loading) {
     return <ContentLoadingScreen />;
@@ -237,7 +250,7 @@ export default function DashboardAnalytics() {
     // If no comparison data is available, return data without secondary values
     if (!compareDateRange || compareData.length === 0) {
       return currentData.map(point => ({
-        date: point.formatted_date || point.date,
+        date: point.formatted_value || point.date,
         primary: point.value || 0,
         secondary: 0, // No comparison data
         hasComparison: false
@@ -248,10 +261,10 @@ export default function DashboardAnalytics() {
     const transformedData = currentData.map((point, index) => {
       const comparePoint = compareData[index]; // Map by position, not date
       return {
-        date: point.formatted_date || point.date,
+        date: point.formatted_value || point.date,
         primary: point.value || 0,
         secondary: comparePoint?.value || 0,
-        secondaryDate: comparePoint?.formatted_date || comparePoint?.date || null,
+        secondaryDate: comparePoint?.formatted_value || comparePoint?.date || null,
         hasComparison: true
       };
     });
@@ -270,12 +283,14 @@ export default function DashboardAnalytics() {
         <Box sx={{ display: 'flex', gap: 1, alignItems: 'center' }}>
           <NeviosDatePicker
             value={dateRange}
-            onChange={setDateRange}
+            onChange={updateDateRange}
             placeholder="Select period"
           />
           <NeviosCompareDatePicker
             value={compareDateRange}
-            onChange={setCompareDateRange}
+            onChange={updateCompareDateRange}
+            label={compareLabel}
+            onLabelChange={updateCompareLabel}
             baseDateRange={dateRange}
           />
         </Box>

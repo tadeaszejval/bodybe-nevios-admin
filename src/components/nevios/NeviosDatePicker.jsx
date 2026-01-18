@@ -105,50 +105,47 @@ function CustomCalendar({ value, onChange, currentMonth, onMonthChange }) {
 				))}
 			</Grid>
 
-			{/* Calendar Days */}
-			<Grid container spacing={0}>
-				{days.map((day, index) => {
-					const isInRange = isDayInRange(day);
-					const isRangeStart = isDayRangeStart(day);
-					const isRangeEnd = isDayRangeEnd(day);
-					const isInCurrentMonth = isDayInCurrentMonth(day);
-					const isToday = day.isSame(dayjs(), 'day');
+		{/* Calendar Days */}
+		<Grid container spacing={0.5}>
+			{days.map((day, index) => {
+				const isInRange = isDayInRange(day);
+				const isRangeStart = isDayRangeStart(day);
+				const isRangeEnd = isDayRangeEnd(day);
+				const isInCurrentMonth = isDayInCurrentMonth(day);
 
-					return (
-						<Grid item xs={12/7} key={index}>
-							<Box
-								onClick={() => handleDayClick(day)}
-								sx={{
-									height: 38,
-									width: 38,
-									display: 'flex',
-									alignItems: 'center',
-									justifyContent: 'center',
-									cursor: 'pointer',
-									fontSize: '13px',
-									fontWeight: isToday ? 600 : 400,
-									color: !isInCurrentMonth ? 'gray.400' : 
-										   (isRangeStart || isRangeEnd) ? 'white' : 
-										   isInRange ? 'gray.900' : 'gray.700',
+				return (
+					<Grid item xs={12/7} key={index}>
+						<Box
+							onClick={() => handleDayClick(day)}
+							sx={{
+								height: 36,
+								width: 36,
+								display: 'flex',
+								alignItems: 'center',
+								justifyContent: 'center',
+								cursor: 'pointer',
+								fontSize: '13px',
+								fontWeight: 400,
+								color: !isInCurrentMonth ? 'gray.400' : 
+									   (isRangeStart || isRangeEnd) ? 'white' : 
+									   isInRange ? 'gray.900' : 'gray.700',
+								backgroundColor: 
+									(isRangeStart || isRangeEnd) ? 'primary.main' :
+									isInRange ? 'primary.100' : 'transparent',
+								borderRadius: '8px',
+								'&:hover': {
 									backgroundColor: 
-										(isRangeStart || isRangeEnd) ? 'primary.main' :
-										isInRange ? 'primary.50' : 'transparent',
-									borderRadius: (isRangeStart || isRangeEnd) ? '8px' : '8px',
-									border: isToday && !isInRange ? '1px solid' : 'none',
-									borderColor: isToday && !isInRange ? 'primary.200' : 'transparent',
-									'&:hover': {
-										backgroundColor: 
-											(isRangeStart || isRangeEnd) ? 'primary.dark' :
-											isInRange ? 'primary.100' : 'gray.100',
-									},
-								}}
-							>
-								{day.format('D')}
-							</Box>
-						</Grid>
-					);
-				})}
-			</Grid>
+										(isRangeStart || isRangeEnd) ? 'primary.dark' :
+										isInRange ? 'primary.100' : 'gray.100',
+								},
+							}}
+						>
+							{day.format('D')}
+						</Box>
+					</Grid>
+				);
+			})}
+		</Grid>
 		</Box>
 	);
 }
@@ -498,12 +495,16 @@ export function NeviosDatePicker({
  * @param {Function} props.onChange - Callback when comparison changes
  * @param {Array} props.baseDateRange - The primary date range to compare against
  * @param {boolean} props.disabled - Whether the picker is disabled
+ * @param {string} props.label - Optional label to display instead of dates (e.g., "Previous period")
+ * @param {Function} props.onLabelChange - Callback when label changes
  */
 export function NeviosCompareDatePicker({
 	value = null,
 	onChange,
 	baseDateRange = [dayjs().subtract(7, 'day'), dayjs()],
 	disabled = false,
+	label = null,
+	onLabelChange,
 	...props
 }) {
 	const dateDisclosure = useDisclosure({
@@ -512,6 +513,7 @@ export function NeviosCompareDatePicker({
 
 	const [currentMonth, setCurrentMonth] = React.useState(dayjs());
 	const [tempValue, setTempValue] = React.useState(value);
+	const [tempLabel, setTempLabel] = React.useState(label);
 
 	// Generate comparison presets based on the base date range
 	const getComparisonPresets = () => {
@@ -571,28 +573,40 @@ export function NeviosCompareDatePicker({
 	const handlePresetClick = (preset) => {
 		const newValue = preset.getValue();
 		setTempValue(newValue);
+		setTempLabel(preset.label);
 	};
 
 	const handleCalendarChange = (newValue) => {
 		setTempValue(newValue);
+		// When manually selecting dates, clear the label so dates show
+		setTempLabel(null);
 	};
 
 	const handleApply = () => {
 		onChange?.(tempValue);
+		onLabelChange?.(tempLabel);
 		dateDisclosure.onClose();
 	};
 
 	const handleCancel = () => {
 		setTempValue(value);
+		setTempLabel(label);
 		dateDisclosure.onClose();
 	};
 
-	// Update tempValue when value prop changes
+	// Update tempValue and tempLabel when props change
 	React.useEffect(() => {
 		setTempValue(value);
-	}, [value]);
+		setTempLabel(label);
+	}, [value, label]);
 
 	const formatComparisonRange = () => {
+		// If there's a label, show it
+		if (label) {
+			return label;
+		}
+
+		// Otherwise, show the date range
 		if (!value || !value[0] || !value[1]) {
 			return "No comparison";
 		}

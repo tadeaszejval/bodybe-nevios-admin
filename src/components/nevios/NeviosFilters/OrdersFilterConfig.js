@@ -3,6 +3,7 @@ import { FilterSelect } from './FilterSelect';
 import { FilterMultipleSelect } from './FilterMultipleSelect';
 import { FilterProductSelect } from './FilterProductSelect';
 import { FilterContains } from './FilterContains';
+import { FilterDateRange } from './FilterDateRange';
 
 /**
  * Orders Filter Configuration
@@ -20,6 +21,15 @@ const FULFILLMENT_STATUS_OPTIONS = [
   { value: 'FULFILLED', label: 'Fulfilled' },
   { value: 'UNFULFILLED', label: 'Unfulfilled' },
   { value: 'PARTIALLY_FULFILLED', label: 'Partially Fulfilled' }
+];
+
+// Inventory Status Filter Options
+const INVENTORY_STATUS_OPTIONS = [
+  { value: 'PENDING', label: 'Pending' },
+  { value: 'AVAILABLE', label: 'Available' },
+  { value: 'PARTIAL', label: 'Partial' },
+  { value: 'BACKORDERED', label: 'Backordered' },
+  { value: 'ERROR', label: 'Error' }
 ];
 
 // Currency Filter Options
@@ -40,12 +50,23 @@ const CURRENCY_OPTIONS = [
  */
 export const ORDERS_FILTER_CONFIG = [
   {
+    id: 'created_at',
+    label: 'Order Date',
+    component: FilterDateRange,
+    props: {
+      fromLabel: 'From Date',
+      toLabel: 'To Date',
+      fieldPrefix: 'created_at'
+    }
+  },
+  {
     id: 'local_currency',
     label: 'Currency',
-    component: FilterSelect,
+    component: FilterMultipleSelect,
     options: CURRENCY_OPTIONS,
     props: {
-      placeholder: 'All currencies'
+      placeholder: 'All currencies',
+      maxDisplayChips: 2
     }
   },
   {
@@ -65,6 +86,16 @@ export const ORDERS_FILTER_CONFIG = [
     options: FULFILLMENT_STATUS_OPTIONS,
     props: {
       placeholder: 'All fulfillment statuses',
+      maxDisplayChips: 2
+    }
+  },
+  {
+    id: 'inventory_status',
+    label: 'Inventory Status',
+    component: FilterMultipleSelect,
+    options: INVENTORY_STATUS_OPTIONS,
+    props: {
+      placeholder: 'All inventory statuses',
       maxDisplayChips: 2
     }
   },
@@ -92,5 +123,6 @@ export const ORDERS_FILTER_CONFIG = [
 export {
   PAYMENT_STATUS_OPTIONS,
   FULFILLMENT_STATUS_OPTIONS,
+  INVENTORY_STATUS_OPTIONS,
   CURRENCY_OPTIONS
 }; 

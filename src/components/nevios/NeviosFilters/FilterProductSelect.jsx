@@ -204,6 +204,7 @@ export function FilterProductSelect({
           PaperProps: {
             sx: {
               maxHeight: 400,
+              maxWidth: 400,
               '& .MuiList-root': {
                 paddingTop: 0
               }

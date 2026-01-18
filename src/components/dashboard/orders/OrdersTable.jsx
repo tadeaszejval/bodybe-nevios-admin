@@ -11,6 +11,7 @@ import { NeviosEnhancedTable } from "../../nevios/NeviosEnhancedTable";
 import { formatReadableDatetime, formatCurrencyNumber } from "../../../core/formatters";
 import { NeviosBadge } from "../../nevios/NeviosBadge";
 import { useModuleQuery } from "../../../hooks/useModuleQuery";
+import { useUrlFilters } from "../../../hooks/useUrlFilters";
 import { ORDERS_FILTER_CONFIG } from "../../nevios/NeviosFilters/OrdersFilterConfig";
 
 export function OrdersTable({ 
@@ -18,6 +19,8 @@ export function OrdersTable({
 	initialFilters = {},
 	initialSearch = ""
 }) {
+	// Use URL filters hook for persistence
+	const { filters: urlFilters, updateFilters: updateUrlFilters, isInitialized } = useUrlFilters(initialFilters);
 	// Transform raw order data to table format
 	const transformOrderData = useCallback((orders) => {
 		return orders.map(order => ({
@@ -39,7 +42,7 @@ export function OrdersTable({
 		}));
 	}, []);
 
-	// Use the module query hook
+	// Use the module query hook with URL-synced filters
 	const {
 		data,
 		loading,
@@ -56,10 +59,12 @@ export function OrdersTable({
 		updateSearch
 	} = useModuleQuery('order', {
 		expand: ["customer", "shipping_method", "items"],
-		initialFilters,
+		externalFilters: isInitialized ? urlFilters : initialFilters,
+		onFiltersChange: updateUrlFilters,
 		initialSearch,
 		enableSearch: true,
-		transformData: transformOrderData
+		transformData: transformOrderData,
+		autoFetch: isInitialized // Only fetch after URL filters are initialized
 	});
 
 	const columnDefinitions = [

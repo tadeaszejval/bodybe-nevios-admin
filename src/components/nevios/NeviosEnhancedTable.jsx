@@ -82,8 +82,16 @@ export function NeviosEnhancedTable({
   const theme = useTheme();
   const matchesSmBreakpoint = useMediaQuery(theme.breakpoints.up("sm"));
   
-  // Filter bar visibility state
-  const [showFiltersBar, setShowFiltersBar] = React.useState(false);
+  // Filter bar visibility state - auto-open if there are active filters
+  const hasActiveFilters = Object.keys(activeFilters).length > 0;
+  const [showFiltersBar, setShowFiltersBar] = React.useState(hasActiveFilters);
+  
+  // Auto-open filter bar when filters are loaded from URL
+  React.useEffect(() => {
+    if (hasActiveFilters) {
+      setShowFiltersBar(true);
+    }
+  }, [hasActiveFilters]);
   
   // Internal row selection state (fallback if not controlled externally)
   const [internalRowSelection, setInternalRowSelection] = React.useState([]);

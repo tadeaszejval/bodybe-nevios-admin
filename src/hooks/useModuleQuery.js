@@ -31,6 +31,8 @@ const GLOBAL_PAGE_SIZE = 50;
  * @param {Object} options - Configuration options
  * @param {Array} options.expand - Related records to expand (default: [])
  * @param {Object} options.initialFilters - Initial filters to apply (default: {})
+ * @param {Object} options.externalFilters - External filter state (for URL sync)
+ * @param {Function} options.onFiltersChange - External filter change handler (for URL sync)
  * @param {string} options.initialSearch - Initial search term (default: "")
  * @param {boolean} options.enableSearch - Whether search is enabled (default: false)
  * @param {string} options.defaultOrderBy - Default sort column (default: 'created_at')
@@ -45,6 +47,8 @@ export function useModuleQuery(module, options = {}) {
   const {
     expand = [],
     initialFilters = {},
+    externalFilters = null,
+    onFiltersChange = null,
     initialSearch = "",
     enableSearch = false,
     defaultOrderBy = 'created_at',
@@ -69,7 +73,11 @@ export function useModuleQuery(module, options = {}) {
     field: defaultOrderBy, 
     sort: defaultAscending ? 'asc' : 'desc' 
   }]);
-  const [filters, setFilters] = useState(initialFilters);
+  // Use external filters if provided, otherwise use internal state
+  const [internalFilters, setInternalFilters] = useState(initialFilters);
+  const filters = externalFilters !== null ? externalFilters : internalFilters;
+  const setFilters = onFiltersChange !== null ? onFiltersChange : setInternalFilters;
+  
   const [searchTerm, setSearchTerm] = useState(initialSearch);
   const [debouncedSearchTerm, setDebouncedSearchTerm] = useState(initialSearch);
 
@@ -157,8 +165,8 @@ export function useModuleQuery(module, options = {}) {
           orderBy,
           ascending,
           ...(expand.length > 0 && { expand }),
-          // Spread filters directly into the request body (not nested)
-          ...filters,
+          // Wrap filters in a filters object if they exist
+          ...(Object.keys(filters).length > 0 && { filters }),
           ...(enableSearch && debouncedSearchTerm?.trim() && { search: debouncedSearchTerm.trim() })
         };
 
@@ -168,8 +176,6 @@ export function useModuleQuery(module, options = {}) {
             delete requestBody[key];
           }
         });
-
-        console.log(`[useModuleQuery] ${module} POST request body:`, requestBody);
 
         response = await fetch(`${API_BASE_URL}/server/${module}/query`, {
           method: 'POST',

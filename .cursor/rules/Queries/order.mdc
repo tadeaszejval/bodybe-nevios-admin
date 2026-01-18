@@ -1,0 +1,412 @@
+---
+description: Orders Query API for order management and tracking
+globs: 
+alwaysApply: false
+---
+
+# Orders Query API
+
+## Endpoint
+
+**POST** `/server/order/query`
+
+## Description
+
+Query orders with advanced filtering, pagination, sorting, expansion of related records (customer, items), and multi-field search. This endpoint supports special filters for product-based queries and is optimized for order management dashboards, sales reporting, and customer order history.
+
+## Request Parameters
+
+### Request Body (JSON)
+
+**Pagination & Sorting:**
+- `page` (integer): Page number (default: 1)
+- `limit` (integer): Records per page (default: 50, max: 100)
+- `orderBy` (string): Column to sort by (default: 'created_at')
+- `ascending` (boolean): Sort order (default: false)
+
+**Search:**
+- `search` (string): Search term for multi-field search across:
+  - Order: name, payment_status, fulfillment_status, currencies
+  - Customer: full_name, email, phone, first_name, last_name
+  - Items: product_title, sku
+
+**Expansion:**
+- `expand` (array): Array of relations to expand
+  - `customer` - Include customer details
+  - `items` - Include order items
+
+**Order Filters (in `filters` object):**
+- `customer` (string): Filter by customer UUID
+- `payment_status` (string): Filter by payment status (UNPAID, PAID, PARTIALLY_PAID, REFUNDED)
+- `fulfillment_status` (string): Filter by fulfillment status (UNFULFILLED, PARTIAL, FULFILLED)
+- `inventory_status` (string): Filter by inventory status (PENDING, AVAILABLE, PARTIAL, BACKORDERED, ERROR)
+- `status` (string): Filter by order status (ACTIVE, HOLD, ARCHIVED, CANCELLED)
+- `products` (array): Filter by product UUIDs (orders containing these products)
+- `product_variant` (string): Filter by variant title (partial match)
+- `created_at_from` (string): Filter orders created on or after this date (YYYY-MM-DD format)
+- `created_at_to` (string): Filter orders created on or before this date (YYYY-MM-DD format)
+
+## Common Use Cases
+
+### 1. All Orders List
+```bash
+curl -X POST "http://localhost:3010/api/server/order/query" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "page": 1,
+    "limit": 50
+  }'
+```
+
+### 2. Search by Order Number
+```bash
+curl -X POST "http://localhost:3010/api/server/order/query" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "search": "150000000001"
+  }'
+```
+
+### 3. Customer Orders
+```bash
+curl -X POST "http://localhost:3010/api/server/order/query" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "filters": {
+      "customer": "customer-uuid"
+    },
+    "expand": ["items"]
+  }'
+```
+
+### 4. Unpaid Orders
+```bash
+curl -X POST "http://localhost:3010/api/server/order/query" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "filters": {
+      "payment_status": "UNPAID"
+    },
+    "expand": ["customer"]
+  }'
+```
+
+### 5. Orders with Specific Product
+```bash
+curl -X POST "http://localhost:3010/api/server/order/query" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "filters": {
+      "products": ["product-uuid-1", "product-uuid-2"]
+    },
+    "expand": ["customer", "items"]
+  }'
+```
+
+### 6. Unfulfilled Orders
+```bash
+curl -X POST "http://localhost:3010/api/server/order/query" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "filters": {
+      "fulfillment_status": "UNFULFILLED"
+    },
+    "expand": ["customer"]
+  }'
+```
+
+### 7. Search by Customer Name
+```bash
+curl -X POST "http://localhost:3010/api/server/order/query" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "search": "John Doe",
+    "expand": ["items"]
+  }'
+```
+
+### 8. Recent Orders
+```bash
+curl -X POST "http://localhost:3010/api/server/order/query" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "orderBy": "created_at",
+    "ascending": false,
+    "limit": 20,
+    "expand": ["customer"]
+  }'
+```
+
+### 9. Active Orders Only
+```bash
+curl -X POST "http://localhost:3010/api/server/order/query" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "filters": {
+      "status": "ACTIVE"
+    },
+    "expand": ["customer"]
+  }'
+```
+
+### 10. Orders Created in Date Range
+```bash
+curl -X POST "http://localhost:3010/api/server/order/query" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "filters": {
+      "created_at_from": "2026-01-01",
+      "created_at_to": "2026-01-31"
+    },
+    "expand": ["customer"]
+  }'
+```
+
+### 11. Orders Created After Specific Date
+```bash
+curl -X POST "http://localhost:3010/api/server/order/query" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "filters": {
+      "created_at_from": "2026-01-15"
+    },
+    "expand": ["customer", "items"]
+  }'
+```
+
+### 12. Orders Created Before Specific Date
+```bash
+curl -X POST "http://localhost:3010/api/server/order/query" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "filters": {
+      "created_at_to": "2025-12-31"
+    },
+    "expand": ["customer"]
+  }'
+```
+
+### 10. Archived Orders
+```bash
+curl -X POST "http://localhost:3010/api/server/order/query" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "filters": {
+      "status": "ARCHIVED"
+    },
+    "limit": 100
+  }'
+```
+
+### 11. Cancelled Orders
+```bash
+curl -X POST "http://localhost:3010/api/server/order/query" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "filters": {
+      "status": "CANCELLED"
+    },
+    "limit": 100
+  }'
+```
+
+### 12. Orders on Hold
+```bash
+curl -X POST "http://localhost:3010/api/server/order/query" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "filters": {
+      "status": "HOLD"
+    },
+    "expand": ["customer", "items"]
+  }'
+```
+
+### 13. Orders with Backordered Items
+```bash
+curl -X POST "http://localhost:3010/api/server/order/query" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "filters": {
+      "inventory_status": "BACKORDERED"
+    },
+    "expand": ["customer"]
+  }'
+```
+
+### 14. Orders with Inventory Available
+```bash
+curl -X POST "http://localhost:3010/api/server/order/query" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "filters": {
+      "inventory_status": "AVAILABLE",
+      "payment_status": "PAID"
+    },
+    "expand": ["items"]
+  }'
+```
+
+### 15. Orders with Partial Inventory
+```bash
+curl -X POST "http://localhost:3010/api/server/order/query" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "filters": {
+      "inventory_status": "PARTIAL"
+    },
+    "limit": 50
+  }'
+```
+
+## Response Format
+
+### Success Response (200 OK)
+```json
+{
+  "success": true,
+  "data": [
+    {
+      "id": "order-uuid",
+      "name": "#1001",
+      "customer": {
+        "id": "customer-uuid",
+        "full_name": "John Doe",
+        "email": "john@example.com"
+      },
+      "payment_status": "PAID",
+      "fulfillment_status": "FULFILLED",
+      "total_price": 1250.00,
+      "currency": "CZK",
+      "created_at": "2024-01-15T10:00:00Z",
+      "order_item": [
+        {
+          "id": "item-uuid",
+          "product_title": "Product Name",
+          "variant_title": "Size M",
+          "quantity": 1,
+          "price": 1250.00
+        }
+      ]
+    }
+  ],
+  "pagination": {
+    "currentPage": 1,
+    "totalPages": 1,
+    "totalRecords": 1,
+    "recordsPerPage": 50,
+    "hasNextPage": false,
+    "hasPreviousPage": false,
+    "recordsOnCurrentPage": 1
+  }
+}
+```
+
+## Dashboard Integration Examples
+
+### React Example - Orders List
+```typescript
+const fetchOrders = async (page: number = 1) => {
+  const response = await fetch(
+    'http://localhost:3010/api/server/order/query',
+    {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        page,
+        limit: 25,
+        expand: ['customer'],
+        orderBy: 'created_at',
+        ascending: false
+      })
+    }
+  );
+  const data = await response.json();
+  return data.success ? { orders: data.data, pagination: data.pagination } : null;
+};
+```
+
+### React Example - Pending Orders
+```typescript
+const fetchPendingOrders = async () => {
+  const response = await fetch(
+    'http://localhost:3010/api/server/order/query',
+    {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        filters: { payment_status: 'UNPAID' },
+        expand: ['customer']
+      })
+    }
+  );
+  const data = await response.json();
+  return data.success ? data.data : [];
+};
+```
+
+## Related Endpoints
+
+- **Retrieve by ID**: `GET /server/order/retrieve/:id`
+- **Create Order**: `POST /server/order/create`
+- **Modify Order**: `PUT /server/order/modify/:id`
+- **Apply Discount**: `POST /server/order/:id`
+- **Print Order**: `GET /server/order/print/:id`
+
+## Filter Combinations
+
+### Scenario: "Unpaid orders"
+```json
+{
+  "filters": { "payment_status": "UNPAID" },
+  "expand": ["customer"],
+  "orderBy": "created_at",
+  "ascending": true
+}
+```
+
+### Scenario: "Orders to fulfill"
+```json
+{
+  "filters": {
+    "payment_status": "PAID",
+    "fulfillment_status": "UNFULFILLED"
+  },
+  "expand": ["customer", "items"]
+}
+```
+
+### Scenario: "Product sales report"
+```json
+{
+  "filters": {
+    "products": ["product-uuid"]
+  },
+  "expand": ["customer", "items"]
+}
+```
+
+### Scenario: "Active unpaid orders"
+```json
+{
+  "filters": {
+    "status": "ACTIVE",
+    "payment_status": "UNPAID"
+  },
+  "expand": ["customer"],
+  "orderBy": "created_at",
+  "ascending": true
+}
+```
+
+### Scenario: "Orders on hold requiring review"
+```json
+{
+  "filters": {
+    "status": "HOLD",
+    "payment_status": "PAID"
+  },
+  "expand": ["customer", "items"]
+}
+```
+
