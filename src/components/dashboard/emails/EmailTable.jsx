@@ -8,7 +8,7 @@ import {
 } from "../../../components/ColumnDefinitions";
 import { NeviosEnhancedTable } from "../../nevios/NeviosEnhancedTable";
 import { formatReadableDatetime } from "../../../core/formatters";
-import { EmailStatusBadge } from "./EmailStatusBadge";
+import { NeviosBadge } from "../../nevios/NeviosBadge";
 import { useModuleQuery } from "../../../hooks/useModuleQuery";
 import { EMAILS_FILTER_CONFIG } from "../../nevios/NeviosFilters/EmailsFilterConfig";
 
@@ -93,7 +93,7 @@ export function EmailTable({
 						alignItems: "center",
 					}}
 				>
-					<EmailStatusBadge status={params.value} />
+					<NeviosBadge value={params.value} configKey="emailStatus" />
 				</Box>
 			),
 		}),

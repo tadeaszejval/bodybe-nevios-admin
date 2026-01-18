@@ -16,7 +16,7 @@ import {
 	TbCategory
  } from "react-icons/tb";
 import { z } from "zod";
-import { StatusBadge } from "../components/StatusBadge";
+import { NeviosBadge } from "../components/nevios/NeviosBadge";
 import { formatAbbreviatedNumber, formatCurrencyNumber } from "./formatters";
 const operatorsSchema = z.union([
 	z.literal("contains"),
@@ -186,8 +186,10 @@ export const FILTER_FIELDS = {
 		description: "Filter by status.",
 		valueRenderer: (value, operatorType) => {
 			return (
-				<StatusBadge
-					status={value}
+				<NeviosBadge
+					value={value}
+					configKey="generalStatus"
+					showDot={true}
 					customSx={{
 						gap: 0.25,
 						pl: 0,

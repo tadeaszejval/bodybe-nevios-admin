@@ -9,8 +9,7 @@ import {
 } from "../../../components/ColumnDefinitions";
 import { NeviosEnhancedTable } from "../../nevios/NeviosEnhancedTable";
 import { formatReadableDatetime, formatCurrencyNumber } from "../../../core/formatters";
-import { DocumentStatusBadge } from "./DocumentStatusBadge";
-import { DocumentTypeBadge } from "./DocumentTypeBadge";
+import { NeviosBadge } from "../../nevios/NeviosBadge";
 import { useModuleQuery } from "../../../hooks/useModuleQuery";
 import { DOCUMENTS_FILTER_CONFIG } from "../../nevios/NeviosFilters/DocumentsFilterConfig";
 import { CenterFocusStrong } from "@mui/icons-material";
@@ -117,7 +116,7 @@ export function DocumentsTable({
 						alignItems: "center",
 					}}
 				>
-					<DocumentTypeBadge type={params.value} />
+					<NeviosBadge value={params.value} configKey="documentType" />
 				</Box>
 			),
 		}),

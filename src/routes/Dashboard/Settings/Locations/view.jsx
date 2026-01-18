@@ -9,7 +9,6 @@ import { NeviosBlockGroup } from "../../../../components/nevios/NeviosBlockGroup
 import { TbMap, TbMapPin, TbBuildingStore, TbPencil, TbTruck, TbPackage } from "react-icons/tb";
 import { ContentLoadingScreen } from "../../../../components/ContentLoadingScreen";
 import { retrieveLocations, modifyLocation } from "../../../../../actions/settings/locations";
-import { LocationStatusBadge } from "../../../../components/dashboard/settings/locations/statusBadge";
 import { NeviosToggle } from "../../../../components/nevios/NeviosToggle";
 import EditLocationNamePopup from "../../../../components/dashboard/settings/locations/EditLocationNamePopup";
 import EditLocationAddressPopup from "../../../../components/dashboard/settings/locations/EditLocationAddressPopup";

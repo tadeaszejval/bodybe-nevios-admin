@@ -8,8 +8,7 @@ import {
 } from "../../../components/ColumnDefinitions";
 import { NeviosEnhancedTable } from "../../nevios/NeviosEnhancedTable";
 import { formatReadableDatetime } from "../../../core/formatters";
-import { FulfillmentStatusBadge } from "./FulfillmentStatusBadge";
-import { DeliveryStatusBadge } from "./DeliveryStatusBadge";
+import { NeviosBadge } from "../../nevios/NeviosBadge";
 import { useModuleQuery } from "../../../hooks/useModuleQuery";
 import { FULFILLMENTS_FILTER_CONFIG } from "../../nevios/NeviosFilters/FulfillmentsFilterConfig";
 import { TbExternalLink } from "react-icons/tb";
@@ -198,7 +197,7 @@ export function FulfillmentTable({
 						alignItems: "center",
 					}}
 				>
-					<FulfillmentStatusBadge value={params.value} />
+					<NeviosBadge value={params.value} configKey="fulfillmentModuleStatus" />
 				</Box>
 			),
 		}),
@@ -217,7 +216,7 @@ export function FulfillmentTable({
 						alignItems: "center",
 					}}
 				>
-					<DeliveryStatusBadge value={params.value} />
+					<NeviosBadge value={params.value} configKey="deliveryStatus" />
 				</Box>
 			),
 		}),

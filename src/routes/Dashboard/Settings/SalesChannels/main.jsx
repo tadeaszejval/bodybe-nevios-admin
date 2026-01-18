@@ -8,7 +8,7 @@ import { NeviosTable } from "../../../../components/nevios/NeviosTable";
 import { NeviosPrimaryButton } from "../../../../components/nevios/NeviosButtons";
 import { TbShoppingCart, TbPlus } from "react-icons/tb";
 import { useModuleQuery } from "../../../../hooks/useModuleQuery";
-import { SalesChannelTypeBadge } from "../../../../components/dashboard/settings/sales-channels/SalesChannelTypeBadge";
+import { NeviosBadge } from "../../../../components/nevios/NeviosBadge";
 
 export default function DashboardSalesChannels() {
 	const router = useRouter();
@@ -55,7 +55,7 @@ export default function DashboardSalesChannels() {
 						alignItems: "center",
 					}}
 				>
-					<SalesChannelTypeBadge type={params.value || "OTHER"} />
+					<NeviosBadge value={params.value || "OTHER"} configKey="salesChannelType" />
 				</Box>
 			),
 		},

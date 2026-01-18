@@ -9,7 +9,7 @@ import {
 import { NeviosEnhancedTable } from "../../nevios/NeviosEnhancedTable";
 import { formatReadableDatetime } from "../../../core/formatters";
 import { GenderBadge } from "./GenderBadge";
-import { AccountStatusBadge } from "./AccountStatusBadge";
+import { NeviosBadge } from "../../nevios/NeviosBadge";
 import { SubscribedBadge } from "./SubscribedBadge";
 import { useModuleQuery } from "../../../hooks/useModuleQuery";
 import { CUSTOMERS_FILTER_CONFIG } from "../../nevios/NeviosFilters/CustomersFilterConfig";
@@ -119,7 +119,7 @@ export function CustomersTable({
 						alignItems: "center",
 					}}
 				>
-					<AccountStatusBadge value={params.value} />
+					<NeviosBadge value={params.value} configKey="customerAccountStatus" />
 				</Box>
 			),
 		}),

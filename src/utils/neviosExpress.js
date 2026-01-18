@@ -1,4 +1,23 @@
+import { getAccessToken } from './authApi';
+
 const API_BASE_URL = process.env.NEXT_PUBLIC_NEVIOS_EXPRESS_URL;
+
+/**
+ * Get authorization headers with JWT token
+ * @returns {Object} Headers object with Authorization if token exists
+ */
+const getAuthHeaders = () => {
+  const token = getAccessToken();
+  const headers = {
+    'Content-Type': 'application/json',
+  };
+  
+  if (token) {
+    headers['Authorization'] = `Bearer ${token}`;
+  }
+  
+  return headers;
+};
 
 /**
  * Make a GET request to the API
@@ -27,9 +46,7 @@ export const getRequest = async (endpoint, queryParams = {}) => {
 
     const response = await fetch(url.toString(), {
       method: 'GET',
-      headers: {
-        'Content-Type': 'application/json',
-      },
+      headers: getAuthHeaders(),
     });
 
     if (!response.ok) {
@@ -53,9 +70,7 @@ export const postRequest = async (endpoint, data = {}) => {
   try {
     const response = await fetch(`${API_BASE_URL}${endpoint}`, {
       method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
+      headers: getAuthHeaders(),
       body: JSON.stringify(data),
     });
 
@@ -80,9 +95,7 @@ export const putRequest = async (endpoint, data = {}) => {
   try {
     const response = await fetch(`${API_BASE_URL}${endpoint}`, {
       method: 'PUT',
-      headers: {
-        'Content-Type': 'application/json',
-      },
+      headers: getAuthHeaders(),
       body: JSON.stringify(data),
     });
 
@@ -107,9 +120,7 @@ export const patchRequest = async (endpoint, data = {}) => {
   try {
     const response = await fetch(`${API_BASE_URL}${endpoint}`, {
       method: 'PATCH',
-      headers: {
-        'Content-Type': 'application/json',
-      },
+      headers: getAuthHeaders(),
       body: JSON.stringify(data),
     });
 
@@ -133,9 +144,7 @@ export const deleteRequest = async (endpoint) => {
   try {
     const response = await fetch(`${API_BASE_URL}${endpoint}`, {
       method: 'DELETE',
-      headers: {
-        'Content-Type': 'application/json',
-      },
+      headers: getAuthHeaders(),
     });
 
     if (!response.ok) {
@@ -179,21 +188,21 @@ export const apiEndpoints = {
 /**
  * Example usage:
  * 
- * // Get customers list
+ * // Get customers list (with auth)
  * const customers = await getRequest(apiEndpoints.customers.list);
  * 
- * // Create a customer
+ * // Create a customer (with auth)
  * const newCustomer = await postRequest(apiEndpoints.customers.create, {
  *   firstName: 'John',
  *   lastName: 'Doe',
  *   email: 'john@example.com',
  * });
  * 
- * // Update a customer
+ * // Update a customer (with auth)
  * const updatedCustomer = await putRequest(apiEndpoints.customers.update(123), {
  *   firstName: 'Jane',
  * });
  * 
- * // Delete a customer
+ * // Delete a customer (with auth)
  * await deleteRequest(apiEndpoints.customers.delete(123));
  */

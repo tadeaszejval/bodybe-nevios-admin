@@ -1,7 +1,25 @@
 "use client";
 import { useState, useEffect, useCallback, useMemo } from "react";
+import { getAccessToken } from "../utils/authApi";
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_NEVIOS_EXPRESS_URL || 'http://localhost:3001/api';
+
+/**
+ * Get authorization headers with JWT token
+ * @returns {Object} Headers object with Authorization if token exists
+ */
+const getAuthHeaders = () => {
+  const token = getAccessToken();
+  const headers = {
+    'Content-Type': 'application/json',
+  };
+  
+  if (token) {
+    headers['Authorization'] = `Bearer ${token}`;
+  }
+  
+  return headers;
+};
 
 // Global pagination settings
 const GLOBAL_PAGE_SIZE = 50;
@@ -129,9 +147,7 @@ export function useModuleQuery(module, options = {}) {
 
         response = await fetch(url, {
           method: 'GET',
-          headers: {
-            'Content-Type': 'application/json',
-          }
+          headers: getAuthHeaders()
         });
       } else {
         // For POST requests (default behavior)
@@ -157,9 +173,7 @@ export function useModuleQuery(module, options = {}) {
 
         response = await fetch(`${API_BASE_URL}/server/${module}/query`, {
           method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
+          headers: getAuthHeaders(),
           body: JSON.stringify(requestBody)
         });
       }

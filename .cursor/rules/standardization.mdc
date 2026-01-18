@@ -1,0 +1,568 @@
+---
+alwaysApply: true
+---
+# Module Table Standardization Rules
+
+## About This Dashboard
+
+**Nevios Admin Dashboard** is the administrative interface for the Nevios e-commerce platform. It's built with:
+
+- **Frontend**: Next.js 14 (App Router) + React + Material-UI
+- **Backend**: Express.js REST API (Nevios Express)
+- **Database**: PostgreSQL via Supabase
+- **Authentication**: JWT-based authentication with Express backend
+
+### Purpose
+
+This dashboard provides staff users (admins, managers, customer care) with tools to manage:
+
+- **Orders** - View, create, modify, and fulfill customer orders
+- **Customers** - Manage customer accounts, addresses, and order history
+- **Products** - Create and manage product catalog, variants, inventory
+- **Inventory** - Track stock levels across locations and variants
+- **Payments** - View payment transactions and statuses
+- **Fulfillments** - Manage order fulfillment and shipping
+- **Documents** - Generate and view invoices, receipts, packing slips
+- **Emails** - Track customer communications and transactional emails
+- **Analytics** - Business insights and reporting (coming soon)
+- **Settings** - Configure store settings, locations, shipping, integrations
+
+### Architecture
+
+**Data Flow:**
+```
+Frontend (Next.js) 
+  → JWT Auth Token 
+    → Express API (/api/server/*)
+      → PostgreSQL (via Supabase)
+        → Response Data
+          → Frontend Tables/Views
+```
+
+**Key Features:**
+- 🔐 Role-based access control (admin, manager, customer_care, etc.)
+- 📊 Advanced filtering, sorting, and searching on all tables
+- 🔄 Real-time data updates and pagination
+- 📱 Responsive design for mobile and desktop
+- 🎨 **Nevios Design System** - Custom component library for consistency
+- ⚡ Optimized performance with React hooks and callbacks
+- 🔍 Full-text search across all major entities
+
+### Tech Stack Details
+
+**Frontend:**
+- Next.js 14 (App Router pattern)
+- React 18 with hooks
+- **Nevios Component Library** (primary UI components)
+  - NeviosEnhancedTable, NeviosFilters, NeviosButtons
+  - NeviosInput, NeviosFormPaper, NeviosBadge
+  - Custom-built for consistency and scalability
+- Material-UI (MUI) v5 (foundation/base components)
+- Recharts for analytics
+- Framer Motion for animations
+- Day.js for date handling
+
+**API Communication:**
+- REST endpoints via Express backend
+- JWT token authentication (Bearer token in Authorization header)
+- Automatic token refresh
+- Error handling and loading states
+
+**State Management:**
+- React Context for auth state
+- Custom hooks for data fetching (`useModuleQuery`)
+- Local state for UI interactions
+
+**Design System:**
+- **Nevios component library** (primary components - always use these first)
+  - Tables: NeviosEnhancedTable
+  - Forms: NeviosInput, NeviosFormPaper, NeviosFormContainer
+  - Buttons: NeviosPrimaryButton, NeviosSecondaryButton, NeviosDangerButton
+  - Filters: NeviosFilters with modular filter configs
+  - Badges: NeviosBadge with semantic status colors
+  - UI: NeviosGroupButton, NeviosCopyBlock, NeviosPaginationButtons
+- Material-UI (MUI) for base components (Box, Typography, Stack, etc.)
+- Consistent badge system for statuses
+- Reusable form components
+- Overlay system for settings and modals
+
+This dashboard is designed to be maintainable, scalable, and follow consistent patterns across all modules.
+
+---
+
+## Standardization Rules
+
+This section defines the standard patterns for creating module tables/lists in the admin dashboard.
+
+---
+
+## 1. Module Names
+
+**Always use SINGULAR form** for module names in `useModuleQuery()`:
+
+```javascript
+// ✅ CORRECT
+useModuleQuery('customer', {...})
+useModuleQuery('order', {...})
+useModuleQuery('product', {...})
+useModuleQuery('email', {...})
+useModuleQuery('payment', {...})
+useModuleQuery('fulfillment', {...})
+useModuleQuery('document', {...})
+useModuleQuery('discount', {...})
+useModuleQuery('inventory', {...})
+
+// ❌ WRONG - Don't use plural
+useModuleQuery('customers', {...})
+useModuleQuery('orders', {...})
+useModuleQuery('emails', {...})
+```
+
+---
+
+## 2. HTTP Methods
+
+**Always use POST** for all query endpoints (default behavior):
+
+```javascript
+// ✅ CORRECT - No method specified (defaults to POST)
+useModuleQuery('order', {
+  expand: ["customer"],
+  initialFilters,
+  initialSearch,
+  enableSearch: true,
+  transformData: transformOrderData
+});
+
+// ❌ WRONG - Don't specify GET
+useModuleQuery('inventory', {
+  method: 'GET', // ❌ Remove this
+  ...
+});
+```
+
+**Why POST?**
+- No URL length limitations
+- Better for complex filter objects
+- Consistent across all endpoints
+- Better for sensitive data
+
+---
+
+## 3. Transform Function Naming
+
+**Pattern**: `transform{SingularModuleName}Data`
+
+```javascript
+// ✅ CORRECT - Singular module name + Data
+const transformOrderData = useCallback((orders) => {
+  return orders.map(order => ({
+    id: order.id,
+    order_name: order.name,
+    // ... other fields
+    _original: order
+  }));
+}, []);
+
+const transformCustomerData = useCallback((customers) => { ... });
+const transformProductData = useCallback((products) => { ... });
+const transformPaymentData = useCallback((payments) => { ... });
+
+// ❌ WRONG
+const transformOrdersData = useCallback(...);  // Plural
+const transformBankData = useCallback(...);     // Too generic
+const transform_order_data = useCallback(...);  // Wrong casing
+```
+
+**Requirements**:
+- Must be wrapped in `useCallback()`
+- Must validate array input
+- Must include `_original: record` in output
+
+---
+
+## 4. Component Props Structure
+
+**All table components must have these standard props**:
+
+```javascript
+export function ModuleTable({ 
+  tableHeight,           // Required - height for the table
+  initialFilters = {},   // Required - default to empty object
+  initialSearch = ""     // Required - default to empty string
+}) {
+  // Implementation
+}
+```
+
+**Optional props** (only add when needed):
+```javascript
+export function ModuleTable({ 
+  tableHeight,
+  initialFilters = {},
+  initialSearch = "",
+  onRowClick,      // Optional - custom row click handler
+  customActions    // Optional - additional actions
+}) {
+  // Implementation
+}
+```
+
+---
+
+## 5. Data Field Naming
+
+**Standard fields in transformed data**:
+
+```javascript
+const transformOrderData = useCallback((orders) => {
+  return orders.map(order => ({
+    // ✅ Primary key - always 'id'
+    id: order.id,
+    
+    // ✅ Main display field - use {module}_name pattern
+    order_name: order.name,
+    
+    // ✅ Created date - always 'created_at'
+    created_at: order.created_at,
+    
+    // ✅ Related data - use {relation}_name pattern
+    customer_name: order.customer?.full_name || 'Unknown',
+    customer_id: order.customer?.id,
+    
+    // ✅ Always include original data
+    _original: order
+  }));
+}, []);
+```
+
+**Field Naming Rules**:
+- Primary key: Always `id`
+- Main field: `{module}_name` (e.g., `order_name`, `payment_name`, `document_name`)
+- Dates: Always `created_at`, `updated_at` (not `order_date` or `payment_date`)
+- Related data: `{relation}_name` and `{relation}_id`
+- Original: Always `_original`
+
+---
+
+## 6. Column Definitions
+
+**Standard column order and types**:
+
+```javascript
+const columnDefinitions = [
+  // 1. First column - Main identifier/name
+  clickableColumnFactory({
+    field: "{module}_name",
+    headerName: "{Module} ID",
+    minWidth: 150,
+    link: (params) => `/dashboard/{modules}/${params.id}`
+  }),
+  
+  // 2. Date column - Created timestamp
+  dateColumnFactory({
+    field: "created_at",
+    headerName: "Created",
+    flex: 1.5,
+    minWidth: 180,
+    renderCell: (params) => (
+      <Box sx={{ fontSize: "s", color: "gray.600" }}>
+        {formatReadableDatetime(params.value)}
+      </Box>
+    ),
+  }),
+  
+  // 3. Other columns as needed
+  genericColumnFactory({...}),
+  
+  // 4. Status/Badge columns
+  // 5. Actions column (if needed)
+];
+```
+
+**Important**: Must import `clickableColumnFactory` from ColumnDefinitions
+
+---
+
+## 7. Expand Parameters
+
+**Always expand relationships you display in the table**:
+
+```javascript
+// ✅ CORRECT - Expand what you show
+useModuleQuery('order', {
+  expand: ["customer", "shipping_method", "items"],  // Shows these in table
+  // ...
+});
+
+// ✅ CORRECT - Nested expansion
+useModuleQuery('inventory', {
+  expand: ["variant", "location", "variant.product"],  // Nested: variant.product
+  // ...
+});
+
+// ❌ WRONG - Showing customer name but not expanding
+useModuleQuery('order', {
+  expand: [],  // ❌ But we show customer_name in columns
+  // ...
+});
+```
+
+**Rule**: If you display data from a relationship, add it to `expand` array.
+
+---
+
+## 8. Search Configuration
+
+**Always provide descriptive search placeholders**:
+
+```javascript
+<NeviosEnhancedTable
+  enableSearch={true}
+  searchTerm={searchTerm}
+  onSearchChange={updateSearch}
+  searchPlaceholder="Search {modules} by {field1}, {field2}, or {field3}..."
+  {...otherProps}
+/>
+```
+
+**Examples**:
+```javascript
+// ✅ GOOD - Descriptive and specific
+"Search orders by customer, order ID, or details..."
+"Search customers by name, email, phone, or country..."
+"Search products by title, description, vendor, type, tags, or handle..."
+"Search payments by customer, payment ID, or external reference..."
+
+// ❌ BAD - Too vague
+"Search..."
+"Search orders..."
+```
+
+---
+
+## 9. Empty State Messages
+
+**Use consistent pattern across all tables**:
+
+```javascript
+emptyStateProps={{
+  title: 'No {modules} found',
+  description: 'There are no {modules} to display',
+}}
+```
+
+**Examples**:
+```javascript
+// ✅ Orders
+{ title: 'No orders found', description: 'There are no orders to display' }
+
+// ✅ Customers
+{ title: 'No customers found', description: 'There are no customers to display' }
+
+// ✅ Products
+{ title: 'No products found', description: 'There are no products to display' }
+```
+
+---
+
+## 10. Error Handling & Validation
+
+**Always validate array input in transform functions**:
+
+```javascript
+const transformOrderData = useCallback((orders) => {
+  // ✅ REQUIRED - Validate input is array
+  if (!Array.isArray(orders)) {
+    console.warn('Expected array but received:', typeof orders);
+    return [];
+  }
+  
+  return orders.map(order => ({
+    // transformation logic
+  }));
+}, []);
+```
+
+**Additional validations**:
+```javascript
+// ✅ Safe property access with fallbacks
+customer_name: order.customer?.full_name || 'Unknown Customer'
+email: customer.email || 'No Email'
+status: order.status || 'pending'
+
+// ✅ Type checking when needed
+amount: typeof order.amount === 'number' ? order.amount : 0
+```
+
+---
+
+## 11. Checkbox Selection
+
+**Use checkbox selection for future bulk actions**:
+
+```javascript
+<NeviosEnhancedTable
+  columns={columnDefinitions}
+  data={data}
+  // ... other props
+  checkboxSelection={true}  // ✅ OK for now (bulk actions coming later)
+  getRowId={(row) => row.id}
+/>
+```
+
+**Note**: Bulk action implementation is planned for backend. Keep checkboxSelection for now, but:
+- Don't add `bulkActions` array yet
+- Don't add `onBulkAction` handler yet
+- When backend is ready, we'll implement the actions
+
+---
+
+## 12. Complete Example
+
+**Full table component following all standards**:
+
+```javascript
+"use client";
+import { Box } from "@mui/material";
+import React, { useCallback } from "react";
+import {
+  clickableColumnFactory,
+  dateColumnFactory,
+  genericColumnFactory,
+} from "../../../components/ColumnDefinitions";
+import { NeviosEnhancedTable } from "../../nevios/NeviosEnhancedTable";
+import { formatReadableDatetime } from "../../../core/formatters";
+import { useModuleQuery } from "../../../hooks/useModuleQuery";
+import { MODULE_FILTER_CONFIG } from "../../nevios/NeviosFilters/ModuleFilterConfig";
+
+export function ModuleTable({ 
+  tableHeight,
+  initialFilters = {},
+  initialSearch = ""
+}) {
+  // ✅ Transform function with proper naming
+  const transformModuleData = useCallback((items) => {
+    // ✅ Validate array input
+    if (!Array.isArray(items)) {
+      return [];
+    }
+    
+    return items.map(item => ({
+      id: item.id,
+      module_name: item.name,
+      created_at: item.created_at,
+      customer_name: item.customer?.full_name || 'Unknown',
+      // ✅ Keep original
+      _original: item
+    }));
+  }, []);
+
+  // ✅ Use singular module name, POST method (default), expand relationships
+  const {
+    data,
+    loading,
+    error,
+    totalCount,
+    pagination,
+    sortModel,
+    filters,
+    searchTerm,
+    handlePaginationChange,
+    handleSortChange,
+    refreshData,
+    updateFilters,
+    updateSearch
+  } = useModuleQuery('module', {
+    expand: ["customer"],
+    initialFilters,
+    initialSearch,
+    enableSearch: true,
+    transformData: transformModuleData
+  });
+
+  // ✅ Clickable first column, date column with formatReadableDatetime
+  const columnDefinitions = [
+    clickableColumnFactory({
+      field: "module_name",
+      headerName: "Module",
+      minWidth: 150,
+      link: (params) => `/dashboard/modules/${params.id}`
+    }),
+    dateColumnFactory({
+      field: "created_at",
+      headerName: "Created",
+      flex: 1.5,
+      minWidth: 180,
+      renderCell: (params) => (
+        <Box sx={{ fontSize: "s", color: "gray.600" }}>
+          {formatReadableDatetime(params.value)}
+        </Box>
+      ),
+    }),
+    genericColumnFactory({
+      field: "customer_name",
+      headerName: "Customer",
+      minWidth: 180,
+      flex: 2,
+    }),
+  ];
+
+  return (
+    <Box sx={{ flex: 1, display: "flex", height: "100%", width: "100%", flexDirection: "column" }}>
+      <NeviosEnhancedTable
+        columns={columnDefinitions}
+        data={data}
+        loading={loading}
+        error={error}
+        totalCount={totalCount}
+        pagination={pagination}
+        onPaginationChange={handlePaginationChange}
+        sortModel={sortModel}
+        onSortChange={handleSortChange}
+        tableHeight={tableHeight}
+        hideFooter={false}
+        enableSearch={true}
+        searchTerm={searchTerm}
+        onSearchChange={updateSearch}
+        searchPlaceholder="Search modules by name, customer, or details..."
+        enableFilters={true}
+        filterConfigs={MODULE_FILTER_CONFIG}
+        activeFilters={filters}
+        onFiltersChange={updateFilters}
+        checkboxSelection={true}
+        getRowId={(row) => row.id}
+        emptyStateProps={{
+          title: 'No modules found',
+          description: 'There are no modules to display',
+        }}
+      />
+    </Box>
+  );
+}
+```
+
+---
+
+## Quick Checklist
+
+When creating or reviewing a table component:
+
+- [ ] Module name is singular (e.g., `'customer'` not `'customers'`)
+- [ ] No `method: 'GET'` specified (uses POST default)
+- [ ] Transform function follows naming: `transform{Module}Data`
+- [ ] Transform function validates array input
+- [ ] Standard props: `tableHeight`, `initialFilters`, `initialSearch`
+- [ ] Data includes: `id`, `{module}_name`, `created_at`, `_original`
+- [ ] First column uses `clickableColumnFactory` with detail link
+- [ ] Date columns use `formatReadableDatetime()`
+- [ ] Expands all displayed relationships
+- [ ] Descriptive search placeholder (lists searchable fields)
+- [ ] Consistent empty state messages
+- [ ] Checkbox selection enabled (for future bulk actions)
+- [ ] Zero linter errors
+
+---
+
+**Last Updated**: January 2026  
+**Version**: 1.0

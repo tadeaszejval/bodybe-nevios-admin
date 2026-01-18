@@ -9,8 +9,7 @@ import {
 } from "../../../components/ColumnDefinitions";
 import { NeviosEnhancedTable } from "../../nevios/NeviosEnhancedTable";
 import { formatReadableDatetime, formatCurrencyNumber } from "../../../core/formatters";
-import { FulfillmentStatusBadge } from "./FulfillmentStatusBadge";
-import { PaymentStatusBadge } from "./PaymentStatusBadge";
+import { NeviosBadge } from "../../nevios/NeviosBadge";
 import { useModuleQuery } from "../../../hooks/useModuleQuery";
 import { ORDERS_FILTER_CONFIG } from "../../nevios/NeviosFilters/OrdersFilterConfig";
 
@@ -118,7 +117,7 @@ export function OrdersTable({
 						alignItems: "center",
 					}}
 				>
-					<FulfillmentStatusBadge status={params.value} />
+					<NeviosBadge value={params.value} configKey="orderFulfillmentStatus" />
 				</Box>
 			),
 		}),
@@ -137,7 +136,7 @@ export function OrdersTable({
 						alignItems: "center",
 					}}
 				>
-					<PaymentStatusBadge status={params.value} />
+					<NeviosBadge value={params.value} configKey="paymentStatus" showDot={true} />
 				</Box>
 			),
 		}),

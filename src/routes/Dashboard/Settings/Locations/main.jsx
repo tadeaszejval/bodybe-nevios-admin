@@ -10,7 +10,7 @@ import { NeviosPrimaryButton } from "../../../../components/nevios/NeviosButtons
 import { NeviosButtonSelect } from "../../../../components/nevios/NeviosSelect";
 import { TbMap, TbPlus, TbBuildingCottage, TbBuildingStore, TbMapPin, TbAdjustmentsExclamation } from "react-icons/tb";
 import { useModuleQuery } from "../../../../hooks/useModuleQuery";
-import { LocationStatusBadge } from "../../../../components/dashboard/settings/locations/statusBadge";
+import { NeviosBadge } from "../../../../components/nevios/NeviosBadge";
 import { setDefaultLocation } from "../../../../../actions/settings/locations";
 
 export default function DashboardLocations() {
@@ -71,7 +71,7 @@ export default function DashboardLocations() {
 						alignItems: "center",
 					}}
 				>
-					<LocationStatusBadge status={params.value} />
+					<NeviosBadge value={params.value} configKey="locationStatus" />
 				</Box>
 		},
 	];

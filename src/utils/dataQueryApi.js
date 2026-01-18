@@ -3,7 +3,26 @@
  * Handles table queries with pagination, sorting, and filtering
  */
 
+import { getAccessToken } from './authApi';
+
 const API_BASE_URL = process.env.NEXT_PUBLIC_NEVIOS_EXPRESS_URL || 'http://localhost:3001/api';
+
+/**
+ * Get authorization headers with JWT token
+ * @returns {Object} Headers object with Authorization if token exists
+ */
+const getAuthHeaders = () => {
+  const token = getAccessToken();
+  const headers = {
+    'Content-Type': 'application/json',
+  };
+  
+  if (token) {
+    headers['Authorization'] = `Bearer ${token}`;
+  }
+  
+  return headers;
+};
 
 /**
  * Query data from backend API endpoints
@@ -33,9 +52,7 @@ export async function queryTableData({
     
     let requestConfig = {
       method: useAdvanced ? 'PUT' : 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
+      headers: getAuthHeaders(),
     };
 
     let finalUrl = url;
@@ -160,4 +177,4 @@ export const TABLE_ENDPOINTS = {
  */
 export function getEndpointForTable(tableName) {
   return TABLE_ENDPOINTS[tableName] || tableName;
-} 
+}

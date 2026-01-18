@@ -19,8 +19,7 @@ import { supabase } from "../../../utils/supabase";
 import { formatReadableDatetime } from "../../../core/formatters";
 import { NeviosCopyBlock } from "../../../components/nevios/NeviosCopyBlock";
 import { NeviosFormPaperBlock } from "../../../components/nevios/NeviosFormPaperBlock";
-import { FulfillmentStatusBadge } from "../../../components/dashboard/fulfillments/FulfillmentStatusBadge";
-import { DeliveryStatusBadge } from "../../../components/dashboard/fulfillments/DeliveryStatusBadge";
+import { NeviosBadge } from "../../../components/nevios/NeviosBadge";
 import NeviosPaginationButtons from "../../../components/nevios/NeviosPaginationButtons";
 import { getCountryName } from "../../../core/countryName";
 import { ContentLoadingScreen } from "../../../components/ContentLoadingScreen";
@@ -117,8 +116,8 @@ export function FulfillmentView({ fulfillmentId }) {
         subtitle={`Created at ${formatReadableDatetime(fulfillment.created_at)}`}
         badges={
           <Box sx={{ display: 'flex', gap: 1 }}>
-            <FulfillmentStatusBadge value={fulfillment.status} />
-            <DeliveryStatusBadge value={fulfillment.delivery_status} />
+            <NeviosBadge value={fulfillment.status} configKey="fulfillmentModuleStatus" />
+            <NeviosBadge value={fulfillment.delivery_status} configKey="deliveryStatus" />
           </Box>
         }
       />

@@ -17,7 +17,7 @@ import { supabase } from "../../../utils/supabase";
 import { formatReadableDatetime } from "../../../core/formatters";
 import { NeviosCopyBlock } from "../../../components/nevios/NeviosCopyBlock";
 import { NeviosFormPaperBlock } from "../../../components/nevios/NeviosFormPaperBlock";
-import { EmailStatusBadge } from "../../../components/dashboard/emails/EmailStatusBadge";
+import { NeviosBadge } from "../../../components/nevios/NeviosBadge";
 import NeviosPaginationButtons from "../../../components/nevios/NeviosPaginationButtons";
 import { EmailActivityBar } from "../../../components/dashboard/emails/EmailActivityBar";
 import { ContentLoadingScreen } from "../../../components/ContentLoadingScreen";
@@ -173,7 +173,7 @@ export function EmailView({ emailId }) {
         subtitle={`Send at ${formatReadableDatetime(email.created_at)}`}
         badges={
           <Box sx={{ display: 'flex', gap: 1 }}>
-            <EmailStatusBadge status={email.status} />
+            <NeviosBadge value={email.status} configKey="emailStatus" />
           </Box>
         }
       />

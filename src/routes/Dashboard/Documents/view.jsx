@@ -24,8 +24,7 @@ import { NeviosFormPaperBlock } from "../../../components/nevios/NeviosFormPaper
 import { TbArrowLeft, TbFileText, TbUser, TbBuilding, TbTruck, TbFileInvoice } from "react-icons/tb";
 import { NeviosTwoColumnFormContainer } from "../../../components/nevios/NeviosFormContainer";
 import { supabase } from "../../../utils/supabase";
-import { DocumentStatusBadge } from "../../../components/dashboard/documents/DocumentStatusBadge";
-import { DocumentTypeBadge } from "../../../components/dashboard/documents/DocumentTypeBadge";
+import { NeviosBadge } from "../../../components/nevios/NeviosBadge";
 import { getCountryName } from "../../../core/countryName";
 import { formatReadableDatetime, formatCurrencyNumber, formatReadableDate } from "../../../core/formatters";
 import NeviosGroupButton from "../../../components/nevios/NeviosGroupButton";
@@ -188,8 +187,8 @@ export function DocumentView({ documentId }) {
         subtitle={`Created ${formatReadableDatetime(document.created_at)}`}
         badges={
           <Box sx={{ display: 'flex', gap: 1 }}>
-            <DocumentTypeBadge type={document.doc_type} />
-            <DocumentStatusBadge status={document.status} />
+            <NeviosBadge value={document.doc_type} configKey="documentType" />
+            <NeviosBadge value={document.status} configKey="documentStatus" showDot={true} />
           </Box>
         }
       />

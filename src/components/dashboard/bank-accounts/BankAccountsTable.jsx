@@ -11,8 +11,7 @@ import { NeviosEnhancedTable } from "../../nevios/NeviosEnhancedTable";
 import { formatReadableDatetime, formatCurrencyNumber } from "../../../core/formatters";
 import { useModuleQuery } from "../../../hooks/useModuleQuery";
 import { ReconciliationStatusBadge } from "./ReconciliationStatusBadge";
-import { TransactionTypeBadge } from "./TransactionTypeBadge";
-import { CategoryBadge } from "./CategoryBadge";
+import { NeviosBadge } from "../../nevios/NeviosBadge";
 
 export function BankAccountsTable({ 
 	tableHeight,
@@ -106,7 +105,7 @@ export function BankAccountsTable({
 					alignItems: "center",
 				}}
 			>
-				<TransactionTypeBadge type={params.value} />
+				<NeviosBadge value={params.value} configKey="transactionType" />
 			</Box>
 		),
 	}),
@@ -160,7 +159,7 @@ export function BankAccountsTable({
 				}}
 			>
 				{params.value ? (
-					<CategoryBadge category={params.value} />
+					<NeviosBadge value={params.value} configKey="transactionCategory" />
 				) : (
 					<Box sx={{ color: "gray.400", fontSize: "sm" }}>-</Box>
 				)}

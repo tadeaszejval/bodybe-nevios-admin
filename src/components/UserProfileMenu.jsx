@@ -37,8 +37,13 @@ export function UserProfileMenu() {
   // If no user, don't render anything
   if (!user) return null;
 
-  // Get first letter of user's email for avatar
-  const userInitial = user.email ? user.email[0].toUpperCase() : "U";
+  // Get user display info
+  const displayName = user.full_name || user.email || "User";
+  const userInitial = user.full_name 
+    ? user.full_name[0].toUpperCase() 
+    : user.email 
+      ? user.email[0].toUpperCase() 
+      : "U";
 
   return (
     <Box>
@@ -76,8 +81,18 @@ export function UserProfileMenu() {
       >
         <Box sx={{ px: 2, py: 1 }}>
           <Typography variant="subtitle1" fontWeight="bold" noWrap>
-            {user.email}
+            {displayName}
           </Typography>
+          {user.full_name && user.email && (
+            <Typography variant="caption" color="text.secondary" noWrap>
+              {user.email}
+            </Typography>
+          )}
+          {user.role && (
+            <Typography variant="caption" color="primary.main" sx={{ textTransform: 'capitalize' }}>
+              {user.role}
+            </Typography>
+          )}
         </Box>
         <Divider />
         <MenuItem onClick={() => {

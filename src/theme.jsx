@@ -355,26 +355,59 @@ const lightPaletteScales = {
 };
 const darkPaletteScales = {
 	background: {
-		defaultLight: "hsla(220, 2%, 16%, 1)",
-		default: "hsla(220, 2%, 12%, 1)",
-		defaultDark: "hsla(220, 2%, 10%, 1)",
-		defaultDarker: "hsla(220, 2%, 8%, 1)",
-		paper: "#2a2b2e",
+		defaultLight: "hsl(220, 13%, 18%)",
+		default: "hsl(220, 13%, 15%)",
+		defaultDark: "hsl(220, 13%, 13%)",
+		defaultDarker: "hsl(220, 13%, 11%)",
+		paper: "hsl(220, 13%, 20%)",
 	},
-	// built in MUI color scales
-	primary: invertColorScale(primaryColorScale),
-	secondary: grayColorScale,
+	// built in MUI color scales - keep accent colors vibrant in dark mode
+	primary: primaryColorScale, // Use original vibrant primary colors
+	secondary: {
+		...grayColorScale,
+		// Adjust grays for better dark mode contrast
+		50: "hsl(220, 13%, 91%)",
+		100: "hsl(220, 11%, 85%)",
+		200: "hsl(220, 10%, 70%)",
+		250: "hsl(220, 9%, 60%)",
+		300: "hsl(220, 8%, 50%)",
+		350: "hsl(220, 7%, 42%)",
+		400: "hsl(220, 6%, 35%)",
+		500: "hsl(220, 6%, 30%)",
+		600: "hsl(220, 7%, 25%)",
+		700: "hsl(220, 8%, 20%)",
+		800: "hsl(220, 9%, 16%)",
+		900: "hsl(220, 10%, 12%)",
+		main: "hsl(220, 8%, 50%)",
+		subtle: "hsla(220, 10%, 50%, 0.1)",
+	},
 	warning: yellowColorScale,
-	// custom color scales
-	red: invertColorScale(redColorScale),
-	orange: invertColorScale(orangeColorScale),
-	yellow: invertColorScale(yellowColorScale),
-	green: invertColorScale(greenColorScale),
-	blue: invertColorScale(blueColorScale),
-	fuchsia: invertColorScale(fuchsiaColorScale),
-	violet: invertColorScale(violetColorScale),
-	gray: grayColorScale,
-	black: invertColorScale(blackColorScale),
+	// custom color scales - keep vibrant for dark mode
+	red: redColorScale,
+	orange: orangeColorScale,
+	yellow: yellowColorScale,
+	green: greenColorScale,
+	blue: blueColorScale,
+	fuchsia: fuchsiaColorScale,
+	violet: violetColorScale,
+	gray: {
+		// Better gray scale for dark mode with proper contrast
+		50: "hsl(220, 13%, 91%)",
+		100: "hsl(220, 11%, 85%)",
+		200: "hsl(220, 10%, 70%)",
+		250: "hsl(220, 9%, 60%)",
+		300: "hsl(220, 8%, 50%)",
+		350: "hsl(220, 7%, 42%)",
+		400: "hsl(220, 6%, 35%)",
+		500: "hsl(220, 6%, 30%)",
+		600: "hsl(220, 7%, 25%)",
+		700: "hsl(220, 8%, 20%)",
+		800: "hsl(220, 9%, 16%)",
+		900: "hsl(220, 10%, 12%)",
+		main: "hsl(220, 8%, 50%)",
+		subtle: "hsla(220, 10%, 50%, 0.1)",
+	},
+	black: blackColorScale,
 };
 // create the typography scale in pixels based on a 16px base font size
 const typographySizesPx = {
@@ -646,11 +679,11 @@ export function ThemeProvider({ children }) {
 			dark: {
 				palette: {
 					...darkPaletteScales,
-					primary: allAvailColorScales[activeColorScale].colorScale.dark,
-					divider: darkPaletteScales.gray[200],
+					primary: allAvailColorScales[activeColorScale].colorScale.light, // Use light primary for vibrant colors
+					divider: darkPaletteScales.gray[600],
 					// you can further modify default CSS vars here
 					TableCell: {
-						border: darkPaletteScales.gray[200],
+						border: darkPaletteScales.gray[600],
 					},
 				},
 			},
@@ -708,7 +741,7 @@ export function ThemeProvider({ children }) {
 						borderStyle: "none",
 						background: lightPaletteScales.background.default,
 						[`${DARK_THEME_STRING}`]: {
-							background: darkPaletteScales.background.default,
+							background: darkPaletteScales.background.paper,
 						},
 						"&:not(:last-of-type)": {
 							borderBottom: 0,
@@ -717,7 +750,7 @@ export function ThemeProvider({ children }) {
 							opacity: "1 !important",
 							background: lightPaletteScales.gray["200"],
 							[`${DARK_THEME_STRING}`]: {
-								background: darkPaletteScales.gray["200"],
+								background: darkPaletteScales.gray["600"],
 							},
 						},
 						"&.Mui-expanded": {
@@ -734,7 +767,7 @@ export function ThemeProvider({ children }) {
 						"&.Mui-expanded": {
 							color: lightPaletteScales.primary["700"],
 							[`${DARK_THEME_STRING}`]: {
-								color: darkPaletteScales.primary["700"],
+								color: darkPaletteScales.primary["400"],
 							},
 						},
 					},
@@ -748,7 +781,7 @@ export function ThemeProvider({ children }) {
 						paddingTop: 0,
 						color: lightPaletteScales.gray["600"],
 						[`${DARK_THEME_STRING}`]: {
-							color: darkPaletteScales.gray["300"],
+							color: darkPaletteScales.gray["200"],
 						},
 						"p:not(:last-of-type)": {
 							marginBottom: customTheme.spacing(1),
@@ -763,16 +796,16 @@ export function ThemeProvider({ children }) {
 							".MuiAlert-icon": {
 								color: lightPaletteScales.blue["600"],
 								[`${DARK_THEME_STRING}`]: {
-									color: darkPaletteScales.blue["600"],
+									color: darkPaletteScales.blue["400"],
 								},
 							},
 							backgroundColor: lightPaletteScales.primary["50"],
 							color: lightPaletteScales.gray["600"],
 							border: `1px solid ${lightPaletteScales.primary["200"]}`,
 							[`${DARK_THEME_STRING}`]: {
-								backgroundColor: darkPaletteScales.primary["50"],
-								color: darkPaletteScales.gray["300"],
-								border: `1px solid ${darkPaletteScales.primary["200"]}`,
+								backgroundColor: darkPaletteScales.primary["900"],
+								color: darkPaletteScales.gray["100"],
+								border: `1px solid ${darkPaletteScales.primary["700"]}`,
 							},
 						}),
 					}),
@@ -877,8 +910,8 @@ export function ThemeProvider({ children }) {
 						background: lightPaletteScales.gray["100"],
 						color: lightPaletteScales.gray["500"],
 						[`${DARK_THEME_STRING}`]: {
-							background: darkPaletteScales.background.paper,
-							color: darkPaletteScales.gray["300"],
+							background: darkPaletteScales.background.defaultDark,
+							color: darkPaletteScales.gray["200"],
 						},
 						justifyContent: "flex-end",
 						transition: customTheme.transitions.create("background"),
@@ -886,7 +919,7 @@ export function ThemeProvider({ children }) {
 						"&:hover": {
 							background: lightPaletteScales.gray["50"],
 							[`${DARK_THEME_STRING}`]: {
-								background: darkPaletteScales.gray["200"],
+								background: darkPaletteScales.background.defaultLight,
 							},
 						},
 					},
@@ -909,7 +942,7 @@ export function ThemeProvider({ children }) {
 						fontWeight: "500",
 						color: lightPaletteScales.gray["700"],
 						[`${DARK_THEME_STRING}`]: {
-							color: darkPaletteScales.gray["300"],
+							color: darkPaletteScales.gray["100"],
 						},
 					},
 					action: {
@@ -918,7 +951,7 @@ export function ThemeProvider({ children }) {
 						fontSize: customTheme.typography.sm,
 						color: lightPaletteScales.gray["500"],
 						[`${DARK_THEME_STRING}`]: {
-							color: darkPaletteScales.gray["300"],
+							color: darkPaletteScales.gray["200"],
 						},
 					},
 				},
@@ -928,7 +961,7 @@ export function ThemeProvider({ children }) {
 					root: {
 						stroke: lightPaletteScales.gray["300"],
 						[`${DARK_THEME_STRING}`]: {
-							stroke: darkPaletteScales.gray["300"],
+							stroke: darkPaletteScales.gray["500"],
 						},
 					},
 				},
@@ -938,7 +971,7 @@ export function ThemeProvider({ children }) {
 					root: {
 						stroke: lightPaletteScales.background.default,
 						[`${DARK_THEME_STRING}`]: {
-							stroke: darkPaletteScales.gray["300"],
+							stroke: darkPaletteScales.gray["500"],
 						},
 						strokeWidth: 2,
 					},
@@ -950,14 +983,14 @@ export function ThemeProvider({ children }) {
 						".MuiChartsTooltip-cell": {
 							borderBottomColor: lightPaletteScales.gray["200"],
 							[`${DARK_THEME_STRING}`]: {
-								borderBottomColor: darkPaletteScales.gray["200"],
+								borderBottomColor: darkPaletteScales.gray["600"],
 							},
 						},
 					},
 					table: {
 						border: `1px solid ${lightPaletteScales.gray["200"]}`,
 						[`${DARK_THEME_STRING}`]: {
-							border: `1px solid ${darkPaletteScales.gray["300"]}`,
+							border: `1px solid ${darkPaletteScales.gray["600"]}`,
 						},
 						borderRadius: activeRadius.amount,
 						boxShadow: customTheme.shadows[4],
@@ -1001,7 +1034,7 @@ export function ThemeProvider({ children }) {
 					columnSeparator: {
 						color: lightPaletteScales.gray["200"],
 						[`${DARK_THEME_STRING}`]: {
-							color: darkPaletteScales.gray["200"],
+							color: darkPaletteScales.gray["600"],
 						},
 					},
 					columnHeader: {
@@ -1028,19 +1061,19 @@ export function ThemeProvider({ children }) {
 						borderBottomColor: lightPaletteScales.gray["200"],
 						backgroundColor: lightPaletteScales.background.paper,
 						[`${DARK_THEME_STRING}`]: {
-							borderBottomColor: darkPaletteScales.gray["200"],
+							borderBottomColor: darkPaletteScales.gray["600"],
 							backgroundColor: darkPaletteScales.background.paper,
 						},
 						"&:hover": {
 							backgroundColor: lightPaletteScales.gray["100"],
 							[`${DARK_THEME_STRING}`]: {
-								backgroundColor: darkPaletteScales.gray["100"],
+								backgroundColor: darkPaletteScales.background.defaultLight,
 							},
 						},
 						"&.Mui-selected": {
 							backgroundColor: lightPaletteScales.gray["50"],
 							[`${DARK_THEME_STRING}`]: {
-								backgroundColor: darkPaletteScales.gray["100"],
+								backgroundColor: darkPaletteScales.background.defaultLight,
 							},
 							"&:hover": {
 								// @ts-ignore
@@ -1075,7 +1108,7 @@ export function ThemeProvider({ children }) {
 						borderBottomWidth: 0.5,
 						borderColor: lightPaletteScales.gray["200"],
 						[`${DARK_THEME_STRING}`]: {
-							borderColor: darkPaletteScales.gray["200"],
+							borderColor: darkPaletteScales.gray["600"],
 						},
 					},
 				},
@@ -1100,7 +1133,7 @@ export function ThemeProvider({ children }) {
 						borderColor: lightPaletteScales.gray["300"],
 						[`${DARK_THEME_STRING}`]: {
 							backgroundColor: darkPaletteScales.background.paper,
-							borderColor: darkPaletteScales.gray["300"],
+							borderColor: darkPaletteScales.gray["500"],
 						},
 						boxShadow: `${customTheme.shadows[1]}`,
 						borderWidth: 1,
@@ -1117,7 +1150,7 @@ export function ThemeProvider({ children }) {
 					root: {
 						borderColor: lightPaletteScales.gray["300"],
 						[`${DARK_THEME_STRING}`]: {
-							borderColor: darkPaletteScales.gray["300"],
+							borderColor: darkPaletteScales.gray["500"],
 						},
 					},
 				},
@@ -1129,7 +1162,7 @@ export function ThemeProvider({ children }) {
 						fontWeight: "500",
 						color: lightPaletteScales.gray["800"],
 						[`${DARK_THEME_STRING}`]: {
-							borderColor: darkPaletteScales.gray["800"],
+							color: darkPaletteScales.gray["200"],
 						},
 						marginBottom: customTheme.spacing(1.5),
 						"&.Mui-focused": {
@@ -1177,7 +1210,7 @@ export function ThemeProvider({ children }) {
 							fontWeight: "500",
 							color: lightPaletteScales.gray["700"],
 							[`${DARK_THEME_STRING}`]: {
-								color: darkPaletteScales.gray["700"],
+								color: darkPaletteScales.gray["100"],
 							},
 						},
 					},
@@ -1232,7 +1265,7 @@ export function ThemeProvider({ children }) {
 					notchedOutline: {
 						borderColor: lightPaletteScales.gray["300"],
 						[`${DARK_THEME_STRING}`]: {
-							borderColor: darkPaletteScales.gray["300"],
+							borderColor: darkPaletteScales.gray["500"],
 						},
 					},
 				},
@@ -1246,8 +1279,8 @@ export function ThemeProvider({ children }) {
 						borderColor: lightPaletteScales.gray["300"],
 						color: lightPaletteScales.gray["800"],
 						[`${DARK_THEME_STRING}`]: {
-							borderColor: darkPaletteScales.gray["300"],
-							color: darkPaletteScales.gray["800"],
+							borderColor: darkPaletteScales.gray["600"],
+							color: darkPaletteScales.gray["100"],
 						},
 						borderWidth: "0.7px",
 						borderStyle: "solid",
@@ -1292,7 +1325,7 @@ export function ThemeProvider({ children }) {
 					root: {
 						borderColor: lightPaletteScales.gray["300"],
 						[`${DARK_THEME_STRING}`]: {
-							borderColor: darkPaletteScales.gray["300"],
+							borderColor: darkPaletteScales.gray["500"],
 						},
 					},
 					select: {
@@ -1308,7 +1341,7 @@ export function ThemeProvider({ children }) {
 					root: {
 						borderColor: lightPaletteScales.gray["300"],
 						[`${DARK_THEME_STRING}`]: {
-							borderColor: darkPaletteScales.gray["300"],
+							borderColor: darkPaletteScales.gray["500"],
 						},
 					},
 					select: {
@@ -1336,11 +1369,17 @@ export function ThemeProvider({ children }) {
 						"& .Mui-active": {
 							"& .MuiStepConnector-line": {
 								borderColor: lightPaletteScales.primary["200"],
+								[`${DARK_THEME_STRING}`]: {
+									borderColor: darkPaletteScales.primary["600"],
+								},
 							},
 						},
 						"& .Mui-completed": {
 							"& .MuiStepConnector-line": {
 								borderColor: lightPaletteScales.primary["400"],
+								[`${DARK_THEME_STRING}`]: {
+									borderColor: darkPaletteScales.primary["400"],
+								},
 							},
 						},
 					},
@@ -1370,7 +1409,7 @@ export function ThemeProvider({ children }) {
 								"& + .MuiSwitch-track": {
 									backgroundColor: lightPaletteScales.green["600"],
 									[`${DARK_THEME_STRING}`]: {
-										backgroundColor: darkPaletteScales.green["600"],
+										backgroundColor: darkPaletteScales.green["500"],
 									},
 									opacity: 1,
 									border: 0,
@@ -1383,14 +1422,14 @@ export function ThemeProvider({ children }) {
 								color: lightPaletteScales.green["500"],
 								border: `6px solid ${lightPaletteScales.background.paper}`,
 								[`${DARK_THEME_STRING}`]: {
-									color: darkPaletteScales.green["500"],
+									color: darkPaletteScales.green["400"],
 									border: `6px solid ${darkPaletteScales.background.paper}`,
 								},
 							},
 							"&.Mui-disabled .MuiSwitch-thumb": {
 								color: lightPaletteScales.gray[100],
 								[`${DARK_THEME_STRING}`]: {
-									color: darkPaletteScales.gray[100],
+									color: darkPaletteScales.gray[700],
 								},
 							},
 							"&.Mui-disabled + .MuiSwitch-track": {
@@ -1406,7 +1445,7 @@ export function ThemeProvider({ children }) {
 							borderRadius: 26 / 2,
 							backgroundColor: lightPaletteScales.background.default,
 							[`${DARK_THEME_STRING}`]: {
-								backgroundColor: darkPaletteScales.background.default,
+								backgroundColor: darkPaletteScales.gray["600"],
 							},
 							opacity: 1,
 						},
@@ -1418,7 +1457,7 @@ export function ThemeProvider({ children }) {
 					root: {
 						borderColor: lightPaletteScales.gray["200"],
 						[`${DARK_THEME_STRING}`]: {
-							borderColor: darkPaletteScales.gray["200"],
+							borderColor: darkPaletteScales.gray["600"],
 						},
 						borderWidth: 0.5,
 					},
@@ -1461,8 +1500,9 @@ export function ThemeProvider({ children }) {
 						background: "white",
 						boxShadow: "0rem -.065rem 0rem 0rem #b5b5b5 inset, 0rem 0rem 0rem .065rem rgba(0, 0, 0, .1) inset, 0rem .03125rem 0rem .09375rem #FFF inset",
 						[`${DARK_THEME_STRING}`]: {
-							color: darkPaletteScales.primary["500"],
-							background: darkPaletteScales.primary["500"],
+							color: darkPaletteScales.gray["100"],
+							background: darkPaletteScales.background.paper,
+							boxShadow: "0rem -.065rem 0rem 0rem rgba(255,255,255,0.1) inset, 0rem 0rem 0rem .065rem rgba(255, 255, 255, .1) inset, 0rem .03125rem 0rem .09375rem rgba(255,255,255,0.05) inset",
 						},
 					},
 					arrow: ({ ownerState }) => ({
@@ -1471,8 +1511,8 @@ export function ThemeProvider({ children }) {
 							: "rgba(0, 0, 0, .1)",
 						[`${DARK_THEME_STRING}`]: {
 							color: ownerState?.placement === 'bottom' 
-								? "lightgray" 
-								: "white",
+								? darkPaletteScales.gray["300"]
+								: darkPaletteScales.gray["200"],
 						},
 					}),
 				},
@@ -1507,14 +1547,14 @@ export function ThemeProvider({ children }) {
 						"&.Mui-selected": {
 							color: lightPaletteScales.primary["700"],
 							[`${DARK_THEME_STRING}`]: {
-								color: darkPaletteScales.primary["700"],
+								color: darkPaletteScales.primary["400"],
 							},
 							fontWeight: 700,
 						},
 						"&.Mui-disabled": {
 							color: lightPaletteScales.gray["300"],
 							[`${DARK_THEME_STRING}`]: {
-								color: darkPaletteScales.primary["700"],
+								color: darkPaletteScales.gray["500"],
 							},
 						},
 					},
@@ -1550,7 +1590,7 @@ export function ThemeProvider({ children }) {
 						return {
 							color: lightPaletteScales.gray["800"],
 							[`${DARK_THEME_STRING}`]: {
-								color: darkPaletteScales.gray["800"],
+								color: darkPaletteScales.gray["100"],
 							},
 							lineHeight: tracking,
 						};

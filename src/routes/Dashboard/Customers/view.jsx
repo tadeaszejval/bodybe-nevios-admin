@@ -14,15 +14,13 @@ import { NeviosCopyBlock } from "../../../components/nevios/NeviosCopyBlock";
 import { PageContainer } from "../../../components/PageContainer";
 import { NeviosFormPaper } from "../../../components/nevios/NeviosFormPaper";
 import { NeviosFormPaperBlock } from "../../../components/nevios/NeviosFormPaperBlock";
-import { TbArrowLeft, TbUser, TbPencil } from "react-icons/tb";
+import { TbArrowLeft, TbUser, TbPencil, TbBuildingCommunity } from "react-icons/tb";
 import { NeviosTwoColumnFormContainer } from "../../../components/nevios/NeviosFormContainer";
 import { supabase } from "../../../utils/supabase";
 import { SubscribedBadge } from "../../../components/dashboard/customers/SubscribedBadge";
-import { AccountStatusBadge } from "../../../components/dashboard/customers/AccountStatusBadge";
 import { getCountryName } from "../../../core/countryName";
 import { formatReadableDatetime } from "../../../core/formatters";
 import ActivityLogs from "../../../components/dashboard/customers/ActivityLogs";
-import { CompanyBadge } from "../../../components/dashboard/customers/CompanyBadge";  
 import NeviosGroupButton from "../../../components/nevios/NeviosGroupButton";
 import NeviosPaginationButtons from "../../../components/nevios/NeviosPaginationButtons";
 import ContactPopup from "../../../components/dashboard/customers/ContactPopup";
@@ -35,8 +33,7 @@ import { modifyShippingAddress } from "../../../../actions/customers/shipping-ad
 import { deleteCustomer } from "../../../../actions/customers/delete";
 import { createBillingAddress } from "../../../../actions/customers/billing-address/create";
 import { createShippingAddress } from "../../../../actions/customers/shipping-address/create";
-import { FulfillmentStatusBadge } from "../../../components/dashboard/orders/FulfillmentStatusBadge";
-import { PaymentStatusBadge } from "../../../components/dashboard/orders/PaymentStatusBadge";
+import { NeviosBadge } from "../../../components/nevios/NeviosBadge";
 import { ContentLoadingScreen } from "../../../components/ContentLoadingScreen";
 // Sample customer activity data for testing
 const sampleCustomerActivities = [
@@ -516,10 +513,10 @@ export function CustomerView({ customerId }) {
         badges={
           <Box sx={{ display: 'flex', gap: 1 }}>
             {billingAddress && billingAddress.company && (
-              <CompanyBadge company={billingAddress.company} />
+              <NeviosBadge label={billingAddress.company} color="blue" icon={<TbBuildingCommunity size={14} />} />
             )}
             <SubscribedBadge status={customer.subscribed} />
-            <AccountStatusBadge status={customer.account_enabled} />
+            <NeviosBadge value={customer.account_enabled} configKey="customerAccountStatus" />
           </Box>
         }
       />
@@ -561,8 +558,8 @@ export function CustomerView({ customerId }) {
                           <Typography variant="body2" fontWeight={600}>{total}</Typography>
                         </Box>
                         <Box sx={{ minWidth: 120, display: 'flex', gap: 1 }}>
-                          <FulfillmentStatusBadge status={order.fulfillment_status} />
-                          <PaymentStatusBadge status={order.payment_status} />
+                          <NeviosBadge value={order.fulfillment_status} configKey="orderFulfillmentStatus" />
+                          <NeviosBadge value={order.payment_status} configKey="paymentStatus" showDot={true} />
                         </Box>
                       </Box>
                     );
@@ -625,7 +622,7 @@ export function CustomerView({ customerId }) {
                 </NeviosFormPaperBlock>
             </NeviosFormPaper>
             <NeviosFormPaper title="Benefit Account" gap={4}>
-                <AccountStatusBadge status={customer.account_enabled} />
+                <NeviosBadge value={customer.account_enabled} configKey="customerAccountStatus" />
             </NeviosFormPaper>
             <NeviosFormPaper 
               title="Shipping Address" 

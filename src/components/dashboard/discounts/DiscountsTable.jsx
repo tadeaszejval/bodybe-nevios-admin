@@ -9,8 +9,7 @@ import {
 } from "../../../components/ColumnDefinitions";
 import { NeviosEnhancedTable } from "../../nevios/NeviosEnhancedTable";
 import { formatReadableDatetime, formatCurrencyNumber } from "../../../core/formatters";
-import { DiscountTypeBadge } from "./DiscountTypeBadge";
-import { DiscountStatusBadge } from "./DiscountStatusBadge";
+import { NeviosBadge } from "../../nevios/NeviosBadge";
 import { useModuleQuery } from "../../../hooks/useModuleQuery";
 import { DISCOUNTS_FILTER_CONFIG } from "../../nevios/NeviosFilters/DiscountsFilterConfig";
 
@@ -132,7 +131,7 @@ export function DiscountsTable({
 						alignItems: "center",
 					}}
 				>
-					<DiscountStatusBadge status={params.value} />
+					<NeviosBadge value={params.value} configKey="discountStatus" />
 				</Box>
 			),
 		}),
@@ -167,7 +166,7 @@ export function DiscountsTable({
 						alignItems: "center",
 					}}
 				>
-					<DiscountTypeBadge type={params.value} />
+					<NeviosBadge value={params.value} configKey="discountType" />
 				</Box>
 			),
 		}),

@@ -87,15 +87,11 @@ export function AuthThirdParty() {
 					justifyContent: "center",
 					height: "max-content",
 					borderRadius: 2,
-					borderStyle: "solid",
-					borderWidth: 1,
 					maxWidth: "420px",
 					width: "100%",
 					gap: 3,
 					p: { xs: 0, sm: 4 },
-					borderColor: { xs: "transparent", sm: "gray.200" },
-					boxShadow: { xs: 0, sm: 1 },
-					bgcolor: { xs: "none", sm: "background.paper" },
+					bgcolor: "background.defaultDark",
 				}}
 			>
 				<Logo height={40} width={160} />

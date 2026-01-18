@@ -1,0 +1,2218 @@
+# Order System Documentation
+
+## Overview
+
+The order system provides comprehensive order management functionality for e-commerce operations. It handles the complete order lifecycle from creation (via checkout conversion or manual entry) through payment tracking, fulfillment management, and order completion. The system supports multi-currency transactions, complex pricing calculations with VAT handling, discount application, automatic order naming, customer creation/matching, address management, and detailed order item tracking with product snapshots.
+
+## 🚀 **Key Features**
+
+### Core Order Management
+- **Order Creation**: Create orders from checkouts or manually with full customer and address data
+- **Automatic Order Naming**: Generate sequential order numbers based on sales channel format (e.g., 150000000001)
+- **Order Retrieval**: Get single orders or query multiple orders with advanced filtering
+- **Order Modification**: Update order details, addresses, items, and shipping/payment methods
+- **Order Lifecycle**: Track orders from creation through payment and fulfillment
+- **Order Status Management**: Control order status with ACTIVE, HOLD, ARCHIVED, and CANCELLED states
+
+### Customer & Address Management
+- **Automatic Customer Creation**: Create customers during order placement with email-based matching
+- **Customer Matching**: Find and update existing customers by email instead of duplicating
+- **Address Deduplication**: Automatically detect and reuse matching addresses
+- **Address Type Support**: HOME delivery, POINT pickup, and STORE pickup with validation
+- **Gender Detection**: Automatically determine customer gender from first name using AI
+- **Default Address Management**: Set default billing and shipping addresses for customers
+
+### Payment & Pricing
+- **Multi-Currency Support**: Handle orders in different currencies with automatic exchange rate lookup
+- **Component-Based Pricing**: Track subtotal, shipping, payment fees, discounts, and tips separately
+- **Net/Gross Calculation**: Proper VAT handling with configurable rates per market
+- **Dual Currency Tracking**: Store prices in both local (customer) and home (business) currencies
+- **Payment Status Tracking**: Monitor payment status (UNPAID, PAID, PARTIALLY_PAID, REFUNDED)
+- **Payment Method Integration**: Support for gateways, COD, bank transfers, and manual payments
+
+### Order Items & Products
+- **Product Snapshots**: Store product and variant titles at time of order for historical accuracy
+- **Variant Lookup**: Find products by EID, XID, or internal ID
+- **Custom Pricing**: Override product pricing with custom values per item
+- **Item Parameters**: Store custom parameters (key-value pairs) for personalization
+- **Gift Card Support**: Flag items as gift cards with special handling
+- **Shipping Requirements**: Track which items require shipping
+- **Fulfillment Tracking**: Monitor fulfilled quantities per item
+
+### Discount System
+- **Multiple Discount Types**: Percentage, fixed amount, free shipping, and voucher discounts
+- **Discount Validation**: Check usage limits, customer eligibility, product restrictions, and minimum subtotals
+- **Product-Specific Discounts**: Apply discounts only to eligible products
+- **Market Restrictions**: Limit discounts to specific markets/currencies
+- **Usage Tracking**: Monitor discount usage and automatically mark as used when limit reached
+- **Free Shipping Logic**: Apply shipping cost as discount amount for proper accounting
+
+### Fulfillment Integration
+- **Fulfillment Status**: Track fulfillment progress (UNFULFILLED, PARTIAL, FULFILLED)
+- **Order Items**: Detailed tracking of products, variants, quantities, and fulfillment status
+- **Shipping Integration**: Link to shipping methods and addresses
+
+### Inventory Management
+- **Automatic Reservation**: Inventory automatically reserved when order is created
+- **Smart Handling**: Only reserves items that require shipping and track inventory
+- **Inventory Status Tracking**: AVAILABLE, PARTIAL, BACKORDERED, ERROR, PENDING
+- **Backorder Creation**: Automatic backorder creation for out-of-stock items (if enabled)
+- **Inventory Release**: Automatic release when order is cancelled
+- **Movement Tracking**: Complete audit trail with order_item linking for traceability
+- **Location Management**: Fulfillment location determined from shipping_set or defaults
+
+### Order Cancellation
+- **Smart Cancellation**: Releases only unfulfilled inventory (quantity - fulfilled_quantity)
+- **Backorder Cleanup**: Automatically cancels related backorders
+- **Movement Audit Trail**: Creates RELEASED movements linked to order_items
+- **Status Change**: Order status set to CANCELLED
+- **Flexible Options**: Optional cancellation reason and internal notes
+
+## 🔧 **API Endpoints**
+
+### Query & Retrieval
+
+#### 1. Query Orders
+**POST** `/server/order/query`
+
+Query orders with advanced filtering, pagination, sorting, and expansion of related records.
+
+See [QUERY.md](./QUERY.md) for detailed documentation.
+
+**Key Features:**
+- Multi-field search across orders, customers, and items
+- Filter by customer, payment status, fulfillment status
+- Filter by products (find orders containing specific products)
+- Expand customer and items data
+- Pagination and sorting
+
+#### 2. Retrieve Order
+**GET** `/server/order/retrieve/:orderId`
+
+Retrieve a single order by ID with optional related data.
+
+**Query Parameters:**
+- `includeItems` (boolean) - Include order items
+- `includePricing` (boolean) - Include pricing components
+- `includeCustomer` (boolean) - Include customer details
+- `includeAddresses` (boolean) - Include billing and shipping addresses
+
+**Response includes:**
+- Order details (name, status, pricing totals)
+- Customer information (if requested)
+- Shipping and billing addresses (if requested)
+- Payment and shipping methods
+- Order items with pricing (if requested)
+- Pricing components breakdown (if requested)
+
+#### 3. Search Orders
+**POST** `/server/order/search`
+
+Alternative search endpoint for order queries with flexible search parameters.
+
+#### 4. Get Orders by Customer
+**GET** `/server/order/by-customer/:customerId`
+
+Retrieve all orders for a specific customer with optional filtering.
+
+**Query Parameters:**
+- `includeItems` (boolean) - Include order items for each order
+- `status` (string) - Filter by order status
+- `limit` (number) - Maximum number of orders to return (default: 10)
+- `order` (string) - Sort field (default: 'created_at')
+- `direction` (string) - Sort direction: 'asc' or 'desc' (default: 'desc')
+
+**Use Cases:**
+- Customer order history
+- Customer lifetime value calculation
+- Repeat purchase analysis
+
+#### 5. Get Orders by Product
+**GET** `/server/order/by-product/:productId`
+
+Find all orders containing a specific product or multiple products.
+
+**Query Parameters:**
+- `includeItems` (boolean) - Include all order items
+- `includeCustomer` (boolean) - Include customer details
+- `status` (string) - Filter by order status
+- `limit` (number) - Maximum number of orders to return
+- `order` (string) - Sort field
+- `direction` (string) - Sort direction
+
+**Supports:**
+- Single product ID as string
+- Multiple product IDs as array
+
+**Use Cases:**
+- Product sales analysis
+- Customer segmentation by product
+- Inventory planning
+
+#### 6. Find Customers by Product
+**GET** `/server/order/by-product/:productId/customers`
+
+Find customers who purchased specific product(s).
+
+**Query Parameters:**
+- `includeOrders` (boolean) - Include customer order history
+- `uniqueCustomers` (boolean) - Return each customer only once (default: true)
+- `limit` (number) - Maximum number of customers to return
+- `order` (string) - Sort field
+- `direction` (string) - Sort direction
+
+**Use Cases:**
+- Targeted marketing campaigns
+- Product-specific customer analysis
+- Cross-sell opportunities
+
+### Order Creation & Modification
+
+#### 7. Create Order
+**POST** `/server/order/create`
+
+Create a new order with customer, addresses, items, and payment/shipping methods.
+
+**Required Fields:**
+- `market_currency` (string) - Market-specific currency ID (format: "sales_channel/market/currency")
+- `customer` (string|object) - Customer ID or customer data object
+- `items` (array) - Array of order items with variant references
+
+**Optional Fields:**
+- `name` (string) - Order reference number (auto-generated from sales channel format if not provided)
+- `shipping_set` (string) - Shipping method set ID (preferred)
+- `payment_set` (string) - Payment method set ID (preferred)
+- `shipping_method` (object) - Custom shipping method object (if not using shipping_set)
+- `payment_method` (object) - Custom payment method object (if not using payment_set)
+- `shipping_address` (string|object) - Shipping address ID or address data
+- `billing_address` (string|object) - Billing address ID or address data
+- `discount_code` (string) - Discount code to apply during order creation
+- `custom_discount` (object) - Custom discount to apply without discount code
+- `status` (string) - Order status: ACTIVE (default), HOLD, ARCHIVED, or CANCELLED
+- `customer_note` (string) - Customer-facing note visible to customer
+- `internal_note` (string) - Internal note for staff use only
+
+**Customer Data Object:**
+```json
+{
+  "email": "customer@example.com",
+  "first_name": "Jan",
+  "last_name": "Novak",
+  "phone": "+420123456789",
+  "subscribed": false
+}
+```
+
+**Address Data Object (Billing):**
+```json
+{
+  "first_name": "Jan",
+  "last_name": "Novak",
+  "address": "Hlavni 123",
+  "additional_address": "Apt 4B",
+  "city": "Praha",
+  "province": "Prague",
+  "zip": "11000",
+  "country": "CZ",
+  "phone": "+420123456789"
+}
+```
+
+**Address Data Object (Shipping - HOME):**
+```json
+{
+  "first_name": "Jan",
+  "last_name": "Novak",
+  "address": "Hlavni 123",
+  "city": "Praha",
+  "zip": "11000",
+  "country": "CZ",
+  "type": "HOME"
+}
+```
+
+**Address Data Object (Shipping - POINT):**
+```json
+{
+  "first_name": "Jan",
+  "last_name": "Novak",
+  "point_id": "pickup-123",
+  "point_name": "Zásilkovna - Praha 1",
+  "point_carrier": "Zásilkovna",
+  "type": "POINT"
+}
+```
+
+**Address Data Object (Shipping - STORE):**
+```json
+{
+  "first_name": "Jan",
+  "last_name": "Novak",
+  "store": "store-uuid",
+  "type": "STORE"
+}
+```
+
+**Order Item Object:**
+
+The `variant` field supports multiple lookup methods:
+
+**Method 1: Direct UUID (Recommended)**
+```json
+{
+  "quantity": 2,
+  "variant": "262b4f09-4c9f-467f-bcf5-facdc1e5cefe"
+}
+```
+
+**Method 2: UUID with Field Specification**
+```json
+{
+  "quantity": 2,
+  "variant": {
+    "field": "id",
+    "value": "262b4f09-4c9f-467f-bcf5-facdc1e5cefe"
+  }
+}
+```
+
+**Method 3: External ID (EID - Shopify ID)**
+```json
+{
+  "quantity": 2,
+  "variant": {
+    "field": "eid",
+    "value": "50410938958154"
+  }
+}
+```
+
+**Method 4: Custom External ID (XID)**
+```json
+{
+  "quantity": 2,
+  "variant": {
+    "field": "xid",
+    "value": "N1G4000101"
+  }
+}
+```
+
+**Method 5: Using SKU (Stock Keeping Unit)**
+```json
+{
+  "quantity": 2,
+  "variant": {
+    "field": "sku",
+    "value": "PROD-SKU-123"
+  }
+}
+```
+
+**Method 6: Using Barcode**
+```json
+{
+  "quantity": 2,
+  "variant": {
+    "field": "barcode",
+    "value": "1234567890123"
+  }
+}
+```
+
+**With Custom Pricing (Optional):**
+```json
+{
+  "quantity": 2,
+  "variant": "262b4f09-4c9f-467f-bcf5-facdc1e5cefe",
+  "pricing": {
+    "price": 2799,
+    "compare_at_price": 3299,
+    "discount_price": 2799
+  }
+}
+```
+
+**Supported Variant Lookup Fields:**
+- `id` - Internal UUID (default when string provided)
+- `eid` - External ID from Shopify or other platforms
+- `xid` - Custom external identifier
+- `sku` - Stock Keeping Unit (must be unique if used for lookup)
+- `barcode` - Product barcode (must be unique if used for lookup)
+
+**Notes:**
+- The system automatically looks up the product ID from the variant
+- Pricing is retrieved from `product_variant_pricing` table unless custom pricing is provided
+- Custom pricing overrides database pricing for that specific order item
+
+### Custom Shipping Method Object
+
+Instead of using `shipping_set`, you can provide a custom shipping method object:
+
+**Custom Shipping Method:**
+```json
+{
+  "shipping_method": {
+    "type": "HOME",
+    "name": "Express Delivery",
+    "price": 299
+  }
+}
+```
+
+**Required Fields for Custom Shipping Method:**
+- `type` (string) - Shipping type: HOME, POINT, STORE
+- `name` (string) - Display name for the shipping method
+- `price` (number) - Shipping cost in the order's currency
+
+**Optional Fields:**
+- `currency` (string) - Currency code (auto-set to order currency if not provided)
+- `handle` (string) - URL-friendly identifier
+- `description` (string) - Detailed description
+- `widget` (object) - Additional configuration data
+
+### Custom Payment Method Object
+
+Instead of using `payment_set`, you can provide a custom payment method object:
+
+**Custom Payment Method:**
+```json
+{
+  "payment_method": {
+    "type": "CARD",
+    "name": "Credit Card",
+    "price": 0,
+    "currency": "CZK",
+    "handle": "credit-card",
+    "description": "Pay with credit or debit card"
+  }
+}
+```
+
+**Required Fields for Custom Payment Method:**
+- `type` (string) - Payment type: CARD, BANK_TRANSFER, COD, GATEWAY, etc.
+- `name` (string) - Display name for the payment method
+
+**Optional Fields:**
+- `price` (number) - Payment processing fee (defaults to 0)
+- `currency` (string) - Currency code (auto-set to order currency if not provided)
+- `handle` (string) - URL-friendly identifier
+- `description` (string) - Detailed description
+
+### When to Use Sets vs Custom Objects
+
+**Use shipping_set and payment_set when:**
+- You have pre-configured shipping/payment methods in your system
+- You want consistent pricing and configuration
+- You need to track method usage and analytics
+- You want to leverage location-based fulfillment settings
+
+**Use custom shipping_method and payment_method when:**
+- You need one-off or dynamic pricing
+- Integrating with external systems that provide method details
+- Creating orders programmatically with calculated shipping costs
+- Testing or development scenarios
+- Custom business logic requires method variations
+
+**Important Notes:**
+- Custom methods are stored as JSONB snapshots in the order record
+- Sets provide better data consistency and reporting capabilities
+- You cannot mix sets and custom objects (use one approach per order)
+- Custom method prices are in the order's local currency
+- Shipping method type must match the shipping address type
+
+### Discount Code Behavior
+
+**Discount Application During Order Creation:**
+- Discount codes are applied **after** order items and pricing are calculated
+- If discount validation fails, the order is still created but without the discount
+- Discount failures are logged but do not prevent order creation
+- Successfully applied discounts are included in the response and stored in pricing components
+
+**Discount Validation Checks:**
+1. Discount code exists and is active
+2. Usage limit not exceeded (total and per-customer)
+3. Market currency is allowed for the discount
+4. Customer eligibility (if customer-specific discount)
+5. Minimum subtotal requirement met
+6. Order contains eligible products (if product-specific discount)
+7. Voucher not already used (for voucher-type discounts)
+
+**Discount Types Supported:**
+- **PERCENTAGE** - Percentage off eligible items (e.g., 20% off)
+- **FIXED** - Fixed amount off (e.g., 100 CZK off)
+- **FREE_SHIPPING** - Free shipping (applies shipping cost as discount)
+- **VOUCHER** - Gift voucher with fixed value
+
+**Process Flow:**
+1. Validates market_currency and retrieves VAT rate
+2. Generates order name from sales channel format (e.g., 150000000001)
+3. Validates and sets order status (defaults to ACTIVE if not provided)
+4. Resolves shipping method type from shipping_set or shipping_method
+5. Processes customer data:
+   - Searches for existing customer by email
+   - Updates existing customer or creates new one
+   - Detects gender from first name using AI
+6. Processes addresses:
+   - Checks for matching addresses to avoid duplicates
+   - Creates new addresses if no match found
+   - Sets as default addresses for new customers
+7. Creates order record with all references
+8. Creates order items with product snapshots
+9. Calculates pricing for each item
+10. Calculates order component pricing (subtotal, shipping, payment, total)
+11. Applies discount code or custom discount if provided (validates, calculates, updates pricing)
+12. Auto-generates vouchers for gift card purchases
+13. Returns complete order with all related data including discount information
+
+#### 8. Modify Order
+**PUT** `/server/order/modify/:orderId`
+
+Update order details including addresses, methods, items, and metadata.
+
+**Updatable Fields:**
+- `shipping_address` (string|object) - New shipping address ID or data
+- `billing_address` (string|object) - New billing address ID or data
+- `shipping_method` (object) - New shipping method details
+- `shipping_set` (string) - New shipping method set ID
+- `payment_method` (object) - New payment method details
+- `payment_set` (string) - New payment method set ID
+- `items` (array) - Complete replacement of all items
+- `addItems` (array) - Items to add to order
+- `removeItems` (array) - Order item IDs to remove
+- `updateItems` (array) - Items to update (quantity, pricing)
+
+**Item Operations:**
+
+**Replace All Items:**
+```json
+{
+  "items": [
+    {
+      "quantity": 1,
+      "variant": { "field": "eid", "value": "12345" }
+    }
+  ]
+}
+```
+
+**Add Items:**
+```json
+{
+  "addItems": [
+    {
+      "quantity": 1,
+      "variant": { "field": "eid", "value": "67890" }
+    }
+  ]
+}
+```
+
+**Remove Items:**
+```json
+{
+  "removeItems": ["item-uuid-1", "item-uuid-2"]
+}
+```
+
+**Update Items:**
+```json
+{
+  "updateItems": [
+    {
+      "id": "item-uuid",
+      "quantity": 3,
+      "pricing": {
+        "price": 2500
+      }
+    }
+  ]
+}
+```
+
+**Process Flow:**
+1. Fetches order to verify existence
+2. Processes address updates using customer data processor
+3. Updates shipping method from set or custom object
+4. Performs item operations (add/remove/update/replace)
+5. Recalculates order pricing if items or shipping changed
+6. Returns updated order with modifications list
+
+### Order Status Management
+
+#### 10. Set Order to Active
+**PUT** `/server/order/active/:orderId`
+
+Set an order status to ACTIVE to enable standard order processing actions.
+
+**Use Cases:**
+- Resume order processing after hold
+- Restore archived order for modification
+- Enable fulfillment and payment processing
+
+**Response:**
+```json
+{
+  "success": true,
+  "data": {
+    "order": {
+      "id": "order-uuid",
+      "name": "150000000001",
+      "status": "ACTIVE",
+      ...
+    },
+    "previousStatus": "HOLD",
+    "newStatus": "ACTIVE"
+  }
+}
+```
+
+#### 11. Cancel Order
+**PUT** `/server/order/cancel/:orderId`
+
+Cancel an order, release all reserved inventory, cancel backorders, and set status to CANCELLED.
+
+**Body:**
+```json
+{
+  "reason": "Customer requested cancellation",
+  "notes": "Additional internal notes"
+}
+```
+
+**Response:**
+```json
+{
+  "success": true,
+  "data": {
+    "order_id": "uuid",
+    "inventory_released": [{order_item, variant, quantity}],
+    "backorders_cancelled": [{backorder_id, order_item}],
+    "errors": []
+  }
+}
+```
+
+#### 12. Archive Order
+**PUT** `/server/order/archive/:orderId`
+
+Set an order status to ARCHIVED for completed orders (status change only, no inventory operations).
+
+**Use Cases:**
+- Archive completed orders after a retention period
+- Store cancelled orders for reference
+- Clean up order lists while maintaining records
+
+**Response:**
+```json
+{
+  "success": true,
+  "data": {
+    "order": {
+      "id": "order-uuid",
+      "name": "150000000001",
+      "status": "ARCHIVED",
+      ...
+    },
+    "previousStatus": "ACTIVE",
+    "newStatus": "ARCHIVED"
+  }
+}
+```
+
+#### 13. Hold Order
+**PUT** `/server/order/hold/:orderId`
+
+Set an order status to HOLD to prevent standard order processing actions while keeping the order visible and accessible.
+
+**Use Cases:**
+- Pause processing for fraud review
+- Hold orders pending inventory verification
+- Freeze orders requiring manual intervention
+- Temporary stop before fulfillment
+
+**Response:**
+```json
+{
+  "success": true,
+  "data": {
+    "order": {
+      "id": "order-uuid",
+      "name": "150000000001",
+      "status": "HOLD",
+      ...
+    },
+    "previousStatus": "ACTIVE",
+    "newStatus": "HOLD"
+  }
+}
+```
+
+**Status Descriptions:**
+- **ACTIVE** (default) - Order is active and can proceed through normal fulfillment and payment workflows
+- **HOLD** - Order is on hold and should not proceed with automated actions until manually reviewed and reactivated
+- **ARCHIVED** - Order completed successfully and archived for records
+- **CANCELLED** - Order cancelled with inventory released and backorders cancelled
+
+### Order Alerts Management
+
+#### 14. Add Single Alert to Order
+**POST** `/server/order/alert/:orderId`
+
+Add a single alert to an order to track issues, warnings, or notifications.
+
+**Request Body:**
+```json
+{
+  "alert": {
+    "value": "Cart item not in stock!",
+    "key": "out_of_stock",
+    "level": "high",
+    "action": null
+  }
+}
+```
+
+**Response:**
+```json
+{
+  "success": true,
+  "data": {
+    "order": {
+      "id": "order-uuid",
+      "name": "150000000001",
+      "alerts": [
+        {
+          "value": "Cart item not in stock!",
+          "key": "out_of_stock",
+          "level": "high",
+          "action": null
+        }
+      ],
+      ...
+    },
+    "addedAlert": {
+      "value": "Cart item not in stock!",
+      "key": "out_of_stock",
+      "level": "high",
+      "action": null
+    },
+    "totalAlerts": 1
+  }
+}
+```
+
+#### 15. Add Multiple Alerts to Order
+**POST** `/server/order/alert/:orderId`
+
+Add multiple alerts to an order at once.
+
+**Request Body:**
+```json
+{
+  "alerts": [
+    {
+      "value": "Cart item not in stock!",
+      "key": "out_of_stock",
+      "level": "high",
+      "action": null
+    },
+    {
+      "value": "Wrong address format",
+      "key": "wrong_address",
+      "level": "medium",
+      "action": null
+    }
+  ]
+}
+```
+
+**Response:**
+```json
+{
+  "success": true,
+  "data": {
+    "order": {
+      "id": "order-uuid",
+      "name": "150000000001",
+      "alerts": [...],
+      ...
+    },
+    "addedAlerts": [
+      {
+        "value": "Cart item not in stock!",
+        "key": "out_of_stock",
+        "level": "high",
+        "action": null
+      },
+      {
+        "value": "Wrong address format",
+        "key": "wrong_address",
+        "level": "medium",
+        "action": null
+      }
+    ],
+    "totalAlerts": 2
+  }
+}
+```
+
+#### 16. Remove Alerts by Key
+**DELETE** `/server/order/alert/:orderId?key={alertKey}`
+
+Remove all alerts with a specific key from an order.
+
+**Query Parameters:**
+- `key` (string, required) - The alert key to remove
+
+**Use Cases:**
+- Clear "out_of_stock" alerts after inventory is replenished
+- Remove "wrong_address" alerts after address is corrected
+- Clear specific alert types after issue resolution
+
+**Response:**
+```json
+{
+  "success": true,
+  "data": {
+    "order": {
+      "id": "order-uuid",
+      "name": "150000000001",
+      "alerts": [...],
+      ...
+    },
+    "removedCount": 2,
+    "totalAlerts": 0
+  }
+}
+```
+
+#### 16. Clear All Alerts
+**DELETE** `/server/order/alert/:orderId`
+
+Remove all alerts from an order.
+
+**Use Cases:**
+- Clear all alerts after manual review
+- Reset alerts when order is reprocessed
+- Clean up resolved issues
+
+**Response:**
+```json
+{
+  "success": true,
+  "data": {
+    "order": {
+      "id": "order-uuid",
+      "name": "150000000001",
+      "alerts": [],
+      ...
+    },
+    "clearedCount": 3
+  }
+}
+```
+
+**Alert Validation:**
+- `value` - Required, non-empty string
+- `key` - Optional, can be null (used for filtering)
+- `level` - Required, must be "low", "medium", or "high"
+- `action` - Optional, currently null (reserved for future use)
+
+### Order Notes Management
+
+#### 17. Update Customer Note
+**PUT** `/server/order/note/:orderId`
+
+Add or update a customer-facing note on an order. This note is visible to the customer.
+
+**Request Body:**
+```json
+{
+  "type": "customer",
+  "customer_note": "Your order will be shipped by express delivery"
+}
+```
+
+**Alternative (without type):**
+```json
+{
+  "customer_note": "Your order will be shipped by express delivery"
+}
+```
+
+**Response:**
+```json
+{
+  "success": true,
+  "data": {
+    "order": {
+      "id": "order-uuid",
+      "name": "150000000001",
+      "customer_note": "Your order will be shipped by express delivery",
+      "internal_note": "Customer called to request express",
+      ...
+    },
+    "previousNote": null,
+    "newNote": "Your order will be shipped by express delivery"
+  }
+}
+```
+
+#### 18. Update Internal Note
+**PUT** `/server/order/note/:orderId`
+
+Add or update an internal note on an order. This note is for staff use only and not visible to customers.
+
+**Request Body:**
+```json
+{
+  "type": "internal",
+  "internal_note": "Customer called to request express delivery"
+}
+```
+
+**Alternative (without type):**
+```json
+{
+  "internal_note": "Customer called to request express delivery"
+}
+```
+
+**Response:**
+```json
+{
+  "success": true,
+  "data": {
+    "order": {
+      "id": "order-uuid",
+      "name": "150000000001",
+      "customer_note": "Your order will be shipped by express delivery",
+      "internal_note": "Customer called to request express delivery",
+      ...
+    },
+    "previousNote": null,
+    "newNote": "Customer called to request express delivery"
+  }
+}
+```
+
+#### 19. Update Both Notes
+**PUT** `/server/order/note/:orderId`
+
+Update both customer and internal notes in a single request.
+
+**Request Body:**
+```json
+{
+  "customer_note": "Your order will be shipped by express delivery",
+  "internal_note": "Customer called to request express delivery"
+}
+```
+
+**Response:**
+```json
+{
+  "success": true,
+  "data": {
+    "order": {
+      "id": "order-uuid",
+      "name": "150000000001",
+      "customer_note": "Your order will be shipped by express delivery",
+      "internal_note": "Customer called to request express delivery",
+      ...
+    },
+    "previousNotes": {
+      "customer_note": null,
+      "internal_note": null
+    },
+    "newNotes": {
+      "customer_note": "Your order will be shipped by express delivery",
+      "internal_note": "Customer called to request express delivery"
+    }
+  }
+}
+```
+
+#### 20. Clear Notes
+**DELETE** `/server/order/note/:orderId`
+
+Clear both customer and internal notes from an order.
+
+**Response:**
+```json
+{
+  "success": true,
+  "data": {
+    "order": {
+      "id": "order-uuid",
+      "name": "150000000001",
+      "customer_note": null,
+      "internal_note": null,
+      ...
+    },
+    "previousNotes": {
+      "customer_note": "Your order will be shipped by express delivery",
+      "internal_note": "Customer called to request express delivery"
+    }
+  }
+}
+```
+
+**Note Types:**
+- **Customer Note** (`customer_note`) - Visible to customer, used for order-specific messages and instructions
+- **Internal Note** (`internal_note`) - Internal staff use only, for tracking calls, special handling, or internal communications
+
+**Use Cases:**
+- Customer notes: Delivery instructions, special requests, order updates
+- Internal notes: Staff communications, fraud checks, fulfillment notes, customer service calls
+
+### Discount Management
+
+#### 9. Apply Discount
+**POST** `/server/order/:id`
+
+Apply a discount code to an existing order with comprehensive validation.
+
+**Request Body:**
+```json
+{
+  "code": "SUMMER20"
+}
+```
+
+**Discount Types Supported:**
+- **PERCENTAGE** - Percentage off eligible items (e.g., 20% off)
+- **FIXED** - Fixed amount off (e.g., 100 CZK off)
+- **FREE_SHIPPING** - Free shipping (applies shipping cost as discount)
+- **VOUCHER** - Gift voucher with fixed value
+
+### Custom Discount Object
+
+Instead of using discount codes, you can apply custom discounts directly during order creation:
+
+**Custom Discount Structure:**
+```json
+{
+  "custom_discount": {
+    "type": "PERCENTAGE",           // Required: "PERCENTAGE" or "FIXED"
+    "value": 15,                    // Required: 15 (for 15% or 15 CZK)
+    "description": "Staff discount"  // Optional: Custom description
+  }
+}
+```
+
+**Supported Custom Discount Types:**
+- **PERCENTAGE** - Percentage off entire order subtotal (1-100)
+- **FIXED** - Fixed amount off in order currency
+
+**Validation Rules:**
+- Cannot use both `discount_code` and `custom_discount` in the same order
+- Percentage values must be between 1-100
+- Fixed amounts must be positive numbers
+- Discount cannot exceed order subtotal
+- Requires order to have items with valid pricing
+
+**Custom Discount vs Discount Codes:**
+| Feature | Custom Discount | Discount Code |
+|---------|----------------|---------------|
+| **Validation** | Basic type/value validation | Full eligibility validation |
+| **Usage Tracking** | None | Usage limits and tracking |
+| **Product Restrictions** | Applies to entire order | Can be product-specific |
+| **Customer Restrictions** | None | Can be customer-specific |
+| **Minimum Order** | None | Can have minimum requirements |
+| **Use Case** | Manual staff discounts | Promotional campaigns |
+
+**Validation Checks:**
+1. Discount code exists and is active
+2. Usage limit not exceeded (total and per-customer)
+3. Market currency is allowed
+4. Customer eligibility (if customer-specific)
+5. Minimum subtotal requirement met
+6. Order contains eligible products (if product-specific)
+7. Voucher not already used (for voucher type)
+
+**Calculation Logic:**
+- **Percentage**: Applies to subtotal of eligible items
+- **Fixed**: Capped at subtotal to prevent negative totals
+- **Free Shipping**: Uses actual shipping cost as discount amount
+- **Voucher**: Acts like fixed discount with usage tracking
+- **Product-Specific**: Only applies to allowed products
+- **Max Discount**: Respects maximum discount limit if set
+
+**Process Flow:**
+1. Normalizes discount code (uppercase, trim)
+2. Fetches order with items and pricing
+3. Fetches discount record
+4. Validates discount eligibility
+5. Calculates discount amount based on type
+6. Stores discount as pricing component (net/gross with VAT)
+7. Recalculates order total
+8. Increments discount usage count
+9. Marks discount as USED if limit reached
+10. Returns updated order pricing
+
+## 📊 **Database Schema**
+
+### Orders Table
+```sql
+CREATE TABLE public.orders (
+  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  name TEXT,
+  local_currency TEXT REFERENCES currencies(id),
+  market_currency TEXT REFERENCES market_currencies(id),
+  customer UUID REFERENCES customers(id),
+  session UUID,
+  shipping_set UUID REFERENCES shipping_method_sets(id),
+  payment_set UUID REFERENCES payment_method_sets(id),
+  shipping_method JSONB,
+  payment_method JSONB,
+  shipping_address UUID REFERENCES shipping_address(id),
+  billing_address UUID REFERENCES billing_address(id),
+  payment_status order_payment_status DEFAULT 'UNPAID',
+  fulfillment_status order_fulfillment_status DEFAULT 'UNFULFILLED',
+  status order_status DEFAULT 'ACTIVE',
+  home_currency TEXT REFERENCES currencies(id),
+  fx_rate NUMERIC,
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+  total_price_net NUMERIC,
+  total_price_gross NUMERIC,
+  total_price_vat NUMERIC,
+  total_paid_price_gross NUMERIC DEFAULT 0,
+  shipping_address_log JSONB,
+  billing_address_log JSONB,
+  alerts JSONB,
+  customer_note TEXT,
+  internal_note TEXT
+);
+```
+
+**Key Fields:**
+- `name` - Sequential order number (e.g., "150000000001")
+- `local_currency` - Customer's currency (e.g., "CZK")
+- `market_currency` - Market-specific currency ID (e.g., "vasky/czechia/CZK")
+- `home_currency` - Business home currency for reporting
+- `fx_rate` - Exchange rate from local to home currency
+- `shipping_method` / `payment_method` - JSONB snapshots of method details
+- `address_log` - Historical address data for audit trail
+- `status` - Order status: ACTIVE (default), HOLD, ARCHIVED, or CANCELLED
+- `alerts` - Array of alert objects for order issues/warnings (JSONB)
+- `customer_note` - Customer-facing note visible to customer (TEXT)
+- `internal_note` - Internal note for staff use only, not visible to customer (TEXT)
+
+### Order Items Table
+```sql
+CREATE TABLE public.order_item (
+  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  order UUID REFERENCES orders(id),
+  product UUID REFERENCES products(id),
+  variant UUID REFERENCES product_variants(id),
+  sku TEXT,
+  barcode TEXT,
+  quantity INTEGER,
+  product_title TEXT,
+  variant_title TEXT,
+  handle TEXT,
+  image TEXT,
+  gift_card BOOLEAN,
+  require_shipping BOOLEAN,
+  parameters JSONB,
+  fulfilled_quantity NUMERIC,
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);
+```
+
+**Key Fields:**
+- `product_title` / `variant_title` - Snapshots at time of order
+- `parameters` - Custom key-value pairs for personalization
+- `fulfilled_quantity` - Track partial fulfillments
+- `gift_card` - Flag for special gift card handling
+
+### Order Items Pricing Table
+```sql
+CREATE TABLE public.order_items_pricing (
+  order_item UUID PRIMARY KEY REFERENCES order_item(id),
+  market_currency TEXT REFERENCES market_currencies(id),
+  currency TEXT REFERENCES currencies(id),
+  price NUMERIC,
+  compare_at_price NUMERIC,
+  discount_price NUMERIC,
+  line_price NUMERIC,
+  line_compare_at_price NUMERIC,
+  line_discount_price NUMERIC,
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);
+```
+
+**Pricing Structure:**
+- `price` - Unit price (gross with VAT)
+- `compare_at_price` - Original price before discounts
+- `discount_price` - Discounted unit price
+- `line_price` - Total line price (price × quantity)
+- `line_compare_at_price` - Total original price
+- `line_discount_price` - Total discounted price
+
+### Orders Pricing Table
+```sql
+CREATE TABLE public.orders_pricing (
+  order_id UUID REFERENCES orders(id),
+  component order_pricing_component NOT NULL,
+  net_local NUMERIC NOT NULL,
+  gross_local NUMERIC NOT NULL,
+  net_home NUMERIC NOT NULL,
+  gross_home NUMERIC NOT NULL,
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+  PRIMARY KEY (order_id, component)
+);
+```
+
+**Pricing Components:**
+- `SUBTOTAL` - Sum of all order items
+- `SHIPPING` - Shipping cost
+- `PAYMENT` - Payment method fee
+- `DISCOUNT` - Discount amount (negative value)
+- `TIP` - Optional tip amount
+- `TOTAL` - Final order total (calculated from components)
+
+**Currency Fields:**
+- `net_local` - Net amount in customer's currency (without VAT)
+- `gross_local` - Gross amount in customer's currency (with VAT)
+- `net_home` - Net amount in business home currency
+- `gross_home` - Gross amount in business home currency
+
+### Order Alerts
+
+The `alerts` field is a JSONB array that stores warnings, issues, or notifications about the order. Each alert object has the following structure:
+
+```json
+{
+  "value": "Human-readable alert message",
+  "key": "alert_type_identifier",
+  "level": "low|medium|high",
+  "action": null
+}
+```
+
+**Alert Fields:**
+- `value` (string, required) - Human-readable description of the alert
+- `key` (string, nullable) - Optional identifier for filtering specific alert types (e.g., "wrong_address", "out_of_stock")
+- `level` (string, required) - Alert severity: "low", "medium", or "high"
+- `action` (nullable) - Reserved for future use (currently null)
+
+**Example Alerts:**
+```json
+[
+  {
+    "value": "Cart item not in stock!",
+    "key": "out_of_stock",
+    "level": "high",
+    "action": null
+  },
+  {
+    "value": "Wrong address format",
+    "key": "wrong_address",
+    "level": "medium",
+    "action": null
+  },
+  {
+    "value": "Customer requested express delivery",
+    "key": null,
+    "level": "low",
+    "action": null
+  }
+]
+```
+
+**Common Alert Types:**
+- `out_of_stock` - One or more items not available
+- `wrong_address` - Address validation issues
+- `payment_pending` - Payment requires manual verification
+- `high_value` - Order exceeds normal value threshold
+- `fraud_check` - Order flagged for fraud review
+- `customer_note` - Special customer request or note
+
+## 🔍 **Order Relations**
+
+### Data Structure
+```
+orders
+├── customer (UUID) → customers
+├── shipping_address (UUID) → shipping_address
+│   ├── type (HOME/POINT/STORE)
+│   ├── address, city, zip, country (for HOME)
+│   ├── point_id, point_name, point_carrier (for POINT)
+│   └── store (UUID) → stores (for STORE)
+├── billing_address (UUID) → billing_address
+├── shipping_set (UUID) → shipping_method_sets
+│   └── shipping_method (UUID) → shipping_method
+├── payment_set (UUID) → payment_method_sets
+│   └── payment_method (UUID) → payment_method
+├── market_currency (TEXT) → market_currencies
+│   ├── currency (TEXT) → currencies
+│   ├── vat_rate (NUMERIC)
+│   └── market → markets
+│       ├── sales_channel → sales_channel
+│       │   └── order_name_format (TEXT)
+│       └── default_currency (TEXT) → currencies
+├── local_currency (TEXT) → currencies
+├── home_currency (TEXT) → currencies
+├── shipping_method (JSONB) - Snapshot of method details
+├── payment_method (JSONB) - Snapshot of method details
+├── status (ENUM) - ACTIVE, HOLD, ARCHIVED, or CANCELLED
+├── alerts (JSONB) - Array of alert objects
+│   └── [{value, key, level, action}, ...]
+├── customer_note (TEXT) - Customer-facing note
+├── internal_note (TEXT) - Internal staff note
+├── order_item → order_item table
+│   ├── product (UUID) → products
+│   ├── variant (UUID) → product_variants
+│   ├── parameters (JSONB) - Custom key-value pairs
+│   └── pricing → order_items_pricing table
+│       ├── price, compare_at_price, discount_price
+│       └── line_price, line_compare_at_price, line_discount_price
+└── pricing → orders_pricing table (by component)
+    ├── SUBTOTAL (net_local, gross_local, net_home, gross_home)
+    ├── SHIPPING (net_local, gross_local, net_home, gross_home)
+    ├── PAYMENT (net_local, gross_local, net_home, gross_home)
+    ├── DISCOUNT (net_local, gross_local, net_home, gross_home)
+    ├── TIP (net_local, gross_local, net_home, gross_home)
+    └── TOTAL (net_local, gross_local, net_home, gross_home)
+```
+
+### Available Expansions
+
+When querying orders, you can expand related data:
+
+- **`customer`** - Full customer details (name, email, phone, gender, addresses)
+- **`items`** - Order items with product and variant information
+- **`items.pricing`** - Item-level pricing details with line totals
+- **`shipping_address`** - Complete shipping address with type-specific fields
+- **`billing_address`** - Complete billing address
+- **`pricing`** - Pricing components breakdown (subtotal, shipping, payment, discount, total)
+
+## 🚨 **Error Handling**
+
+### Common Errors
+
+**Order Creation:**
+- `Market currency is required` - Missing market_currency field
+- `Customer is required` - Missing customer data
+- `Invalid market currency: {id}` - Market currency not found in database
+- `No currency associated with market currency` - Market currency missing currency reference
+- `Product variant not found` - Invalid variant ID/EID/XID in items
+- `Valid quantity is required for order item` - Item quantity <= 0
+- `Either product or variant reference is required` - Missing product/variant in item
+- `Shipping method type is required when not using shipping_set` - Missing shipping configuration
+- `Payment method type is required when not using payment_set` - Missing payment configuration
+- `Failed to process customer data: {reason}` - Customer or address validation failed
+- `point_id is required for POINT shipping type` - Missing pickup point ID
+- `store ID is required for STORE shipping type` - Missing store reference
+- `address is required for HOME shipping type` - Missing address for home delivery
+- `Invalid order status: {status}. Must be one of: ACTIVE, HOLD, ARCHIVED, CANCELLED` - Invalid status value provided
+
+**Order Retrieval:**
+- `Order ID is required` - Missing orderId parameter
+- `Order with ID {id} not found` - Invalid order ID
+- `Customer ID is required` - Missing customerId for customer query
+- `Product ID is required` - Missing productId for product query
+
+**Order Modification:**
+- `Order ID is required` - Missing orderId parameter
+- `Update data is required` - Empty update object
+- `Order with ID {id} not found` - Invalid order ID
+- `Customer ID is required to update addresses` - Missing customer reference
+- `Failed to process address data: {reason}` - Address validation failed
+- `Invalid shipping set: {reason}` - Shipping set not found
+- `Shipping method type is required` - Missing type in custom shipping method
+- `Shipping method price is required` - Missing price in custom shipping method
+- `Item ID is required for updates` - Missing item ID in updateItems
+- `Failed to remove items: {reason}` - Error deleting items
+- `Failed to update item {id}: {reason}` - Error updating specific item
+
+**Order Status Update:**
+- `Order ID is required` - Missing orderId parameter
+- `Status is required` - Missing status value
+- `Invalid status: {status}. Must be one of: ACTIVE, HOLD, ARCHIVED, CANCELLED` - Invalid status provided
+- `Failed to fetch order: {reason}` - Order not found or database error
+- `Order with ID {id} not found` - Invalid order ID
+- `Failed to update order status: {reason}` - Error updating status in database
+
+**Order Alerts:**
+- `Order ID is required` - Missing orderId parameter
+- `Alert object is required` - Missing alert in request body
+- `Alerts must be a non-empty array` - Invalid alerts array
+- `Alert value is required and must be a non-empty string` - Missing or invalid alert value
+- `Alert level is required` - Missing alert level
+- `Invalid alert level: {level}. Must be one of: low, medium, high` - Invalid level value
+- `Alert at index {index}: {reason}` - Validation error in alerts array
+- `Either "alert" object or "alerts" array is required in request body` - Missing both alert formats
+- `Failed to fetch order: {reason}` - Order not found or database error
+- `Order with ID {id} not found` - Invalid order ID
+- `Failed to update order alerts: {reason}` - Error updating alerts in database
+- `Alert key is required and must be a string` - Invalid key for removal
+
+**Order Notes:**
+- `Order ID is required` - Missing orderId parameter
+- `Customer note is required (use empty string to clear)` - Missing customer_note when updating
+- `Internal note is required (use empty string to clear)` - Missing internal_note when updating
+- `Notes object is required` - Missing notes object in request
+- `At least one note field (customer_note or internal_note) must be provided` - No notes provided
+- `customer_note is required when type is "customer"` - Missing note for specific type
+- `internal_note is required when type is "internal"` - Missing note for specific type
+- `Failed to fetch order: {reason}` - Order not found or database error
+- `Order with ID {id} not found` - Invalid order ID
+- `Failed to update customer note: {reason}` - Error updating customer note
+- `Failed to update internal note: {reason}` - Error updating internal note
+- `Failed to update order notes: {reason}` - Error updating notes in database
+- `Failed to clear order notes: {reason}` - Error clearing notes
+
+**Discount Application:**
+- `Missing required parameter: orderId` - Missing order ID
+- `Missing required parameter: discountCode` - Missing discount code
+- `Failed to fetch order: {reason}` - Order not found or database error
+- `Discount code "{code}" not found` - Invalid discount code
+- `This discount code has reached its usage limit` - Usage limit exceeded
+- `This discount code has already been used` - Discount marked as USED
+- `This voucher has already been used` - Voucher already applied to an order
+- `This discount is not valid for your region` - Market currency not allowed
+- `This discount code is assigned to a specific customer` - Customer mismatch
+- `A minimum purchase of {amount} is required for this discount` - Subtotal too low
+- `Order has no items` - Cannot apply product-specific discount to empty order
+- `This discount is only valid for specific products` - No eligible products in order
+
+### Error Response Format
+```json
+{
+  "success": false,
+  "error": "Error message describing the issue"
+}
+```
+
+### Success Response Format
+```json
+{
+  "success": true,
+  "data": {
+    "order": { ... },
+    "items": [ ... ],
+    "pricing": { ... },
+    "discount": {
+      "id": "discount-uuid",
+      "code": "SUMMER20",
+      "type": "PERCENTAGE",
+      "amount": 200,
+      "description": "Summer Sale 20% Off"
+    }
+  }
+}
+```
+
+**Response Fields:**
+- `order` - Complete order object with all details
+- `items` - Array of order items with pricing information
+- `pricing` - Pricing components breakdown (subtotal, shipping, discount, total)
+- `discount` - Discount information (only present if discount_code was provided and successfully applied)
+
+## 📋 **Best Practices**
+
+### Order Creation
+1. **Always provide market_currency** - Required for proper pricing and VAT calculation
+2. **Use shipping_set and payment_set** - Preferred over custom method objects for consistency
+3. **Provide complete customer data** - Include email, first_name, last_name for best results
+4. **Use correct address field names** - `address` not `address1`, `zip` not `postal_code`, `type` not `shipping_type`
+5. **Specify address type explicitly** - Always include `type` field (HOME/POINT/STORE) in shipping addresses
+6. **Match shipping type to method** - Ensure address type matches shipping method type
+7. **Include all required address fields** - HOME needs address/city/zip/country, POINT needs point_id/point_name/point_carrier, STORE needs store ID
+8. **Validate item quantities** - Must be greater than 0
+9. **Use variant lookups** - Prefer EID lookups for external system integration
+
+### Customer Management
+1. **Use email for customer matching** - System automatically finds and updates existing customers
+2. **Provide first_name for gender detection** - Enables automatic gender determination via AI
+3. **Let system handle address deduplication** - Matching addresses are automatically reused
+4. **Fill customer data completely** - More complete data = better matching and fewer duplicates
+
+### Order Management
+1. **Query with expansions** - Use expand parameter to reduce API calls
+2. **Filter by status** - Use payment_status and fulfillment_status for efficient queries
+3. **Use pagination** - Limit results for better performance (default: 50, max: 100)
+4. **Search across fields** - Use search parameter for flexible multi-field queries
+5. **Leverage product queries** - Use by-product endpoints for product-specific analysis
+
+### Pricing & Currency
+1. **Trust automatic exchange rates** - System fetches current rates automatically
+2. **Use component pricing** - Leverage orders_pricing table for detailed breakdowns
+3. **Store both net and gross** - Maintain complete pricing information for accounting
+4. **Track VAT properly** - Ensure correct VAT rates configured per market
+5. **Monitor fx_rate** - Store exchange rate for historical accuracy
+
+### Discounts
+1. **Validate before applying** - Check discount eligibility before application
+2. **Monitor usage limits** - Track discount usage to prevent abuse
+3. **Use product-specific discounts** - Target specific products for promotions
+4. **Handle free shipping correctly** - System automatically applies shipping cost as discount
+5. **Track voucher usage** - Vouchers are single-use and tracked per order
+
+### Integration
+1. **Link to payments** - Create payment records after order creation
+2. **Track fulfillments** - Update fulfillment_status as orders ship
+3. **Log address changes** - Use address_log fields for audit trail
+4. **Monitor order lifecycle** - Track status changes for analytics
+5. **Generate order names** - Let system auto-generate from sales channel format
+
+### Performance
+1. **Use specific filters** - Avoid broad queries when possible
+2. **Limit expansions** - Only expand necessary related data
+3. **Index frequently queried fields** - Ensure proper database indexes
+4. **Batch operations** - Process multiple items together when possible
+5. **Cache static data** - Cache product, currency, and method data
+
+## 💡 **Common Use Cases**
+
+### 1. Create Order with New Customer (Direct UUID)
+```bash
+curl -X POST "http://localhost:3010/api/server/order/create" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "market_currency": "vasky/czechia/CZK",
+    "customer": {
+      "email": "jan.novak@example.com",
+      "first_name": "Jan",
+      "last_name": "Novak",
+      "phone": "+420123456789"
+    },
+    "billing_address": {
+      "first_name": "Jan",
+      "last_name": "Novak",
+      "address": "Hlavni 123",
+      "city": "Praha",
+      "zip": "11000",
+      "country": "CZ"
+    },
+    "shipping_address": {
+      "first_name": "Jan",
+      "last_name": "Novak",
+      "address": "Hlavni 123",
+      "city": "Praha",
+      "zip": "11000",
+      "country": "CZ",
+      "type": "HOME"
+    },
+    "shipping_set": "aff4d43e-dc6d-4603-8a7f-4e1379ccdab8",
+    "payment_set": "28a283fb-3d53-4a54-98ba-49d8e3955f1f",
+    "items": [
+      {
+        "quantity": 2,
+        "variant": "262b4f09-4c9f-467f-bcf5-facdc1e5cefe"
+      },
+      {
+        "quantity": 1,
+        "variant": "2ba5c5f8-3d60-4510-b962-86a717b2ad05"
+      }
+    ]
+  }'
+```
+
+### 1b. Create Order with Variant Lookup Methods
+```bash
+curl -X POST "http://localhost:3010/api/server/order/create" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "market_currency": "vasky/czechia/CZK",
+    "customer": {
+      "email": "jan.novak@example.com",
+      "first_name": "Jan",
+      "last_name": "Novak"
+    },
+    "billing_address": {
+      "first_name": "Jan",
+      "last_name": "Novak",
+      "address": "Hlavni 123",
+      "city": "Praha",
+      "zip": "11000",
+      "country": "CZ"
+    },
+    "shipping_address": {
+      "first_name": "Jan",
+      "last_name": "Novak",
+      "address": "Hlavni 123",
+      "city": "Praha",
+      "zip": "11000",
+      "country": "CZ",
+      "type": "HOME"
+    },
+    "shipping_set": "aff4d43e-dc6d-4603-8a7f-4e1379ccdab8",
+    "payment_set": "28a283fb-3d53-4a54-98ba-49d8e3955f1f",
+    "items": [
+      {
+        "quantity": 2,
+        "variant": {
+          "field": "eid",
+          "value": "50410938958154"
+        }
+      },
+      {
+        "quantity": 1,
+        "variant": {
+          "field": "xid",
+          "value": "N1G4000101"
+        }
+      }
+    ]
+  }'
+```
+
+### 1c. Create Order with Custom Methods and SKU Lookup
+```bash
+curl -X POST "http://localhost:3100/server/order/create" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "market_currency": "vasky/czechia/CZK",
+    "customer": {
+      "email": "jan.novak@example.com",
+      "first_name": "Jan",
+      "last_name": "Novak"
+    },
+    "billing_address": {
+      "first_name": "Jan",
+      "last_name": "Novak",
+      "address": "Hlavni 123",
+      "city": "Praha",
+      "zip": "11000",
+      "country": "CZ"
+    },
+    "shipping_address": {
+      "first_name": "Jan",
+      "last_name": "Novak",
+      "address": "Hlavni 123",
+      "city": "Praha",
+      "zip": "11000",
+      "country": "CZ",
+      "type": "HOME"
+    },
+    "shipping_method": {
+      "type": "HOME",
+      "name": "Express Delivery",
+      "price": 299,
+      "description": "Next day delivery"
+    },
+    "payment_method": {
+      "type": "CARD",
+      "name": "Credit Card",
+      "price": 0,
+      "description": "Pay with credit or debit card"
+    },
+    "items": [
+      {
+        "quantity": 2,
+        "variant": {
+          "field": "sku",
+          "value": "TSHIRT-RED-M"
+        }
+      },
+      {
+        "quantity": 1,
+        "variant": {
+          "field": "barcode",
+          "value": "1234567890123"
+        }
+      }
+    ]
+  }'
+```
+
+### 1d. Create Order with Discount Code
+```bash
+curl -X POST "http://localhost:3100/server/order/create" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "market_currency": "vasky/czechia/CZK",
+    "customer": {
+      "email": "jan.novak@example.com",
+      "first_name": "Jan",
+      "last_name": "Novak"
+    },
+    "billing_address": {
+      "first_name": "Jan",
+      "last_name": "Novak",
+      "address": "Hlavni 123",
+      "city": "Praha",
+      "zip": "11000",
+      "country": "CZ"
+    },
+    "shipping_address": {
+      "first_name": "Jan",
+      "last_name": "Novak",
+      "address": "Hlavni 123",
+      "city": "Praha",
+      "zip": "11000",
+      "country": "CZ",
+      "type": "HOME"
+    },
+    "shipping_set": "aff4d43e-dc6d-4603-8a7f-4e1379ccdab8",
+    "payment_set": "28a283fb-3d53-4a54-98ba-49d8e3955f1f",
+    "discount_code": "SUMMER20",
+    "items": [
+      {
+        "quantity": 2,
+        "variant": "262b4f09-4c9f-467f-bcf5-facdc1e5cefe"
+      }
+    ]
+  }'
+```
+
+### 1e. Create Order with Custom Percentage Discount
+```bash
+curl -X POST "http://localhost:3100/server/order/create" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "market_currency": "vasky/czechia/CZK",
+    "customer": {
+      "email": "jan.novak@example.com",
+      "first_name": "Jan",
+      "last_name": "Novak"
+    },
+    "billing_address": {
+      "first_name": "Jan",
+      "last_name": "Novak",
+      "address": "Hlavni 123",
+      "city": "Praha",
+      "zip": "11000",
+      "country": "CZ"
+    },
+    "shipping_address": {
+      "first_name": "Jan",
+      "last_name": "Novak",
+      "address": "Hlavni 123",
+      "city": "Praha",
+      "zip": "11000",
+      "country": "CZ",
+      "type": "HOME"
+    },
+    "shipping_set": "aff4d43e-dc6d-4603-8a7f-4e1379ccdab8",
+    "payment_set": "28a283fb-3d53-4a54-98ba-49d8e3955f1f",
+    "custom_discount": {
+      "type": "PERCENTAGE",
+      "value": 15,
+      "description": "Staff discount - 15% off"
+    },
+    "items": [
+      {
+        "quantity": 2,
+        "variant": "262b4f09-4c9f-467f-bcf5-facdc1e5cefe"
+      }
+    ]
+  }'
+```
+
+### 1f. Create Order with Custom Fixed Discount
+```bash
+curl -X POST "http://localhost:3100/server/order/create" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "market_currency": "vasky/czechia/CZK",
+    "customer": {
+      "email": "jan.novak@example.com",
+      "first_name": "Jan",
+      "last_name": "Novak"
+    },
+    "billing_address": {
+      "first_name": "Jan",
+      "last_name": "Novak",
+      "address": "Hlavni 123",
+      "city": "Praha",
+      "zip": "11000",
+      "country": "CZ"
+    },
+    "shipping_address": {
+      "first_name": "Jan",
+      "last_name": "Novak",
+      "address": "Hlavni 123",
+      "city": "Praha",
+      "zip": "11000",
+      "country": "CZ",
+      "type": "HOME"
+    },
+    "shipping_method": {
+      "type": "HOME",
+      "name": "Standard Delivery",
+      "price": 150
+    },
+    "payment_method": {
+      "type": "CARD",
+      "name": "Credit Card",
+      "price": 0
+    },
+    "custom_discount": {
+      "type": "FIXED",
+      "value": 200,
+      "description": "Customer loyalty discount"
+    },
+    "items": [
+      {
+        "quantity": 1,
+        "variant": {
+          "field": "sku",
+          "value": "LAPTOP-PRO-15"
+        }
+      }
+    ]
+  }'
+```
+
+### 2. Create Order with Pickup Point
+```bash
+curl -X POST "http://localhost:3010/api/server/order/create" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "market_currency": "vasky/czechia/CZK",
+    "customer": {
+      "email": "customer@example.com",
+      "first_name": "Jan",
+      "last_name": "Novak"
+    },
+    "billing_address": {
+      "first_name": "Jan",
+      "last_name": "Novak",
+      "address": "Hlavni 123",
+      "city": "Praha",
+      "zip": "11000",
+      "country": "CZ"
+    },
+    "shipping_address": {
+      "first_name": "Jan",
+      "last_name": "Novak",
+      "point_id": "Z123",
+      "point_name": "Zásilkovna - Praha 1",
+      "point_carrier": "Zásilkovna",
+      "type": "POINT"
+    },
+    "shipping_set": "af579a7d-2a1c-43ce-988d-93b5d1928fb5",
+    "payment_set": "28a283fb-3d53-4a54-98ba-49d8e3955f1f",
+    "items": [
+      {
+        "quantity": 1,
+        "variant": { "field": "eid", "value": "50410938958154" }
+      }
+    ]
+  }'
+```
+
+### 3. Query Unpaid Orders
+```bash
+curl -X POST "http://localhost:3010/api/server/order/query" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "payment_status": "UNPAID",
+    "expand": ["customer"],
+    "page": 1,
+    "limit": 50,
+    "orderBy": "created_at",
+    "ascending": false
+  }'
+```
+
+### 4. Get Customer Order History
+```bash
+curl -X GET "http://localhost:3010/api/server/order/by-customer/customer-uuid?includeItems=true&limit=20&direction=desc"
+```
+
+### 5. Find Orders with Specific Product
+```bash
+curl -X GET "http://localhost:3010/api/server/order/by-product/product-uuid?includeCustomer=true&includeItems=true"
+```
+
+### 6. Search Orders by Name or Customer
+```bash
+curl -X POST "http://localhost:3010/api/server/order/query" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "search": "150000000001",
+    "expand": ["customer", "items"]
+  }'
+```
+
+### 7. Retrieve Single Order with Details
+```bash
+curl -X GET "http://localhost:3010/api/server/order/retrieve/order-uuid?includeItems=true&includePricing=true&includeCustomer=true&includeAddresses=true"
+```
+
+### 8. Apply Discount to Order
+```bash
+curl -X POST "http://localhost:3010/api/server/order/order-uuid" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "code": "SUMMER20"
+  }'
+```
+
+### 9. Update Order Shipping Address
+```bash
+curl -X PUT "http://localhost:3010/api/server/order/modify/order-uuid" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "shipping_address": {
+      "first_name": "Jan",
+      "last_name": "Novak",
+      "address": "Nova 456",
+      "city": "Brno",
+      "zip": "60200",
+      "country": "CZ",
+      "type": "HOME"
+    }
+  }'
+```
+
+### 10. Add Items to Existing Order
+```bash
+curl -X PUT "http://localhost:3010/api/server/order/modify/order-uuid" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "addItems": [
+      {
+        "quantity": 1,
+        "variant": {
+          "field": "eid",
+          "value": "41302562-126f-4deb-b26c-f0bc0e984a89"
+        }
+      }
+    ]
+  }'
+```
+
+### 11. Set Order to Active Status
+```bash
+curl -X PUT "http://localhost:3010/api/server/order/active/order-uuid"
+```
+
+### 12. Archive Order
+```bash
+curl -X PUT "http://localhost:3010/api/server/order/archive/order-uuid"
+```
+
+### 13. Put Order on Hold
+```bash
+curl -X PUT "http://localhost:3010/api/server/order/hold/order-uuid"
+```
+
+### 14. Create Order with HOLD Status
+```bash
+curl -X POST "http://localhost:3010/api/server/order/create" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "market_currency": "vasky/czechia/CZK",
+    "status": "HOLD",
+    "customer": {
+      "email": "jan.novak@example.com",
+      "first_name": "Jan",
+      "last_name": "Novak"
+    },
+    "billing_address": {
+      "first_name": "Jan",
+      "last_name": "Novak",
+      "address": "Hlavni 123",
+      "city": "Praha",
+      "zip": "11000",
+      "country": "CZ"
+    },
+    "shipping_address": {
+      "first_name": "Jan",
+      "last_name": "Novak",
+      "address": "Hlavni 123",
+      "city": "Praha",
+      "zip": "11000",
+      "country": "CZ",
+      "type": "HOME"
+    },
+    "shipping_set": "aff4d43e-dc6d-4603-8a7f-4e1379ccdab8",
+    "payment_set": "28a283fb-3d53-4a54-98ba-49d8e3955f1f",
+    "items": [
+      {
+        "quantity": 1,
+        "variant": "262b4f09-4c9f-467f-bcf5-facdc1e5cefe"
+      }
+    ]
+  }'
+```
+
+### 15. Add Single Alert to Order
+```bash
+curl -X POST "http://localhost:3010/api/server/order/alert/order-uuid" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "alert": {
+      "value": "Cart item not in stock!",
+      "key": "out_of_stock",
+      "level": "high",
+      "action": null
+    }
+  }'
+```
+
+### 16. Add Multiple Alerts to Order
+```bash
+curl -X POST "http://localhost:3010/api/server/order/alert/order-uuid" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "alerts": [
+      {
+        "value": "Cart item not in stock!",
+        "key": "out_of_stock",
+        "level": "high",
+        "action": null
+      },
+      {
+        "value": "Wrong address format",
+        "key": "wrong_address",
+        "level": "medium",
+        "action": null
+      }
+    ]
+  }'
+```
+
+### 17. Remove Alerts by Key
+```bash
+curl -X DELETE "http://localhost:3010/api/server/order/alert/order-uuid?key=out_of_stock"
+```
+
+### 18. Clear All Alerts from Order
+```bash
+curl -X DELETE "http://localhost:3010/api/server/order/alert/order-uuid"
+```
+
+### 19. Update Customer Note
+```bash
+curl -X PUT "http://localhost:3010/api/server/order/note/order-uuid" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "customer_note": "Your order will be shipped by express delivery"
+  }'
+```
+
+### 20. Update Internal Note
+```bash
+curl -X PUT "http://localhost:3010/api/server/order/note/order-uuid" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "internal_note": "Customer called to request express delivery"
+  }'
+```
+
+### 21. Update Both Notes
+```bash
+curl -X PUT "http://localhost:3010/api/server/order/note/order-uuid" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "customer_note": "Your order will be shipped by express delivery",
+    "internal_note": "Customer called to request express delivery"
+  }'
+```
+
+### 22. Clear All Notes
+```bash
+curl -X DELETE "http://localhost:3010/api/server/order/note/order-uuid"
+```
+
+## 📦 **Inventory & Fulfillment Flow**
+
+### Order Creation → Inventory Reservation
+
+When an order is created, inventory is automatically checked and reserved:
+
+1. **Inventory Check** - For each order item:
+   - Skip if `require_shipping = false` (digital products)
+   - Skip if `track_inventory = false` (unlimited stock)
+   - Check available inventory at fulfillment location
+
+2. **Reservation** - If stock available:
+   - Reserve quantity (available → reserved)
+   - Create RESERVED movement linked to order_item
+   - Update order `inventory_status` to AVAILABLE
+
+3. **Backorder Creation** - If stock unavailable:
+   - Create backorder if `allow_backorder = true`
+   - Update `inventory_status` to BACKORDERED or PARTIAL
+   - Order stays HOLD until stock arrives
+
+4. **Location Determination**:
+   - Get from order's `shipping_set` → `fulfillment_location`
+   - Fallback to default location (`is_default = true`)
+
+### Payment → Order Activation
+
+When payment is received (`payment_status` → PAID):
+
+1. **Check Inventory Status**:
+   - If `inventory_status = AVAILABLE` → Order changes HOLD → ACTIVE
+   - If `inventory_status = PARTIAL` (no blocking backorders) → ACTIVE
+   - If `inventory_status = BACKORDERED` → Stays HOLD
+
+2. **Auto-Fulfillment Trigger** (if enabled):
+   - Only triggers if order becomes ACTIVE
+   - Creates fulfillment for items with `auto_fulfill = true`
+   - Skips items on backorder
+
+### Fulfillment → Inventory Deduction
+
+When fulfillment status changes to FULFILLED (warehouse picks & packs):
+
+1. **Inventory Deduction** - For each fulfillment_item:
+   - Deduct from reserved AND total quantity
+   - Create FULFILLED movement linked to order_item
+   - Inventory: `quantity↓`, `reserved↓`
+
+2. **Movement Tracking**:
+   ```
+   Type: FULFILLED
+   Quantity: -N (negative, stock leaves)
+   Order Item: linked (full traceability)
+   Location: fulfillment_location
+   ```
+
+### Order Cancellation → Inventory Release
+
+When order is cancelled (`PUT /server/order/cancel/:orderId`):
+
+1. **Calculate Unfulfilled**: For each order_item:
+   ```
+   remaining = quantity - fulfilled_quantity
+   ```
+
+2. **Release Inventory** - If remaining > 0:
+   - Release from reserved back to available
+   - Create RELEASED movement linked to order_item
+   - Inventory: `reserved↓`, `available↑`
+
+3. **Cancel Backorders**:
+   - Cancel all PENDING/PARTIAL backorders
+   - Release any partially reserved stock
+   - Free queue positions
+
+4. **Status Change**:
+   - Order status → CANCELLED
+   - Append cancellation notes to internal_note
+
+### Inventory Status Values
+
+- **PENDING** - Not yet checked
+- **AVAILABLE** - All items in stock and reserved
+- **PARTIAL** - Some items available, some backordered
+- **BACKORDERED** - All items waiting for stock
+- **ERROR** - Issue requires manual intervention
+
+### Complete Flow Example
+
+```
+1. Order Created (2 items, 1 in stock, 1 out of stock)
+   ├─ Item 1: Reserved (RESERVED movement)
+   ├─ Item 2: Backorder created
+   ├─ inventory_status: PARTIAL
+   └─ order.status: HOLD (UNPAID)
+
+2. Payment Received
+   ├─ payment_status: PAID
+   ├─ Has blocking backorder → Order stays HOLD
+   └─ Waiting for stock...
+
+3. Stock Arrives (INTAKE operation)
+   ├─ Item 2: Reserved (RESERVED movement)
+   ├─ Backorder → FULFILLED
+   ├─ inventory_status: PARTIAL → AVAILABLE
+   └─ order.status: HOLD → ACTIVE
+
+4. Auto-Fulfillment Created
+   ├─ Both items auto_fulfill = true
+   ├─ Fulfillment created with both items
+   └─ fulfillment_location set from shipping_set
+
+5. Warehouse Marks FULFILLED
+   ├─ Item 1: Inventory deducted (FULFILLED movement)
+   ├─ Item 2: Inventory deducted (FULFILLED movement)
+   ├─ fulfillment.status: FULFILLED
+   └─ delivery_status: LABEL_CREATED
+
+6. Shipped & Delivered
+   ├─ delivery_status: IN_TRANSIT → DELIVERED
+   └─ order.status: Can be ARCHIVED
+```
+
+## 📚 **Related Systems**
+
+### Integration with Other Modules
+
+- **Checkout**: Orders are created from checkouts via conversion endpoint
+- **Customers**: Orders automatically create/update customers and manage addresses
+- **Payments**: Payment records are created for each order based on payment method
+- **Fulfillments**: Fulfillment records track order shipping and delivery
+- **Inventory**: Automatic reservation, release, and movement tracking with order_item linking
+- **Backorders**: Automatic creation for out-of-stock items, FIFO queue management
+- **Products**: Order items reference products and variants with snapshots
+- **Discounts**: Discount codes can be applied with comprehensive validation
+- **Shipping**: Shipping methods and addresses are linked with type validation
+- **Addresses**: Billing and shipping addresses are deduplicated and stored
+- **Markets**: Market currencies determine VAT rates and pricing
+- **Sales Channels**: Order naming format is defined per sales channel
+- **Currencies**: Multi-currency support with automatic exchange rate lookup
+
+### Workflow Integration
+
+```
+Checkout → Order Creation → Payment Processing → Fulfillment → Delivery
+    ↓           ↓                ↓                    ↓            ↓
+  Cart      Customer         Gateway            Shipping      Complete
+  Items     Addresses        Integration         Carrier       Order
+            Gender AI        Discount Apply      Tracking      Archive
+            Address Match    Voucher Generate    Status Update
+```
+
+## 🤝 **Support**
+
+### Troubleshooting
+
+**Order Creation Fails:**
+1. Verify market_currency exists and has valid currency reference
+2. Check customer email format is valid
+3. Validate product variants exist with correct EID/XID/ID
+4. Ensure shipping/payment methods are configured for market
+5. Check address data has all required fields for type (HOME/POINT/STORE)
+6. Verify shipping type matches shipping method type
+7. Confirm VAT rate is configured for market
+
+**Customer Not Matching:**
+1. Verify email is exactly the same (case-sensitive)
+2. Check customer exists in database
+3. Ensure email field is provided in customer data
+4. Review customer creation logs for errors
+
+**Address Duplication:**
+1. System automatically matches addresses - check matching logic
+2. Verify address fields are consistent (trim whitespace)
+3. Different address types (HOME/POINT) are treated as separate
+4. Store addresses matched by store ID only
+
+**Pricing Issues:**
+1. Verify VAT rates are configured for market
+2. Check exchange rates are current (auto-fetched)
+3. Ensure pricing tables have data for variants
+4. Validate discount code is active and applicable
+5. Review component pricing breakdown in orders_pricing table
+6. Confirm net/gross calculations with VAT rate
+
+**Discount Not Applying:**
+1. Check discount code is active (not USED status)
+2. Verify usage limit not exceeded
+3. Ensure market currency is allowed
+4. Confirm order meets minimum subtotal
+5. Check product eligibility for product-specific discounts
+6. Validate customer eligibility for customer-specific discounts
+7. For vouchers, ensure not already used
+
+**Query Performance:**
+1. Use pagination to limit results (max 100 per page)
+2. Add indexes on frequently queried fields (customer, payment_status, created_at)
+3. Use specific filters instead of broad searches
+4. Limit expansions to necessary data only
+5. Consider caching for static reference data
+
+This order system provides a comprehensive foundation for e-commerce order management with full lifecycle tracking, automatic customer management, intelligent address handling, and robust pricing calculations! 🚀
