@@ -232,8 +232,7 @@ export function useModuleQuery(module, options = {}) {
       const finalData = transformData ? transformData(records) : records;
       
       setData(finalData);
-      // Handle different pagination field names (totalRecords for orders, total for inventory)
-      setTotalCount(paginationInfo?.totalRecords || paginationInfo?.total || 0);
+      setTotalCount(paginationInfo?.totalRecords || 0);
 
     } catch (err) {
       console.error(`Error fetching ${module} data:`, err);
