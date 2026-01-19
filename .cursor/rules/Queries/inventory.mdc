@@ -1,0 +1,726 @@
+# Inventory Query API
+
+## Overview
+
+The inventory query endpoint provides flexible querying of inventory records with support for filtering, searching, pagination, sorting, and relation expansion.
+
+**Endpoint:** `POST /server/inventory/query`
+
+## Request Parameters
+
+### Pagination & Sorting
+
+| Parameter | Type | Default | Description |
+|-----------|------|---------|-------------|
+| `page` | integer | 1 | Page number |
+| `limit` | integer | 20 | Items per page |
+| `orderBy` | string | created_at | Field to sort by |
+| `ascending` | boolean | false | Sort direction (true = ascending, false = descending) |
+
+### Search
+
+| Parameter | Type | Description |
+|-----------|------|-------------|
+| `search` | string | Multi-field search across SKU, title, variant data, product data, and location data |
+
+### Expansion
+
+| Parameter | Type | Description |
+|-----------|------|-------------|
+| `expand` | string | Comma-separated relations to expand (variant, variant.product, location) |
+
+### Filters
+
+#### Basic Filters
+
+| Parameter | Type | Description |
+|-----------|------|-------------|
+| `variant` | uuid | Filter by variant UUID |
+| `location` | uuid | Filter by location UUID |
+| `sku` | string | Filter by SKU |
+
+#### Quantity Comparison Filters
+
+**Available Stock:**
+- `available_gt` - Available quantity greater than
+- `available_lt` - Available quantity less than
+- `available_gte` - Available quantity greater than or equal
+- `available_lte` - Available quantity less than or equal
+
+**Reserved Stock:**
+- `reserved_gt` - Reserved quantity greater than
+- `reserved_lt` - Reserved quantity less than
+- `reserved_gte` - Reserved quantity greater than or equal
+- `reserved_lte` - Reserved quantity less than or equal
+
+**Total Stock:**
+- `quantity_gt` - Total quantity greater than
+- `quantity_lt` - Total quantity less than
+- `quantity_gte` - Total quantity greater than or equal
+- `quantity_lte` - Total quantity less than or equal
+
+**Backorder Total:**
+- `backorder_total_gt` - Backorder total greater than
+- `backorder_total_lt` - Backorder total less than
+- `backorder_total_gte` - Backorder total greater than or equal
+- `backorder_total_lte` - Backorder total less than or equal
+
+**Backorder Pending:**
+- `backorder_pending_gt` - Backorder pending greater than
+- `backorder_pending_lt` - Backorder pending less than
+- `backorder_pending_gte` - Backorder pending greater than or equal
+- `backorder_pending_lte` - Backorder pending less than or equal
+
+**Awaiting Demand (Customer Backorders):**
+- `awaiting_demand_gt` - Awaiting demand greater than
+- `awaiting_demand_lt` - Awaiting demand less than
+- `awaiting_demand_gte` - Awaiting demand greater than or equal
+- `awaiting_demand_lte` - Awaiting demand less than or equal
+
+**Awaiting Stock (Incoming Operations):**
+- `awaiting_stock_gt` - Awaiting stock greater than
+- `awaiting_stock_lt` - Awaiting stock less than
+- `awaiting_stock_gte` - Awaiting stock greater than or equal
+- `awaiting_stock_lte` - Awaiting stock less than or equal
+
+#### Date Range Filters
+
+| Parameter | Type | Description |
+|-----------|------|-------------|
+| `created_at_from` | string | Filter records created on or after this date (YYYY-MM-DD) |
+| `created_at_to` | string | Filter records created on or before this date (YYYY-MM-DD) |
+
+## Available Expansions
+
+### `variant`
+Expands the variant relation to include full product variant details:
+- Basic variant info (id, eid, xid, sku, title)
+- Pricing (price, compare_at_price, cost)
+- Physical properties (barcode, weight, weight_unit)
+- Settings (requires_shipping, taxable)
+- Product reference (UUID only)
+
+### `variant.product`
+Nested expansion that includes both variant details and full product information:
+- All variant fields (as above)
+- Complete product object with all fields
+
+### `location`
+Expands the location relation to include full location details:
+- Basic info (id, name, code)
+- Address (address, city, province, country, zip)
+- Settings (is_active, is_default, fulfills_online_orders, allows_pickup)
+
+## Common Use Cases
+
+### 1. Get All Inventory with Pagination
+
+```bash
+curl -X POST http://localhost:3100/server/inventory/query \
+  -H "Content-Type: application/json" \
+  -d '{
+    "page": 1,
+    "limit": 20
+  }'
+```
+
+### 2. Get Inventory for Specific Variant
+
+```bash
+curl -X POST http://localhost:3100/server/inventory/query \
+  -H "Content-Type: application/json" \
+  -d '{
+    "variant": "262b4f09-4c9f-467f-bcf5-facdc1e5cefe",
+    "expand": "location"
+  }'
+```
+
+### 3. Get Inventory for Specific Location
+
+```bash
+curl -X POST http://localhost:3100/server/inventory/query \
+  -H "Content-Type: application/json" \
+  -d '{
+    "location": "a1b2c3d4-e5f6-7890-abcd-ef1234567890",
+    "expand": "variant"
+  }'
+```
+
+### 4. Find Low Stock Items
+
+```bash
+curl -X POST http://localhost:3100/server/inventory/query \
+  -H "Content-Type: application/json" \
+  -d '{
+    "available_lte": 10,
+    "available_gt": 0,
+    "expand": "variant,location",
+    "orderBy": "available",
+    "ascending": true
+  }'
+```
+
+### 5. Find Out of Stock Items
+
+```bash
+curl -X POST http://localhost:3100/server/inventory/query \
+  -H "Content-Type: application/json" \
+  -d '{
+    "available_lte": 0,
+    "expand": "variant.product,location"
+  }'
+```
+
+### 6. Find Items with Reserved Stock
+
+```bash
+curl -X POST http://localhost:3100/server/inventory/query \
+  -H "Content-Type: application/json" \
+  -d '{
+    "reserved_gt": 0,
+    "expand": "variant,location",
+    "orderBy": "reserved",
+    "ascending": false
+  }'
+```
+
+### 7. Search by SKU or Product Name
+
+```bash
+curl -X POST http://localhost:3100/server/inventory/query \
+  -H "Content-Type: application/json" \
+  -d '{
+    "search": "SHIRT",
+    "expand": "variant.product,location"
+  }'
+```
+
+### 8. Get High Stock Items
+
+```bash
+curl -X POST http://localhost:3100/server/inventory/query \
+  -H "Content-Type: application/json" \
+  -d '{
+    "quantity_gte": 100,
+    "expand": "variant,location",
+    "orderBy": "quantity",
+    "ascending": false
+  }'
+```
+
+### 9. Get Inventory for Specific SKU
+
+```bash
+curl -X POST http://localhost:3100/server/inventory/query \
+  -H "Content-Type: application/json" \
+  -d '{
+    "sku": "SHIRT-BLK-M",
+    "expand": "variant,location"
+  }'
+```
+
+### 10. Get Items Needing Restock (Low Available, No Reserved)
+
+```bash
+curl -X POST http://localhost:3100/server/inventory/query \
+  -H "Content-Type: application/json" \
+  -d '{
+    "available_lte": 5,
+    "reserved_lte": 0,
+    "expand": "variant.product,location",
+    "orderBy": "available",
+    "ascending": true
+  }'
+```
+
+### 11. Find Items with Pending Backorders
+
+```bash
+curl -X POST http://localhost:3100/server/inventory/query \
+  -H "Content-Type: application/json" \
+  -d '{
+    "backorder_pending_gt": 0,
+    "expand": "variant.product,location",
+    "orderBy": "backorder_pending",
+    "ascending": false
+  }'
+```
+
+### 12. Find High-Demand Items (High Backorders, Low Stock)
+
+```bash
+curl -X POST http://localhost:3100/server/inventory/query \
+  -H "Content-Type: application/json" \
+  -d '{
+    "backorder_total_gte": 10,
+    "available_lte": 5,
+    "expand": "variant.product,location",
+    "orderBy": "backorder_total",
+    "ascending": false
+  }'
+```
+
+### 13. Find Items with Customer Demand Awaiting Stock
+
+```bash
+curl -X POST http://localhost:3100/server/inventory/query \
+  -H "Content-Type: application/json" \
+  -d '{
+    "awaiting_demand_gte": 5,
+    "available_lte": 10,
+    "expand": "variant.product,location",
+    "orderBy": "awaiting_demand",
+    "ascending": false
+  }'
+```
+
+### 14. Find Items with Incoming Stock Expected
+
+```bash
+curl -X POST http://localhost:3100/server/inventory/query \
+  -H "Content-Type: application/json" \
+  -d '{
+    "awaiting_stock_gt": 0,
+    "expand": "variant.product,location",
+    "orderBy": "awaiting_stock",
+    "ascending": false
+  }'
+```
+
+### 15. Find Items with Both Demand and Incoming Stock
+
+```bash
+curl -X POST http://localhost:3100/server/inventory/query \
+  -H "Content-Type: application/json" \
+  -d '{
+    "awaiting_demand_gt": 0,
+    "awaiting_stock_gt": 0,
+    "expand": "variant.product,location",
+    "orderBy": "awaiting_demand",
+    "ascending": false
+  }'
+```
+
+## Response Format
+
+### Basic Response (No Expansions)
+
+```json
+{
+  "success": true,
+  "data": {
+    "inventory": [
+      {
+        "id": "inv-uuid-1",
+        "variant": "variant-uuid-1",
+        "location": "location-uuid-1",
+        "available": 45,
+        "reserved": 5,
+        "quantity": 50,
+        "backorder_total": 8,
+        "backorder_pending": 5,
+        "awaiting_demand": 5,
+        "awaiting_stock": 3,
+        "full_title": "Classic T-Shirt - Black / Medium",
+        "sku": "SHIRT-BLK-M",
+        "created_at": "2026-01-01T10:00:00Z"
+      }
+    ],
+    "pagination": {
+      "total": 150,
+      "limit": 20,
+      "offset": 0,
+      "page": 1,
+      "pages": 8
+    }
+  }
+}
+```
+
+### Response with Expansions
+
+```json
+{
+  "success": true,
+  "data": {
+    "inventory": [
+      {
+        "id": "inv-uuid-1",
+        "variant": {
+          "id": "variant-uuid-1",
+          "eid": "50410927030602",
+          "xid": "N1G4000101",
+          "sku": "SHIRT-BLK-M",
+          "title": "Black / Medium",
+          "price": 2999,
+          "compare_at_price": 3999,
+          "cost": 1200,
+          "barcode": "123456789012",
+          "weight": 200,
+          "weight_unit": "g",
+          "requires_shipping": true,
+          "taxable": true,
+          "product": {
+            "id": "product-uuid-1",
+            "title": "Classic T-Shirt",
+            "description": "A comfortable classic t-shirt",
+            "vendor": "Fashion Brand",
+            "product_type": "Apparel",
+            "status": "ACTIVE"
+          }
+        },
+        "location": {
+          "id": "location-uuid-1",
+          "name": "Main Warehouse",
+          "code": "WH-001",
+          "address": "123 Storage St",
+          "city": "New York",
+          "province": "NY",
+          "country": "US",
+          "zip": "10001",
+          "is_active": true,
+          "is_default": true,
+          "fulfills_online_orders": true,
+          "allows_pickup": false
+        },
+        "available": 45,
+        "reserved": 5,
+        "quantity": 50,
+        "backorder_total": 8,
+        "backorder_pending": 5,
+        "awaiting_demand": 5,
+        "awaiting_stock": 3,
+        "full_title": "Classic T-Shirt - Black / Medium",
+        "sku": "SHIRT-BLK-M",
+        "created_at": "2026-01-01T10:00:00Z"
+      }
+    ],
+    "pagination": {
+      "total": 150,
+      "limit": 20,
+      "offset": 0,
+      "page": 1,
+      "pages": 8
+    }
+  }
+}
+```
+
+## Dashboard Integration Examples
+
+### React/TypeScript: Low Stock Alert Component
+
+```typescript
+import { useState, useEffect } from 'react';
+
+interface InventoryItem {
+  id: string;
+  variant: {
+    id: string;
+    sku: string;
+    title: string;
+    product: {
+      title: string;
+    };
+  };
+  location: {
+    name: string;
+  };
+  available: number;
+  reserved: number;
+  quantity: number;
+}
+
+export function LowStockAlert() {
+  const [lowStockItems, setLowStockItems] = useState<InventoryItem[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    fetchLowStock();
+  }, []);
+
+  const fetchLowStock = async () => {
+    try {
+      const response = await fetch('http://localhost:3100/server/inventory/query', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          available_lte: 10,
+          available_gt: 0,
+          expand: 'variant.product,location',
+          orderBy: 'available',
+          ascending: true,
+          limit: 50
+        })
+      });
+
+      const result = await response.json();
+      if (result.success) {
+        setLowStockItems(result.data.inventory);
+      }
+    } catch (error) {
+      console.error('Error fetching low stock:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  if (loading) return <div>Loading...</div>;
+
+  return (
+    <div className="low-stock-alert">
+      <h2>Low Stock Alert ({lowStockItems.length} items)</h2>
+      <table>
+        <thead>
+          <tr>
+            <th>Product</th>
+            <th>Variant</th>
+            <th>SKU</th>
+            <th>Location</th>
+            <th>Available</th>
+            <th>Reserved</th>
+          </tr>
+        </thead>
+        <tbody>
+          {lowStockItems.map(item => (
+            <tr key={item.id}>
+              <td>{item.variant.product.title}</td>
+              <td>{item.variant.title}</td>
+              <td>{item.variant.sku}</td>
+              <td>{item.location.name}</td>
+              <td className="text-warning">{item.available}</td>
+              <td>{item.reserved}</td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
+  );
+}
+```
+
+### React/TypeScript: Inventory Search Component
+
+```typescript
+import { useState } from 'react';
+
+export function InventorySearch() {
+  const [searchTerm, setSearchTerm] = useState('');
+  const [results, setResults] = useState([]);
+  const [loading, setLoading] = useState(false);
+
+  const handleSearch = async () => {
+    if (!searchTerm.trim()) return;
+
+    setLoading(true);
+    try {
+      const response = await fetch('http://localhost:3100/server/inventory/query', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          search: searchTerm,
+          expand: 'variant.product,location',
+          limit: 50
+        })
+      });
+
+      const result = await response.json();
+      if (result.success) {
+        setResults(result.data.inventory);
+      }
+    } catch (error) {
+      console.error('Error searching inventory:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return (
+    <div className="inventory-search">
+      <div className="search-bar">
+        <input
+          type="text"
+          value={searchTerm}
+          onChange={(e) => setSearchTerm(e.target.value)}
+          onKeyPress={(e) => e.key === 'Enter' && handleSearch()}
+          placeholder="Search by SKU, product name, or variant..."
+        />
+        <button onClick={handleSearch} disabled={loading}>
+          {loading ? 'Searching...' : 'Search'}
+        </button>
+      </div>
+
+      {results.length > 0 && (
+        <div className="search-results">
+          <h3>Found {results.length} items</h3>
+          {/* Render results */}
+        </div>
+      )}
+    </div>
+  );
+}
+```
+
+## Performance Notes
+
+### Indexing
+The inventory table should have indexes on:
+- `variant` (foreign key, frequently filtered)
+- `location` (foreign key, frequently filtered)
+- `sku` (frequently searched)
+- `available` (frequently filtered for stock checks)
+- `quantity` (frequently filtered for stock checks)
+
+### Search Performance
+- Client-side search is performed after database query
+- For large result sets, consider limiting the initial query with filters
+- Search is case-insensitive and matches partial strings
+- Search covers: SKU, full_title, variant data, product data, location data
+
+### Expansion Performance
+- Use expansions judiciously - each expansion adds join overhead
+- `variant.product` (nested expansion) is more expensive than `variant`
+- For large datasets, consider paginating with smaller limits
+
+## Best Practices
+
+### 1. Always Use Filters When Possible
+Instead of querying all inventory and filtering client-side, use database filters:
+
+```bash
+# Good: Filter at database level
+curl -X POST http://localhost:3100/server/inventory/query \
+  -H "Content-Type: application/json" \
+  -d '{"location": "location-uuid", "available_gt": 0}'
+
+# Avoid: Fetching all and filtering client-side
+curl -X POST http://localhost:3100/server/inventory/query \
+  -H "Content-Type: application/json" \
+  -d '{"limit": 1000}'
+```
+
+### 2. Use Comparison Operators for Stock Levels
+Leverage comparison operators for efficient stock queries:
+
+```bash
+# Find items that need reordering (between 1 and 10 available)
+curl -X POST http://localhost:3100/server/inventory/query \
+  -H "Content-Type: application/json" \
+  -d '{
+    "available_gte": 1,
+    "available_lte": 10,
+    "orderBy": "available",
+    "ascending": true
+  }'
+```
+
+### 3. Expand Only What You Need
+Don't expand relations unless you need the data:
+
+```bash
+# If you only need stock numbers, don't expand
+curl -X POST http://localhost:3100/server/inventory/query \
+  -H "Content-Type: application/json" \
+  -d '{"variant": "variant-uuid"}'
+
+# Expand only when displaying detailed information
+curl -X POST http://localhost:3100/server/inventory/query \
+  -H "Content-Type: application/json" \
+  -d '{
+    "variant": "variant-uuid",
+    "expand": "variant.product,location"
+  }'
+```
+
+### 4. Use Pagination for Large Datasets
+Always paginate when dealing with large inventory:
+
+```bash
+curl -X POST http://localhost:3100/server/inventory/query \
+  -H "Content-Type: application/json" \
+  -d '{
+    "page": 1,
+    "limit": 50,
+    "orderBy": "created_at",
+    "ascending": false
+  }'
+```
+
+### 5. Combine Filters for Specific Queries
+Combine multiple filters for precise results:
+
+```bash
+# Find low stock items at a specific location
+curl -X POST http://localhost:3100/server/inventory/query \
+  -H "Content-Type: application/json" \
+  -d '{
+    "location": "location-uuid",
+    "available_lte": 10,
+    "available_gt": 0,
+    "expand": "variant"
+  }'
+```
+
+## Related Endpoints
+
+- **[Create Inventory](../INVENTORY/README.md#2-create-inventory)** - Create new inventory record
+- **[Retrieve Inventory](../INVENTORY/README.md#3-retrieve-inventory)** - Get single inventory record
+- **[Reserve Inventory](../INVENTORY/README.md#6-reserve-inventory)** - Reserve stock for orders
+- **[Adjust Inventory](../INVENTORY/README.md#9-adjust-inventory)** - Manual stock adjustments
+- **[Transfer Inventory](../INVENTORY/README.md#10-transfer-inventory)** - Transfer between locations
+
+## Filter Combinations
+
+### Low Stock Alert (Available ≤ 10, but not zero)
+```bash
+curl -X POST http://localhost:3100/server/inventory/query \
+  -H "Content-Type: application/json" \
+  -d '{
+    "available_lte": 10,
+    "available_gt": 0,
+    "expand": "variant.product,location"
+  }'
+```
+
+### Out of Stock (Available = 0)
+```bash
+curl -X POST http://localhost:3100/server/inventory/query \
+  -H "Content-Type: application/json" \
+  -d '{
+    "available_lte": 0,
+    "expand": "variant.product,location"
+  }'
+```
+
+### Overstock (Quantity > 100)
+```bash
+curl -X POST http://localhost:3100/server/inventory/query \
+  -H "Content-Type: application/json" \
+  -d '{
+    "quantity_gt": 100,
+    "expand": "variant,location"
+  }'
+```
+
+### Items with Pending Orders (Reserved > 0)
+```bash
+curl -X POST http://localhost:3100/server/inventory/query \
+  -H "Content-Type: application/json" \
+  -d '{
+    "reserved_gt": 0,
+    "expand": "variant,location",
+    "orderBy": "reserved",
+    "ascending": false
+  }'
+```
+
+### Specific Location Low Stock
+```bash
+curl -X POST http://localhost:3100/server/inventory/query \
+  -H "Content-Type: application/json" \
+  -d '{
+    "location": "location-uuid",
+    "available_lte": 10,
+    "expand": "variant.product"
+  }'
+```

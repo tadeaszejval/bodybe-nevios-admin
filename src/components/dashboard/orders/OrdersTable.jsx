@@ -34,6 +34,7 @@ export function OrdersTable({
 			home_currency: order.home_currency || '??',
 			fulfillment_status: order.fulfillment_status,
 			payment_status: order.payment_status,
+			inventory_status: order.inventory_status,
 			item_count: order.order_item?.length || 0,
 			shipping_method: order.shipping_method?.name || 'Not specified',
 			payment_method: order.payment_method?.name || 'Not specified',
@@ -142,6 +143,25 @@ export function OrdersTable({
 					}}
 				>
 					<NeviosBadge value={params.value} configKey="paymentStatus" showDot={true} />
+				</Box>
+			),
+		}),
+		genericColumnFactory({
+			field: "inventory_status",
+			headerName: "Inventory",
+			flex: 1.5,
+			minWidth: 140,
+			renderCell: (params) => (
+				<Box
+					sx={{
+						lineHeight: 1.2,
+						width: "100%",
+						height: "100%",
+						display: "flex",
+						alignItems: "center",
+					}}
+				>
+					<NeviosBadge value={params.value} configKey="inventoryStatus" />
 				</Box>
 			),
 		}),

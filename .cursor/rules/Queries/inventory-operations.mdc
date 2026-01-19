@@ -1,0 +1,393 @@
+# Inventory Operations Query API
+
+## Overview
+
+The inventory operations query endpoint provides flexible querying of warehouse operations (INTAKE and OUTBOUND) with support for filtering, pagination, sorting, and relation expansion.
+
+**Endpoint:** `POST /server/inventory_operations/query`
+
+## Request Parameters
+
+### Pagination & Sorting
+
+| Parameter | Type | Default | Description |
+|-----------|------|---------|-------------|
+| `page` | integer | 1 | Page number |
+| `limit` | integer | 50 | Items per page (max: 100) |
+| `orderBy` | string | created_at | Field to sort by |
+| `ascending` | boolean | false | Sort direction (true = ascending, false = descending) |
+
+### Expansion
+
+| Parameter | Type | Description |
+|-----------|------|-------------|
+| `expand` | array | Relations to expand: `location` |
+
+### Filters
+
+#### Basic Filters
+
+| Parameter | Type | Description |
+|-----------|------|-------------|
+| `type` | string | Filter by operation type: `INTAKE` or `OUTBOUND` |
+| `status` | string | Filter by status: `DRAFT`, `PROCESSING`, `COMPLETED`, `CANCELLED` |
+| `location` | uuid | Filter by location UUID |
+| `source_type` | string | Filter by source type (see source types below) |
+| `created_by` | string | Filter by staff name |
+| `processed_by` | string | Filter by staff who processed |
+
+#### Date Range Filters
+
+| Parameter | Type | Description |
+|-----------|------|-------------|
+| `created_at_from` | string | Filter operations created on or after this date (YYYY-MM-DD) |
+| `created_at_to` | string | Filter operations created on or before this date (YYYY-MM-DD) |
+
+#### Source Types
+
+**INTAKE Operations:**
+- `PURCHASE_ORDER` - Supplier delivery
+- `TRANSFER_IN` - From another warehouse
+- `CUSTOMER_RETURN` - Returned product
+- `PRODUCTION` - Manufactured in-house
+- `FOUND` - Found during audit
+- `ADJUSTMENT` - Inventory correction
+- `OTHER` - Miscellaneous
+
+**OUTBOUND Operations:**
+- `DAMAGED` - Damaged goods
+- `EXPIRED` - Expired products
+- `TRANSFER_OUT` - To another warehouse
+- `DISPOSAL` - Disposal/destruction
+- `THEFT` - Stolen items
+- `QUALITY_ISSUE` - Failed QC
+- `DONATION` - Donated items
+- `SAMPLE` - Sample products
+- `PROMOTIONAL` - Promotional use
+- `LOSS` - Lost items
+- `ADJUSTMENT` - Inventory correction
+- `OTHER` - Miscellaneous
+
+## Available Expansions
+
+### `location`
+Expands the location relation to include full location details:
+- Basic info (id, name, code)
+- Address (address, city, province, country, zip)
+- Settings (is_active, is_default, fulfills_online_orders)
+
+## Common Use Cases
+
+### 1. Get All Operations with Pagination
+
+```bash
+curl -X POST http://localhost:3100/server/inventory_operations/query \
+  -H "Content-Type: application/json" \
+  -d '{
+    "page": 1,
+    "limit": 50
+  }'
+```
+
+### 2. Get All INTAKE Operations
+
+```bash
+curl -X POST http://localhost:3100/server/inventory_operations/query \
+  -H "Content-Type: application/json" \
+  -d '{
+    "filters": {
+      "type": "INTAKE"
+    }
+  }'
+```
+
+### 3. Get Draft Operations Awaiting Processing
+
+```bash
+curl -X POST http://localhost:3100/server/inventory_operations/query \
+  -H "Content-Type: application/json" \
+  -d '{
+    "filters": {
+      "status": "DRAFT"
+    },
+    "expand": ["location"],
+    "orderBy": "created_at",
+    "ascending": true
+  }'
+```
+
+### 4. Get Completed Operations by Location
+
+```bash
+curl -X POST http://localhost:3100/server/inventory_operations/query \
+  -H "Content-Type: application/json" \
+  -d '{
+    "filters": {
+      "status": "COMPLETED",
+      "location": "a1b2c3d4-e5f6-7890-abcd-ef1234567890"
+    },
+    "expand": ["location"]
+  }'
+```
+
+### 5. Get Operations by Source Type
+
+```bash
+curl -X POST http://localhost:3100/server/inventory_operations/query \
+  -H "Content-Type: application/json" \
+  -d '{
+    "filters": {
+      "type": "INTAKE",
+      "source_type": "PURCHASE_ORDER"
+    }
+  }'
+```
+
+### 6. Get Operations Created by Specific Staff
+
+```bash
+curl -X POST http://localhost:3100/server/inventory_operations/query \
+  -H "Content-Type: application/json" \
+  -d '{
+    "filters": {
+      "created_by": "John Doe"
+    }
+  }'
+```
+
+### 7. Get Recent Operations (Last 7 Days)
+
+```bash
+curl -X POST http://localhost:3100/server/inventory_operations/query \
+  -H "Content-Type: application/json" \
+  -d '{
+    "orderBy": "created_at",
+    "ascending": false,
+    "limit": 100
+  }'
+```
+
+### 8. Get Operations with Multiple Filters
+
+```bash
+curl -X POST http://localhost:3100/server/inventory_operations/query \
+  -H "Content-Type: application/json" \
+  -d '{
+    "filters": {
+      "type": "OUTBOUND",
+      "status": "COMPLETED",
+      "source_type": "DAMAGED"
+    },
+    "expand": ["location"],
+    "orderBy": "completed_at",
+    "ascending": false
+  }'
+```
+
+## Response Format
+
+### Basic Response
+
+```json
+{
+  "success": true,
+  "data": [
+    {
+      "id": "op-uuid-1",
+      "name": "IO-001",
+      "type": "INTAKE",
+      "location": "location-uuid",
+      "status": "COMPLETED",
+      "source_type": "PURCHASE_ORDER",
+      "source_reference": "PO-2026-001",
+      "notes": "New stock from supplier",
+      "created_by": "John Doe",
+      "processed_by": "Jane Smith",
+      "created_at": "2026-01-12T10:00:00Z",
+      "processed_at": "2026-01-12T14:30:00Z",
+      "completed_at": "2026-01-12T15:00:00Z",
+      "cancelled_at": null
+    }
+  ],
+  "pagination": {
+    "currentPage": 1,
+    "totalPages": 5,
+    "totalRecords": 245,
+    "recordsPerPage": 50,
+    "hasNextPage": true,
+    "hasPreviousPage": false,
+    "recordsOnCurrentPage": 50
+  },
+  "filters": {
+    "type": "INTAKE"
+  },
+  "orderBy": {
+    "column": "created_at",
+    "ascending": false
+  },
+  "expansions": []
+}
+```
+
+### Response with Location Expansion
+
+```json
+{
+  "success": true,
+  "data": [
+    {
+      "id": "op-uuid-1",
+      "name": "IO-001",
+      "type": "INTAKE",
+      "status": "COMPLETED",
+      "source_type": "PURCHASE_ORDER",
+      "source_reference": "PO-2026-001",
+      "location": {
+        "id": "location-uuid",
+        "name": "Main Warehouse",
+        "code": "WH-001",
+        "address": "123 Warehouse St",
+        "city": "Prague",
+        "province": "Prague",
+        "country": "CZ",
+        "zip": "110 00",
+        "is_active": true,
+        "is_default": true
+      },
+      "created_by": "John Doe",
+      "processed_by": "Jane Smith",
+      "created_at": "2026-01-12T10:00:00Z",
+      "completed_at": "2026-01-12T15:00:00Z"
+    }
+  ],
+  "pagination": {
+    "currentPage": 1,
+    "totalPages": 1,
+    "totalRecords": 12,
+    "recordsPerPage": 50,
+    "hasNextPage": false,
+    "hasPreviousPage": false,
+    "recordsOnCurrentPage": 12
+  },
+  "expansions": ["location"]
+}
+```
+
+## Status Workflow
+
+Operations follow this status workflow:
+
+```
+DRAFT
+  ↓
+PROCESSING (after process endpoint called)
+  ↓
+COMPLETED (after complete endpoint called)
+
+OR
+
+DRAFT/PROCESSING → CANCELLED
+```
+
+**Status Descriptions:**
+- `DRAFT` - Created, can be modified
+- `PROCESSING` - Items have been processed (received/verified)
+- `COMPLETED` - Finished, inventory updated
+- `CANCELLED` - Operation cancelled
+
+## Performance Notes
+
+- Default limit is 50 records per page (max: 100)
+- Use pagination for large datasets
+- Filter by status and type for faster queries
+- Expansion adds minimal overhead
+- Consider indexing on commonly filtered fields
+
+## Best Practices
+
+1. **Filter by Status** - Query only relevant operations (DRAFT, PROCESSING, etc.)
+2. **Filter by Type** - Separate INTAKE and OUTBOUND queries for clarity
+3. **Use Pagination** - Don't fetch all records at once
+4. **Expand Selectively** - Only expand relations you need
+5. **Sort Appropriately** - Sort by created_at for recent operations
+6. **Cache Results** - Cache completed operations data when possible
+
+## Related Endpoints
+
+- [Create Operation](../README.md#create-operation) - Create new operations
+- [Retrieve Operation](../README.md#retrieve-operation) - Get single operation with items
+- [Process Operation](../README.md#process-operation) - Mark items as processed
+- [Complete Operation](../README.md#complete-operation) - Complete and update inventory
+- [Modify Operation](../README.md#modify-operation) - Modify draft operations
+- [Cancel Operation](../README.md#cancel-operation) - Cancel operations
+
+## Filter Combinations
+
+### Find Pending INTAKE Operations
+```json
+{
+  "filters": {
+    "type": "INTAKE",
+    "status": "DRAFT"
+  }
+}
+```
+
+### Find Completed Damaged Goods Removals
+```json
+{
+  "filters": {
+    "type": "OUTBOUND",
+    "status": "COMPLETED",
+    "source_type": "DAMAGED"
+  }
+}
+```
+
+### Find All Operations at Specific Location
+```json
+{
+  "filters": {
+    "location": "location-uuid"
+  },
+  "expand": ["location"]
+}
+```
+
+### Find Operations Needing Attention
+```json
+{
+  "filters": {
+    "status": "DRAFT"
+  },
+  "orderBy": "created_at",
+  "ascending": true
+}
+```
+
+## Error Responses
+
+### Invalid Status
+```json
+{
+  "success": false,
+  "error": "Invalid filters provided"
+}
+```
+
+### Invalid Type
+```json
+{
+  "success": false,
+  "error": "Invalid filters provided"
+}
+```
+
+### Invalid Pagination
+```json
+{
+  "success": false,
+  "error": "Page must be a positive integer"
+}
+```
+

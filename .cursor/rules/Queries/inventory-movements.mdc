@@ -1,0 +1,346 @@
+# Inventory Movements Query API
+
+## Overview
+
+The inventory movements query endpoint provides flexible querying of inventory movement records with support for filtering, searching, pagination, sorting, and relation expansion.
+
+**Endpoint:** `POST /server/inventory_movements/query`
+
+## Request Parameters
+
+### Pagination & Sorting
+
+| Parameter | Type | Default | Description |
+|-----------|------|---------|-------------|
+| `page` | integer | 1 | Page number |
+| `limit` | integer | 20 | Items per page |
+| `orderBy` | string | created_at | Field to sort by |
+| `ascending` | boolean | false | Sort direction (true = ascending, false = descending) |
+
+### Search
+
+| Parameter | Type | Description |
+|-----------|------|-------------|
+| `search` | string | Multi-field search across note, movement type, variant data, and location data |
+
+### Expansion
+
+| Parameter | Type | Description |
+|-----------|------|-------------|
+| `expand` | string | Comma-separated relations to expand (variant, location, order_item, related_location) |
+
+### Filters
+
+#### Basic Filters
+
+| Parameter | Type | Description |
+|-----------|------|-------------|
+| `variant` | uuid | Filter by variant UUID |
+| `location` | uuid | Filter by location UUID |
+| `movement_type` | string | Filter by movement type |
+| `order_item` | uuid | Filter by order item UUID |
+| `related_location` | uuid | Filter by related location UUID |
+
+#### Quantity Comparison Filters
+
+**Quantity:**
+- `quantity_gt` - Quantity greater than
+- `quantity_lt` - Quantity less than
+- `quantity_gte` - Quantity greater than or equal
+- `quantity_lte` - Quantity less than or equal
+
+#### Date Range Filters
+
+| Parameter | Type | Description |
+|-----------|------|-------------|
+| `created_at_from` | string | Filter records created on or after this date (YYYY-MM-DD format) |
+| `created_at_to` | string | Filter records created on or before this date (YYYY-MM-DD format) |
+
+## Available Expansions
+
+### variant
+Expands the variant relation with product variant details:
+- `id`, `eid`, `xid`, `sku`, `title`, `barcode`, `require_shipping`, `product`
+
+### location
+Expands the location relation with location details:
+- `id`, `name`, `address`, `city`, `country`, `type`
+
+### order_item
+Expands the order_item relation with order item details:
+- `id`, `sku`, `quantity`, `product_title`, `variant_title`, `order`
+
+### related_location
+Expands the related_location relation with related location details:
+- `id`, `name`, `address`, `city`, `country`, `type`
+
+## Common Use Cases
+
+### 1. Get Recent Inventory Movements
+```bash
+curl -X POST http://localhost:3100/server/inventory_movements/query \
+  -H "Content-Type: application/json" \
+  -d '{
+    "page": 1,
+    "limit": 50,
+    "orderBy": "created_at",
+    "ascending": false
+  }'
+```
+
+### 2. Search Inventory Movements
+```bash
+curl -X POST http://localhost:3100/server/inventory_movements/query \
+  -H "Content-Type: application/json" \
+  -d '{
+    "search": "adjustment",
+    "page": 1,
+    "limit": 20
+  }'
+```
+
+### 3. Filter by Movement Type
+```bash
+curl -X POST http://localhost:3100/server/inventory_movements/query \
+  -H "Content-Type: application/json" \
+  -d '{
+    "movement_type": "SALE",
+    "page": 1,
+    "limit": 20
+  }'
+```
+
+### 4. Filter by Variant with Expansion
+```bash
+curl -X POST http://localhost:3100/server/inventory_movements/query \
+  -H "Content-Type: application/json" \
+  -d '{
+    "variant": "123e4567-e89b-12d3-a456-426614174000",
+    "expand": "variant,location",
+    "page": 1,
+    "limit": 20
+  }'
+```
+
+### 5. Filter by Location
+```bash
+curl -X POST http://localhost:3100/server/inventory_movements/query \
+  -H "Content-Type: application/json" \
+  -d '{
+    "location": "123e4567-e89b-12d3-a456-426614174001",
+    "page": 1,
+    "limit": 20
+  }'
+```
+
+### 6. Filter by Date Range
+```bash
+curl -X POST http://localhost:3100/server/inventory_movements/query \
+  -H "Content-Type: application/json" \
+  -d '{
+    "created_at_from": "2024-01-01",
+    "created_at_to": "2024-01-31",
+    "page": 1,
+    "limit": 50
+  }'
+```
+
+### 7. Filter by Quantity Range
+```bash
+curl -X POST http://localhost:3100/server/inventory_movements/query \
+  -H "Content-Type: application/json" \
+  -d '{
+    "quantity_gte": 10,
+    "quantity_lte": 100,
+    "page": 1,
+    "limit": 20
+  }'
+```
+
+### 8. Complex Query with Multiple Filters
+```bash
+curl -X POST http://localhost:3100/server/inventory_movements/query \
+  -H "Content-Type: application/json" \
+  -d '{
+    "movement_type": "ADJUSTMENT",
+    "location": "123e4567-e89b-12d3-a456-426614174001",
+    "quantity_gt": 0,
+    "created_at_from": "2024-01-01",
+    "expand": "variant,location",
+    "page": 1,
+    "limit": 20
+  }'
+```
+
+### 9. Get Movements for Specific Order Item
+```bash
+curl -X POST http://localhost:3100/server/inventory_movements/query \
+  -H "Content-Type: application/json" \
+  -d '{
+    "order_item": "123e4567-e89b-12d3-a456-426614174002",
+    "expand": "order_item,variant",
+    "page": 1,
+    "limit": 20
+  }'
+```
+
+### 10. Get Transfer Movements
+```bash
+curl -X POST http://localhost:3100/server/inventory_movements/query \
+  -H "Content-Type: application/json" \
+  -d '{
+    "movement_type": "TRANSFER",
+    "expand": "location,related_location",
+    "page": 1,
+    "limit": 20
+  }'
+```
+
+## Response Format
+
+### Success Response
+```json
+{
+  "success": true,
+  "data": {
+    "success": true,
+    "data": [
+      {
+        "id": "123e4567-e89b-12d3-a456-426614174000",
+        "variant": "123e4567-e89b-12d3-a456-426614174001",
+        "location": "123e4567-e89b-12d3-a456-426614174002",
+        "movement_type": "SALE",
+        "quantity": -2,
+        "related_location": null,
+        "note": "Order fulfillment",
+        "created_at": "2024-01-15T10:30:00.000Z",
+        "order_item": "123e4567-e89b-12d3-a456-426614174003"
+      }
+    ],
+    "pagination": {
+      "page": 1,
+      "limit": 20,
+      "total": 150,
+      "totalPages": 8
+    }
+  }
+}
+```
+
+### With Expansions
+```json
+{
+  "success": true,
+  "data": {
+    "success": true,
+    "data": [
+      {
+        "id": "123e4567-e89b-12d3-a456-426614174000",
+        "variant": {
+          "id": "123e4567-e89b-12d3-a456-426614174001",
+          "eid": 123456789,
+          "xid": "CUSTOM-001",
+          "sku": "PROD-VAR-001",
+          "title": "Product Variant Title",
+          "barcode": "1234567890123",
+          "require_shipping": true,
+          "product": "123e4567-e89b-12d3-a456-426614174004"
+        },
+        "location": {
+          "id": "123e4567-e89b-12d3-a456-426614174002",
+          "name": "Main Warehouse",
+          "address": "123 Warehouse St",
+          "city": "Prague",
+          "country": "CZ",
+          "type": "WAREHOUSE"
+        },
+        "movement_type": "SALE",
+        "quantity": -2,
+        "related_location": null,
+        "note": "Order fulfillment",
+        "created_at": "2024-01-15T10:30:00.000Z",
+        "order_item": {
+          "id": "123e4567-e89b-12d3-a456-426614174003",
+          "sku": "PROD-VAR-001",
+          "quantity": 2,
+          "product_title": "Product Title",
+          "variant_title": "Variant Title",
+          "order": "123e4567-e89b-12d3-a456-426614174005"
+        }
+      }
+    ],
+    "pagination": {
+      "page": 1,
+      "limit": 20,
+      "total": 150,
+      "totalPages": 8
+    }
+  }
+}
+```
+
+### Error Response
+```json
+{
+  "success": false,
+  "error": "Error message describing what went wrong"
+}
+```
+
+## Performance Notes
+
+- **Pagination**: Use appropriate `limit` values (default: 20, recommended max: 100)
+- **Expansions**: Only expand relations you need to reduce response size
+- **Date Filters**: Use date range filters for better performance on large datasets
+- **Search**: Search functionality performs well but consider using specific filters when possible
+- **Indexing**: Queries on `variant`, `location`, `movement_type`, and `created_at` are optimized
+
+## Best Practices
+
+1. **Use Date Ranges**: When querying large datasets, always use date range filters
+2. **Limit Expansions**: Only expand the relations you actually need
+3. **Appropriate Page Sizes**: Use reasonable page sizes (20-50 items) for better performance
+4. **Filter Before Search**: Use specific filters in combination with search for better performance
+5. **Order by Indexed Fields**: Sorting by `created_at`, `variant`, or `location` is most efficient
+
+## Related Endpoints
+
+- [Inventory Query](../INVENTORY/QUERY.md) - Query current inventory levels
+- [Inventory Operations Query](../INVENTORY_OPERATIONS/QUERY.md) - Query inventory operations
+
+## Filter Combinations
+
+### Audit Trail for Variant
+```bash
+curl -X POST http://localhost:3100/server/inventory_movements/query \
+  -H "Content-Type: application/json" \
+  -d '{
+    "variant": "variant-uuid",
+    "expand": "location,order_item",
+    "orderBy": "created_at",
+    "ascending": true
+  }'
+```
+
+### Location Activity Report
+```bash
+curl -X POST http://localhost:3100/server/inventory_movements/query \
+  -H "Content-Type: application/json" \
+  -d '{
+    "location": "location-uuid",
+    "created_at_from": "2024-01-01",
+    "created_at_to": "2024-01-31",
+    "expand": "variant"
+  }'
+```
+
+### Transfer Analysis
+```bash
+curl -X POST http://localhost:3100/server/inventory_movements/query \
+  -H "Content-Type: application/json" \
+  -d '{
+    "movement_type": "TRANSFER",
+    "expand": "location,related_location,variant",
+    "created_at_from": "2024-01-01"
+  }'
+```

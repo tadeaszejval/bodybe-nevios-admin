@@ -709,6 +709,213 @@ export const BADGE_CONFIGS = {
       color: "gray"
     }
   },
+
+  // Inventory movement type badges
+  movementType: {
+    SALE: {
+      label: "Sale",
+      color: "green",
+      icon: <TbShoppingCart size={14} />
+    },
+    RETURN: {
+      label: "Return",
+      color: "blue",
+      icon: <TbArrowBack size={14} />
+    },
+    ADJUSTMENT: {
+      label: "Adjustment",
+      color: "yellow",
+      icon: <TbEdit size={14} />
+    },
+    TRANSFER: {
+      label: "Transfer",
+      color: "purple",
+      icon: <TbArrowsExchange size={14} />
+    },
+    RESTOCK: {
+      label: "Restock",
+      color: "green",
+      icon: <TbPackage size={14} />
+    },
+    DAMAGE: {
+      label: "Damage",
+      color: "red",
+      icon: <TbAlertCircle size={14} />
+    },
+    LOSS: {
+      label: "Loss",
+      color: "red",
+      icon: <TbX size={14} />
+    },
+    UNKNOWN: {
+      label: "Unknown",
+      color: "gray"
+    }
+  },
+
+  // Backorder status badges
+  backorderStatus: {
+    PENDING: {
+      label: "Pending",
+      color: "yellow",
+      icon: <TbClock size={14} />
+    },
+    PARTIAL: {
+      label: "Partial",
+      color: "blue",
+      icon: <TbPackage size={14} />
+    },
+    NOTIFIED: {
+      label: "Notified",
+      color: "orange",
+      icon: <TbMail size={14} />
+    },
+    FULFILLED: {
+      label: "Fulfilled",
+      color: "green",
+      icon: <TbCheck size={14} />
+    },
+    CANCELLED: {
+      label: "Cancelled",
+      color: "red",
+      icon: <TbX size={14} />
+    },
+    UNKNOWN: {
+      label: "Unknown",
+      color: "gray"
+    }
+  },
+
+  // Order status badges (order lifecycle status)
+  orderStatus: {
+    ACTIVE: {
+      label: "Active",
+      color: "green",
+      icon: <TbCircleCheck size={14} />
+    },
+    HOLD: {
+      label: "Hold",
+      color: "yellow",
+      icon: <TbClock size={14} />
+    },
+    ARCHIVED: {
+      label: "Archived",
+      color: "gray",
+      icon: <TbArchive size={14} />
+    },
+    CANCELLED: {
+      label: "Cancelled",
+      color: "red",
+      icon: <TbX size={14} />
+    },
+    UNKNOWN: {
+      label: "Unknown",
+      color: "gray"
+    }
+  },
+
+  // Order inventory status badges (stock availability for order)
+  inventoryStatus: {
+    PENDING: {
+      label: "Pending",
+      color: "gray",
+      icon: <TbClock size={14} />
+    },
+    AVAILABLE: {
+      label: "Available",
+      color: "green",
+      icon: <TbCircleCheck size={14} />
+    },
+    PARTIAL: {
+      label: "Partial",
+      color: "yellow",
+      icon: <TbAlertTriangle size={14} />
+    },
+    BACKORDERED: {
+      label: "Backordered",
+      color: "orange",
+      icon: <TbPackage size={14} />
+    },
+    ERROR: {
+      label: "Error",
+      color: "red",
+      icon: <TbAlertCircle size={14} />
+    },
+    UNKNOWN: {
+      label: "Unknown",
+      color: "gray"
+    }
+  },
+
+  // Auto-fulfill status badges (enabled/disabled)
+  autoFulfill: {
+    true: {
+      label: "Enabled",
+      color: "green",
+      icon: <TbCheck size={14} />
+    },
+    false: {
+      label: "Disabled",
+      color: "gray",
+      icon: <TbX size={14} />
+    },
+    ENABLED: {
+      label: "Enabled",
+      color: "green",
+      icon: <TbCheck size={14} />
+    },
+    DISABLED: {
+      label: "Disabled",
+      color: "gray",
+      icon: <TbX size={14} />
+    }
+  },
+
+  // Inventory operation status badges
+  inventoryOperationStatus: {
+    DRAFT: {
+      label: "Draft",
+      color: "gray",
+      icon: <TbEdit size={14} />
+    },
+    PROCESSING: {
+      label: "Processing",
+      color: "blue",
+      icon: <TbRefresh size={14} />
+    },
+    COMPLETED: {
+      label: "Completed",
+      color: "green",
+      icon: <TbCheck size={14} />
+    },
+    CANCELLED: {
+      label: "Cancelled",
+      color: "red",
+      icon: <TbX size={14} />
+    },
+    UNKNOWN: {
+      label: "Unknown",
+      color: "gray"
+    }
+  },
+
+  // Inventory operation type badges
+  inventoryOperationType: {
+    INTAKE: {
+      label: "Intake",
+      color: "green",
+      icon: <TbArrowDown size={14} />
+    },
+    OUTBOUND: {
+      label: "Outbound",
+      color: "red",
+      icon: <TbArrowUp size={14} />
+    },
+    UNKNOWN: {
+      label: "Unknown",
+      color: "gray"
+    }
+  },
 };
 
 /**

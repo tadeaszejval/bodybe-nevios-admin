@@ -31,6 +31,7 @@ import NeviosGroupButton from "../../../components/nevios/NeviosGroupButton";
 import NeviosPaginationButtons from "../../../components/nevios/NeviosPaginationButtons";
 import { ContentLoadingScreen } from "../../../components/ContentLoadingScreen";
 import { NeviosDangerButton } from "../../../components/nevios/NeviosButtons";
+import { ShippingAddressDisplay } from "../../../components/ShippingAddressDisplay";
 
 export function DocumentView({ documentId }) {
   const router = useRouter();
@@ -397,22 +398,7 @@ export function DocumentView({ documentId }) {
               </NeviosFormPaper>
             )}
 
-            {document.shipping_address_log && (
-              <NeviosFormPaper title="Shipping Address" titleIcon={<TbTruck size={16} />}>
-                <NeviosFormPaperBlock>
-                <Typography variant="body2" fontWeight={600}>
-                  {document.shipping_address_log.first_name} {document.shipping_address_log.last_name}
-                </Typography>
-                <Typography variant="body2">{document.shipping_address_log.address}</Typography>
-                <Typography variant="body2">
-                  {document.shipping_address_log.city}, {document.shipping_address_log.zip}
-                </Typography>
-                <Typography variant="body2">
-                  {getCountryName(document.shipping_address_log.country)}
-                </Typography>
-                </NeviosFormPaperBlock>
-              </NeviosFormPaper>
-            )}
+            <ShippingAddressDisplay address={document.shipping_address_log} />
           </>
         }
       />

@@ -59,6 +59,10 @@ export function InventoryTable({
         available: item.available || 0,
         reserved: item.reserved || 0,
         quantity: item.quantity || 0,
+        backorder_total: item.backorder_total || 0,
+        backorder_pending: item.backorder_pending || 0,
+        awaiting_demand: item.awaiting_demand || 0,
+        awaiting_stock: item.awaiting_stock || 0,
         // Store IDs for reference
         variant_id: typeof item.variant === 'string' ? item.variant : item.variant?.id,
         location_id: typeof item.location === 'string' ? item.location : item.location?.id,
@@ -166,11 +170,30 @@ export function InventoryTable({
       renderCell: (params) => (
         <Box
           sx={{
-            fontSize: "sm",
-            fontWeight: 600,
+            width: "100%",
+            lineHeight: 2,
+            height: "100%",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "flex-end",
           }}
         >
-          {formatCurrencyNumber(params.value, 0)}
+          <Box sx={{ 
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            height: "100%",
+            width: "100%",
+            px: 0.5,
+            color: "gray.700",
+            fontWeight: 600,
+            backgroundColor: "gray.50",
+            borderRadius: "4px",
+            height: "fit-content",
+            fontSize: "sm"
+          }}>
+            {formatCurrencyNumber(params.value, 0)}
+          </Box>
         </Box>
       ),
     }),
@@ -182,10 +205,30 @@ export function InventoryTable({
       renderCell: (params) => (
         <Box
           sx={{
-            fontSize: "sm",
+            width: "100%",
+            lineHeight: 2,
+            height: "100%",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "flex-end",
           }}
         >
-          {formatCurrencyNumber(params.value, 0)}
+          <Box sx={{ 
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            height: "100%",
+            width: "100%",
+            px: 0.5,
+            color: "gray.700",
+            fontWeight: 500,
+            backgroundColor: "gray.50",
+            borderRadius: "4px",
+            height: "fit-content",
+            fontSize: "sm"
+          }}>
+            {formatCurrencyNumber(params.value, 0)}
+          </Box>
         </Box>
       ),
     }),
@@ -197,13 +240,184 @@ export function InventoryTable({
       renderCell: (params) => (
         <Box
           sx={{
-            fontSize: "sm",
-            fontWeight: 500,
+            width: "100%",
+            lineHeight: 2,
+            height: "100%",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "flex-end",
           }}
         >
-          {formatCurrencyNumber(params.value, 0)}
+          <Box sx={{ 
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            height: "100%",
+            width: "100%",
+            px: 0.5,
+            color: "gray.700",
+            fontWeight: 500,
+            backgroundColor: "gray.50",
+            borderRadius: "4px",
+            height: "fit-content",
+            fontSize: "sm"
+          }}>
+            {formatCurrencyNumber(params.value, 0)}
+          </Box>
         </Box>
       ),
+    }),
+    numericColumnFactory({
+      field: "backorder_total",
+      headerName: "Backorders",
+      minWidth: 110,
+      flex: 0.9,
+      renderCell: (params) => {
+        const hasValue = params.value > 0;
+        return (
+          <Box
+            sx={{
+              width: "100%",
+              lineHeight: 2,
+              height: "100%",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "flex-end",
+            }}
+          >
+            <Box sx={{ 
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              height: "100%",
+              width: "100%",
+              px: 0.5,
+              color: hasValue ? "orange.600" : "gray.500",
+              fontWeight: 500,
+              backgroundColor: hasValue ? "orange.50" : "gray.50",
+              borderRadius: "4px",
+              height: "fit-content",
+              fontSize: "sm"
+            }}>
+              {formatCurrencyNumber(params.value, 0)}
+            </Box>
+          </Box>
+        );
+      },
+    }),
+    numericColumnFactory({
+      field: "backorder_pending",
+      headerName: "Pending",
+      minWidth: 100,
+      flex: 0.8,
+      renderCell: (params) => {
+        const hasValue = params.value > 0;
+        return (
+          <Box
+            sx={{
+              width: "100%",
+              lineHeight: 2,
+              height: "100%",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "flex-end",
+            }}
+          >
+            <Box sx={{ 
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              height: "100%",
+              width: "100%",
+              px: 0.5,
+              color: hasValue ? "yellow.700" : "gray.500",
+              fontWeight: 500,
+              backgroundColor: hasValue ? "yellow.50" : "gray.50",
+              borderRadius: "4px",
+              height: "fit-content",
+              fontSize: "sm"
+            }}>
+              {formatCurrencyNumber(params.value, 0)}
+            </Box>
+          </Box>
+        );
+      },
+    }),
+    numericColumnFactory({
+      field: "awaiting_demand",
+      headerName: "Awaiting",
+      minWidth: 100,
+      flex: 0.8,
+      renderCell: (params) => {
+        const hasValue = params.value > 0;
+        return (
+          <Box
+            sx={{
+              width: "100%",
+              lineHeight: 2,
+              height: "100%",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "flex-end",
+            }}
+          >
+            <Box sx={{ 
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              height: "100%",
+              width: "100%",
+              px: 0.5,
+              color: hasValue ? "red.600" : "gray.500",
+              fontWeight: 500,
+              backgroundColor: hasValue ? "red.50" : "gray.50",
+              borderRadius: "4px",
+              height: "fit-content",
+              fontSize: "sm"
+            }}>
+              {formatCurrencyNumber(params.value, 0)}
+            </Box>
+          </Box>
+        );
+      },
+    }),
+    numericColumnFactory({
+      field: "awaiting_stock",
+      headerName: "Incoming",
+      minWidth: 100,
+      flex: 0.8,
+      renderCell: (params) => {
+        const hasValue = params.value > 0;
+        return (
+          <Box
+            sx={{
+              width: "100%",
+              lineHeight: 2,
+              height: "100%",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "flex-end",
+            }}
+          >
+            <Box sx={{ 
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              height: "100%",
+              width: "100%",
+              px: 0.5,
+              color: hasValue ? "blue.600" : "gray.500",
+              fontWeight: 500,
+              backgroundColor: hasValue ? "blue.50" : "gray.50",
+              borderRadius: "4px",
+              height: "fit-content",
+              fontSize: "sm"
+            }}>
+              {formatCurrencyNumber(params.value, 0)}
+            </Box>
+          </Box>
+        );
+      },
     }),
   ];
 
@@ -237,6 +451,8 @@ export function InventoryTable({
         searchTerm={searchTerm}
         onSearchChange={updateSearch}
         searchPlaceholder="Search inventory by product, SKU, or location..."
+        checkboxSelection={true}
+        getRowId={(row) => row.id}
         emptyStateProps={{
           title: 'No inventory found',
           description: 'There are no inventory records to display',

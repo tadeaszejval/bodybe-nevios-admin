@@ -23,6 +23,7 @@ import { NeviosBadge } from "../../../components/nevios/NeviosBadge";
 import NeviosPaginationButtons from "../../../components/nevios/NeviosPaginationButtons";
 import { getCountryName } from "../../../core/countryName";
 import { ContentLoadingScreen } from "../../../components/ContentLoadingScreen";
+import { ShippingAddressDisplay } from "../../../components/ShippingAddressDisplay";
 
 export function FulfillmentView({ fulfillmentId }) {
   const router = useRouter();
@@ -176,31 +177,7 @@ export function FulfillmentView({ fulfillmentId }) {
               </Box>
             </NeviosFormPaper>
 
-            {fulfillment.shipping_address && (
-              <NeviosFormPaper title="Shipping Address">
-                <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
-                  <Typography variant="body2">
-                    <strong>
-                      {fulfillment.shipping_address.first_name} {fulfillment.shipping_address.last_name}
-                    </strong>
-                  </Typography>
-                  {fulfillment.shipping_address.company && (
-                    <Typography variant="body2">{fulfillment.shipping_address.company}</Typography>
-                  )}
-                  <Typography variant="body2">{fulfillment.shipping_address.address}</Typography>
-                  {fulfillment.shipping_address.additional_address && (
-                    <Typography variant="body2">{fulfillment.shipping_address.additional_address}</Typography>
-                  )}
-                  <Typography variant="body2">
-                    {fulfillment.shipping_address.city}, {fulfillment.shipping_address.province} {fulfillment.shipping_address.zip}
-                  </Typography>
-                  <Typography variant="body2">{getCountryName(fulfillment.shipping_address.country)}</Typography>
-                  {fulfillment.shipping_address.phone && (
-                    <Typography variant="body2">Phone: {fulfillment.shipping_address.phone}</Typography>
-                  )}
-                </Box>
-              </NeviosFormPaper>
-            )}
+            <ShippingAddressDisplay address={fulfillment.shipping_address} />
           </>
         }
         sideContent={

@@ -1,0 +1,659 @@
+# Backorder Items Query API
+
+## Overview
+
+The backorder items query endpoint provides flexible querying of backorder records with support for filtering, pagination, sorting, and relation expansion. Backorders track items that customers have ordered but are currently out of stock, managing a queue for automatic fulfillment when inventory arrives.
+
+**Endpoint:** `POST /server/backorder/query`
+
+## Request Parameters
+
+### Pagination & Sorting
+
+| Parameter | Type | Default | Description |
+|-----------|------|---------|-------------|
+| `page` | integer | 1 | Page number |
+| `limit` | integer | 50 | Items per page (max: 100) |
+| `orderBy` | string | created_at | Field to sort by |
+| `ascending` | boolean | true | Sort order (true = FIFO, oldest first) |
+
+**Important:** Default sorting is `created_at ASC` (FIFO - First In, First Out) to match the auto-fulfill allocation logic.
+
+### Expansion
+
+| Parameter | Type | Description |
+|-----------|------|-------------|
+| `expand` | array | Relations to expand: `order_item`, `variant`, `location`, `order` |
+
+### Filters
+
+#### Status Filters
+
+| Parameter | Type | Description |
+|-----------|------|-------------|
+| `status` | string | Filter by status: `PENDING`, `PARTIAL`, `NOTIFIED`, `FULFILLED`, `CANCELLED` |
+
+**Status Meanings:**
+- `PENDING` - Awaiting stock, nothing reserved yet
+- `PARTIAL` - Some quantity reserved, more needed
+- `NOTIFIED` - Customer has been notified about delay
+- `FULFILLED` - Fully reserved, ready to ship
+- `CANCELLED` - Backorder cancelled (order cancelled or item removed)
+
+#### Relation Filters
+
+| Parameter | Type | Description |
+|-----------|------|-------------|
+| `order` | uuid | Filter by order UUID |
+| `order_item` | uuid | Filter by order item UUID |
+| `variant` | uuid | Filter by product variant UUID |
+| `location` | uuid | Filter by warehouse/location UUID |
+
+#### Queue Management Filters
+
+| Parameter | Type | Description |
+|-----------|------|-------------|
+| `auto_fulfill` | boolean | Filter by auto-fulfill setting (true/false) |
+| `priority` | integer | Filter by priority level |
+| `customer_notified` | boolean | Filter by notification status |
+
+#### Date Range Filters
+
+| Parameter | Type | Description |
+|-----------|------|-------------|
+| `created_at_from` | string | Filter backorders created on or after this date (YYYY-MM-DD) |
+| `created_at_to` | string | Filter backorders created on or before this date (YYYY-MM-DD) |
+
+## Available Expansions
+
+### `order_item`
+Expands the order item relation to include:
+- Order item details (quantity, pricing, variant info)
+- Links back to the order
+
+### `variant`
+Expands the variant relation to include:
+- Product variant details (sku, title, full_title)
+- Inventory tracking settings
+- Physical properties
+
+### `location`
+Expands the location relation to include:
+- Warehouse/location details (name, code, address)
+- Location settings and capabilities
+
+### `order`
+Expands the order relation to include:
+- Full order details
+- Customer information
+- Order status and alerts
+
+## Common Use Cases
+
+### 1. Get All Pending Backorders (FIFO Order)
+
+```bash
+curl -X POST http://localhost:3100/server/backorder/query \
+  -H "Content-Type: application/json" \
+  -d '{
+    "filters": {
+      "status": "PENDING"
+    },
+    "orderBy": "created_at",
+    "ascending": true,
+    "expand": ["variant", "location"]
+  }'
+```
+
+**Use Case:** Dashboard view of what's waiting for stock, in fulfillment order.
+
+### 2. Get Backorders for Specific Variant
+
+```bash
+curl -X POST http://localhost:3100/server/backorder/query \
+  -H "Content-Type: application/json" \
+  -d '{
+    "filters": {
+      "variant": "variant-uuid",
+      "status": "PENDING"
+    },
+    "expand": ["order", "location"]
+  }'
+```
+
+**Use Case:** Check demand for a specific product before ordering stock.
+
+### 3. Get Backorders at Specific Location
+
+```bash
+curl -X POST http://localhost:3100/server/backorder/query \
+  -H "Content-Type: application/json" \
+  -d '{
+    "filters": {
+      "location": "warehouse-uuid",
+      "status": "PENDING"
+    },
+    "orderBy": "priority",
+    "ascending": false
+  }'
+```
+
+**Use Case:** Warehouse manager viewing what needs to be fulfilled at their location.
+
+### 4. Get Priority Backorders (VIP/Urgent)
+
+```bash
+curl -X POST http://localhost:3100/server/backorder/query \
+  -H "Content-Type: application/json" \
+  -d '{
+    "filters": {
+      "status": "PENDING"
+    },
+    "orderBy": "priority",
+    "ascending": false,
+    "expand": ["order", "variant"]
+  }'
+```
+
+**Use Case:** Process high-priority orders first (VIP customers, urgent orders).
+
+### 5. Get Backorders for Specific Order
+
+```bash
+curl -X POST http://localhost:3100/server/backorder/query \
+  -H "Content-Type: application/json" \
+  -d '{
+    "filters": {
+      "order": "order-uuid"
+    },
+    "expand": ["variant", "location"]
+  }'
+```
+
+**Use Case:** Customer service checking what items are holding up an order.
+
+### 6. Get Partially Fulfilled Backorders
+
+```bash
+curl -X POST http://localhost:3100/server/backorder/query \
+  -H "Content-Type: application/json" \
+  -d '{
+    "filters": {
+      "status": "PARTIAL"
+    },
+    "expand": ["variant", "order"]
+  }'
+```
+
+**Use Case:** Track backorders that have been partially fulfilled, awaiting more stock.
+
+### 7. Get Backorders Needing Customer Notification
+
+```bash
+curl -X POST http://localhost:3100/server/backorder/query \
+  -H "Content-Type: application/json" \
+  -d '{
+    "filters": {
+      "status": "PENDING",
+      "customer_notified": false
+    },
+    "expand": ["order"]
+  }'
+```
+
+**Use Case:** Find customers who need to be notified about stock delays.
+
+### 8. Get Auto-Fulfill Queue (What Will Be Fulfilled Next)
+
+```bash
+curl -X POST http://localhost:3100/server/backorder/query \
+  -H "Content-Type: application/json" \
+  -d '{
+    "filters": {
+      "status": "PENDING",
+      "auto_fulfill": true,
+      "variant": "variant-uuid",
+      "location": "warehouse-uuid"
+    },
+    "orderBy": "priority",
+    "ascending": false,
+    "limit": 100
+  }'
+```
+
+**Use Case:** See the queue order for a specific variant at a location (matches auto-fulfill logic).
+
+**Note:** For exact auto-fulfill order, you need secondary sort by `created_at ASC`, but this shows priority hierarchy.
+
+## Response Format
+
+### Basic Response
+
+```json
+{
+  "success": true,
+  "data": [
+    {
+      "id": "backorder-uuid-1",
+      "order_item": "order-item-uuid",
+      "order": "order-uuid",
+      "variant": "variant-uuid",
+      "location": "location-uuid",
+      "quantity_requested": 10,
+      "quantity_reserved": 0,
+      "quantity_remaining": 10,
+      "status": "PENDING",
+      "priority": 0,
+      "created_at": "2026-01-12T10:00:00Z",
+      "expected_restock_date": null,
+      "notified_at": null,
+      "fulfilled_at": null,
+      "cancelled_at": null,
+      "customer_notified": false,
+      "auto_fulfill": true,
+      "notes": "Out of stock: 10 units backordered"
+    }
+  ],
+  "pagination": {
+    "currentPage": 1,
+    "totalPages": 3,
+    "totalRecords": 145,
+    "recordsPerPage": 50,
+    "hasNextPage": true,
+    "hasPreviousPage": false,
+    "recordsOnCurrentPage": 50
+  },
+  "filters": {
+    "status": "PENDING"
+  },
+  "orderBy": {
+    "column": "created_at",
+    "ascending": true
+  },
+  "expansions": []
+}
+```
+
+### Response with Expansions
+
+```json
+{
+  "success": true,
+  "data": [
+    {
+      "id": "backorder-uuid-1",
+      "quantity_requested": 10,
+      "quantity_reserved": 4,
+      "quantity_remaining": 6,
+      "status": "PARTIAL",
+      "priority": 0,
+      "variant": {
+        "id": "variant-uuid",
+        "sku": "SHIRT-BLK-M",
+        "title": "Black / Medium",
+        "full_title": "Classic T-Shirt - Black / Medium",
+        "track_inventory": true
+      },
+      "location": {
+        "id": "location-uuid",
+        "name": "Main Warehouse",
+        "code": "WH-001",
+        "address": "123 Warehouse St",
+        "city": "Prague",
+        "is_active": true,
+        "is_default": true
+      },
+      "order": {
+        "id": "order-uuid",
+        "name": "ORD-001",
+        "status": "HOLD",
+        "created_at": "2026-01-12T09:00:00Z"
+      },
+      "created_at": "2026-01-12T10:00:00Z",
+      "auto_fulfill": true
+    }
+  ],
+  "pagination": {
+    "currentPage": 1,
+    "totalPages": 1,
+    "totalRecords": 12,
+    "recordsPerPage": 50
+  },
+  "expansions": ["variant", "location", "order"]
+}
+```
+
+## Understanding Backorder Logic
+
+### Quantity Tracking
+
+**Core Formula:**
+```
+quantity_requested = quantity_reserved + quantity_remaining
+```
+
+**Example Scenarios:**
+
+**Scenario 1: Initial Creation (No Stock)**
+```json
+{
+  "quantity_requested": 10,
+  "quantity_reserved": 0,
+  "quantity_remaining": 10,
+  "status": "PENDING"
+}
+```
+
+**Scenario 2: Partial Fulfillment (4 units arrived)**
+```json
+{
+  "quantity_requested": 10,
+  "quantity_reserved": 4,
+  "quantity_remaining": 6,
+  "status": "PARTIAL"
+}
+```
+
+**Scenario 3: Fully Fulfilled**
+```json
+{
+  "quantity_requested": 10,
+  "quantity_reserved": 10,
+  "quantity_remaining": 0,
+  "status": "FULFILLED"
+}
+```
+
+### FIFO + Priority Allocation
+
+**How Auto-Fulfill Works:**
+
+When stock arrives, backorders are allocated in this order:
+1. **Sort by `priority DESC`** - Higher priority first
+2. **Then by `created_at ASC`** - Oldest first (FIFO) within same priority
+
+**Example Queue:**
+```
+Priority 10 | Created Jan 10 | Customer: VIP Corp      → Gets stock first
+Priority 10 | Created Jan 11 | Customer: Enterprise Co → Gets stock second
+Priority 0  | Created Jan 9  | Customer: John Doe      → Gets stock third
+Priority 0  | Created Jan 10 | Customer: Jane Smith    → Gets stock fourth
+```
+
+**Stock Allocation Example:**
+```
+Available Stock: 20 units
+
+Backorders:
+1. Priority 10, Created Jan 10: Needs 8 units  → Gets 8 units ✅
+2. Priority 10, Created Jan 11: Needs 10 units → Gets 10 units ✅
+3. Priority 0,  Created Jan 9:  Needs 5 units  → Gets 2 units ⚠️ (partial)
+4. Priority 0,  Created Jan 10: Needs 4 units  → Gets 0 units ❌ (waits)
+
+Result:
+- Total allocated: 20 units
+- Backorders #1 & #2: Fulfilled
+- Backorder #3: Partial (2/5)
+- Backorder #4: Still pending
+```
+
+### Status Lifecycle
+
+```
+PENDING
+  ↓
+PARTIAL (some reserved, more needed)
+  ↓
+NOTIFIED (optional - customer told about delay)
+  ↓
+FULFILLED (all reserved)
+
+OR
+
+PENDING/PARTIAL → CANCELLED
+```
+
+**Status Transitions:**
+- `PENDING` → `PARTIAL` - When first stock arrives (but not all)
+- `PARTIAL` → `FULFILLED` - When remaining stock arrives
+- `PENDING` → `FULFILLED` - When all stock arrives at once
+- Any → `CANCELLED` - Order cancelled or item removed
+- Any → `NOTIFIED` - Manual status update (customer contacted)
+
+## Edge Cases & Handling
+
+### Edge Case 1: Multiple Backorders for Same Variant
+
+**Scenario:** 5 customers ordered the same variant, only 2 units arrive
+
+**Query to See Queue:**
+```bash
+curl -X POST http://localhost:3100/server/backorder/query \
+  -H "Content-Type: application/json" \
+  -d '{
+    "filters": {
+      "variant": "variant-uuid",
+      "status": "pending",
+      "auto_fulfill": true
+    },
+    "orderBy": "priority",
+    "ascending": false
+  }'
+```
+
+**Result:** Shows queue in fulfillment order (priority → FIFO)
+
+**Auto-Fulfill Behavior:**
+- First backorder gets what it needs (up to available stock)
+- Remaining stock goes to next in queue
+- Partial fulfillments possible
+
+### Edge Case 2: Priority Override
+
+**Scenario:** VIP customer orders after regular customers, should get priority
+
+**Solution:** Set priority when creating backorder or update existing:
+```bash
+# Update priority for VIP
+curl -X POST http://localhost:3100/server/backorder/fulfill/backorder-uuid \
+  -H "Content-Type: application/json" \
+  -d '{
+    "quantity_to_fulfill": 0
+  }'
+```
+
+**Note:** Priority changes aren't exposed in current API, but field exists in database.
+
+### Edge Case 3: Auto-Fulfill Disabled
+
+**Scenario:** Special order that needs manual approval before fulfillment
+
+**Query:**
+```bash
+curl -X POST http://localhost:3100/server/backorder/query \
+  -H "Content-Type: application/json" \
+  -d '{
+    "filters": {
+      "auto_fulfill": false
+    }
+  }'
+```
+
+**Behavior:** These backorders are skipped by auto-fulfill, require manual fulfillment.
+
+### Edge Case 4: Order Cancelled with Reserved Stock
+
+**Scenario:** Customer cancels order that had partial backorder (some stock reserved)
+
+**Query to Find:**
+```bash
+curl -X POST http://localhost:3100/server/backorder/query \
+  -H "Content-Type: application/json" \
+  -d '{
+    "filters": {
+      "order": "cancelled-order-uuid",
+      "status": "cancelled"
+    }
+  }'
+```
+
+**Behavior:** Cancel endpoint releases reserved inventory back to available pool.
+
+### Edge Case 5: Stock Arrives at Wrong Location
+
+**Scenario:** Backorder for Warehouse A, but stock arrives at Warehouse B
+
+**Query:**
+```bash
+# Find backorders for specific variant + location combo
+curl -X POST http://localhost:3100/server/backorder/query \
+  -H "Content-Type: application/json" \
+  -d '{
+    "filters": {
+      "variant": "variant-uuid",
+      "location": "warehouse-a-uuid",
+      "status": "pending"
+    }
+  }'
+```
+
+**Behavior:** Auto-fulfill only triggers for matching variant+location. Transfer stock or create new backorder.
+
+### Edge Case 6: Expected Restock Date Passed
+
+**Scenario:** Find backorders that are overdue (expected restock date passed)
+
+**Query:**
+```bash
+# Note: This requires custom date filtering (not implemented in standard query)
+# Workaround: Query all PENDING, filter client-side by expected_restock_date
+curl -X POST http://localhost:3100/server/backorder/query \
+  -H "Content-Type: application/json" \
+  -d '{
+    "filters": {
+      "status": "PENDING"
+    },
+    "limit": 100
+  }'
+```
+
+**Manual Filter:** Check `expected_restock_date < today && expected_restock_date !== null`
+
+### Edge Case 7: Duplicate Backorders
+
+**Scenario:** Same order_item shouldn't have multiple active backorders
+
+**Prevention:** Database constraints and application logic prevent this
+- One backorder per order_item
+- If more needed, update existing backorder quantities
+
+**Query to Check:**
+```bash
+curl -X POST http://localhost:3100/server/backorder/query \
+  -H "Content-Type: application/json" \
+  -d '{
+    "filters": {
+      "order_item": "order-item-uuid"
+    }
+  }'
+```
+
+**Expected:** Only one non-cancelled backorder per order_item
+
+## Performance Notes
+
+- Default limit is 50 records per page (max: 100)
+- Use pagination for large result sets
+- Filter by `variant` + `location` for most efficient queries
+- Index on `priority DESC, created_at ASC` optimizes queue queries
+- Expansion adds minimal overhead
+
+## Best Practices
+
+1. **FIFO Querying** - Use `created_at ASC` sorting for fair queue order
+2. **Priority First** - When relevant, sort by `priority DESC` then `created_at ASC`
+3. **Filter by Status** - Most queries should filter by status (pending, partial)
+4. **Expand Selectively** - Only expand relations you need
+5. **Variant + Location** - Most useful filter combination for warehouse operations
+6. **Auto-Fulfill Flag** - Filter by `auto_fulfill: true` to see automated queue
+
+## Related Endpoints
+
+- [Create Backorder](../README.md#create-backorder) - Create new backorders
+- [Retrieve Backorder](../README.md#retrieve-backorder) - Get single backorder with details
+- [Fulfill Backorder](../README.md#fulfill-backorder) - Manually fulfill backorders
+- [Cancel Backorder](../README.md#cancel-backorder) - Cancel and release inventory
+
+## Filter Combinations
+
+### Find Urgent Backorders Needing Stock
+```json
+{
+  "filters": {
+    "status": "PENDING",
+    "priority": 10
+  },
+  "orderBy": "created_at",
+  "ascending": true
+}
+```
+
+### Find Backorders Ready to Complete
+```json
+{
+  "filters": {
+    "status": "PARTIAL"
+  },
+  "expand": ["variant", "order"]
+}
+```
+
+### Find Backorders for Inventory Planning
+```json
+{
+  "filters": {
+    "variant": "low-stock-variant-uuid",
+    "status": "PENDING"
+  },
+  "expand": ["order", "location"]
+}
+```
+
+### Find Stale Backorders (Customer Service)
+```json
+{
+  "filters": {
+    "status": "PENDING",
+    "customer_notified": false
+  },
+  "orderBy": "created_at",
+  "ascending": true,
+  "limit": 100
+}
+```
+
+## Error Responses
+
+### Invalid Status
+```json
+{
+  "success": false,
+  "error": "Invalid filters provided"
+}
+```
+
+### Invalid UUID
+```json
+{
+  "success": false,
+  "error": "Invalid UUID format"
+}
+```
+
+### Invalid Pagination
+```json
+{
+  "success": false,
+  "error": "Page must be a positive integer"
+}
+```

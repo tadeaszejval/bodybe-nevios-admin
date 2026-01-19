@@ -162,7 +162,6 @@ export function Sidebar() {
 							icon={<TbArchive size={ICON_SIZE} />}
 						/>
 						<SidebarItem
-							deemphasized={true}
 							href="/dashboard/stock-movements"
 							title="Stock Movements"
 							icon={<TbReplace size={ICON_SIZE} />}
@@ -170,13 +169,11 @@ export function Sidebar() {
 						<SidebarItem
 							href="/dashboard/inventory-operations"
 							title="Inventory Operations"
-							deemphasized={true}
 							icon={<TbPackages size={ICON_SIZE} />}
 						/>
 						<SidebarItem
-							href="/dashboard/inventory-locations"
+							href="/dashboard/backorders"
 							title="Backorders"
-							deemphasized={true}
 							icon={<TbProgressAlert size={ICON_SIZE} />}
 						/>
 						<SidebarItem

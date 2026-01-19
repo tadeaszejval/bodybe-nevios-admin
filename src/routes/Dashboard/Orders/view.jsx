@@ -29,6 +29,8 @@ import { NeviosFormPaperBlock } from "../../../components/nevios/NeviosFormPaper
 import { NeviosCopyBlock } from "../../../components/nevios/NeviosCopyBlock";
 import { getCountryName } from "../../../core/countryName";
 import { ContentLoadingScreen } from "../../../components/ContentLoadingScreen";
+import { ShippingAddressDisplay } from "../../../components/ShippingAddressDisplay";
+import { NeviosBadge } from "../../../components/nevios/NeviosBadge";
 
 export function OrderView({ orderId }) {
   const [order, setOrder] = useState({ name: '', created_at: null });
@@ -239,26 +241,18 @@ export function OrderView({ orderId }) {
           <DashboardHeader
             title={`${order.name || 'Order details'}`}
             icon={<TbShoppingCart size={24} />}
-            iconOnClick={() => {router.push('/dashboard/orders')}}
+            iconOnClick={() => {router.push('/dashboard/orders')}}  
             iconTooltipTitle="Back to list of orders"
+            badges={
+              <Box sx={{ display: 'flex', gap: 1 }}>
+                <NeviosBadge value={order.status} configKey="orderStatus" />
+                <NeviosBadge value={order.payment_status} configKey="paymentStatus" />
+                <NeviosBadge value={order.fulfillment_status} configKey="orderFulfillmentStatus" />
+                <NeviosBadge value={order.inventory_status} configKey="inventoryStatus" />
+              </Box>
+            }
             actions={
               <Box sx={{ display: 'flex', gap: 1 }}>
-                <NeviosShadowButton>Return</NeviosShadowButton>
-                <NeviosShadowButton>Cancel</NeviosShadowButton>
-                <NeviosShadowButton 
-                  onClick={() => {}}
-                >
-                  Print
-                </NeviosShadowButton>
-                <NeviosGroupButton
-                  buttonText="Documents"
-                  menuItems={[
-                    { label: 'Deposit invoice', onClick: () => {} },
-                    { label: 'Invoice', onClick: () => {} },
-                    { label: 'Payment note', onClick: () => {} },
-                    { label: 'Delivery note', onClick: () => {} },
-                  ]}
-                /> 
                 <NeviosDangerButton>Delete</NeviosDangerButton>
                 <NeviosPaginationButtons
                   previousButtonOnClick={() => {}}
@@ -481,24 +475,10 @@ export function OrderView({ orderId }) {
                           <Typography color="text.secondary">No billing address</Typography>
                         )}
                       </NeviosFormPaperBlock>
-                      <NeviosFormPaperBlock title="Shipping Address">
-                        {shippingAddress ? (
-                          <>
-                            <Typography variant="body2">{shippingAddress.first_name} {shippingAddress.last_name}</Typography>
-                            {shippingAddress.company && (
-                              <Typography variant="body2">{shippingAddress.company}</Typography>
-                            )}
-                            <Typography variant="body2">{shippingAddress.address}</Typography>
-                            <Typography variant="body2">{shippingAddress.city}, {shippingAddress.zip}</Typography>
-                            <Typography variant="body2">{getCountryName(shippingAddress.country)}</Typography>
-                          </>
-                        ) : (
-                          <Typography color="text.secondary">No shipping address</Typography>
-                        )}
-                      </NeviosFormPaperBlock>
                     </>
                   )}
                 </NeviosFormPaper>
+                <ShippingAddressDisplay address={shippingAddress} />
               </>
             }
           />
