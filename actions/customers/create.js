@@ -51,7 +51,7 @@ export async function createCustomer(customerData, billingAddress = null, shippi
     }
 
     // Call the API
-    const response = await postRequest('/server/customers/create', payload);
+    const response = await postRequest('/server/customer/create', payload);
     return response;
   } catch (error) {
     console.error('Error creating customer:', error);

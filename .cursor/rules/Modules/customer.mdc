@@ -1,0 +1,677 @@
+# Customers System Documentation
+
+## Overview
+The customers system provides comprehensive customer relationship management (CRM) functionality with support for customer profiles, addresses, order history, and marketing preferences. It handles everything from customer creation with automatic gender detection to address management and customer segmentation through tags.
+
+## 🚀 **Key Features**
+
+### Core Customer Functionality
+- **Customer Profiles**: Complete customer information management
+- **Address Management**: Separate billing and shipping addresses
+- **Automatic Gender Detection**: AI-powered gender detection from first names
+- **Marketing Preferences**: Subscription and account status tracking
+
+### Customer Data
+- **Contact Information**: Email, phone, and country tracking
+- **Personal Details**: First name, last name, full name, gender
+- **Account Status**: Account enabled/disabled, subscription status
+- **Customer Segmentation**: Tag-based customer categorization
+- **Benefits Tracking**: JSONB field for customer benefits/loyalty data
+
+### Advanced Features
+- **Multi-Address Support**: Multiple billing and shipping addresses per customer
+- **Default Addresses**: Set default billing and shipping addresses
+- **Order History**: Track all customer orders
+- **Search Functionality**: Multi-field search across customer data
+- **Duplicate Prevention**: Automatic email duplicate detection
+
+## 🔧 **API Endpoints**
+
+### 1. Query Customers
+**POST** `/server/customer/query`
+
+Query customers with filtering, pagination, search, and expansion.
+
+**Note:** This endpoint accepts parameters via both URL query parameters and JSON request body. Request body parameters take precedence over URL parameters.
+
+#### Request Parameters
+
+**Pagination & Sorting:**
+- `page` (number): Page number (default: 1)
+- `limit` (number): Records per page (default: 50, max: 100)
+- `orderBy` (string): Column to sort by (default: 'created_at')
+- `ascending` (boolean): Sort order (default: false)
+
+**Search:**
+- `search` (string): Search across first_name, last_name, full_name, email, phone, country, tags, and order data
+
+**Filters:**
+- `email` (string): Filter by email
+- `phone` (string): Filter by phone
+- `country` (string): Filter by country code
+- `subscribed` (boolean): Filter by subscription status
+- `account_enabled` (boolean): Filter by account status
+- `gender` (string): Filter by gender
+- `tags` (string): Filter by tags
+
+**Expansion:**
+- `expand` (array): Array of relations to expand (e.g., ["orders"])
+
+#### Example Requests
+
+**All Customers:**
+```bash
+curl -X POST "http://localhost:3010/api/server/customer/query" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "page": 1,
+    "limit": 50
+  }'
+```
+
+**Search by Name:**
+```bash
+curl -X POST "http://localhost:3010/api/server/customer/query" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "search": "John"
+  }'
+```
+
+**Customers with Orders:**
+```bash
+curl -X POST "http://localhost:3010/api/server/customer/query" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "expand": ["orders"],
+    "limit": 25
+  }'
+```
+
+**Subscribed Customers:**
+```bash
+curl -X POST "http://localhost:3010/api/server/customer/query" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "filters": {
+      "subscribed": true
+    }
+  }'
+```
+
+#### Response Format
+```json
+{
+  "success": true,
+  "data": [
+    {
+      "id": "customer-uuid",
+      "email": "john.doe@example.com",
+      "phone": "+420123456789",
+      "country": "CZ",
+      "first_name": "John",
+      "last_name": "Doe",
+      "full_name": "John Doe",
+      "subscribed": true,
+      "account_enabled": true,
+      "gender": "MALE",
+      "tags": "VIP,premium",
+      "created_at": "2024-01-15T10:00:00Z",
+      "orders": [
+        {
+          "id": "order-uuid",
+          "name": "#1001",
+          "payment_status": "PAID",
+          "fulfillment_status": "FULFILLED"
+        }
+      ]
+    }
+  ],
+  "pagination": {
+    "currentPage": 1,
+    "totalPages": 1,
+    "totalRecords": 1,
+    "recordsPerPage": 50,
+    "hasNextPage": false,
+    "hasPreviousPage": false,
+    "recordsOnCurrentPage": 1
+  }
+}
+```
+
+### 2. Retrieve Customer by ID
+**GET** `/server/customer/retrieve/:id`
+
+Retrieve a single customer by ID with optional related data.
+
+#### URL Parameters
+- `id` (string, required): Customer UUID
+
+#### Query Parameters
+- `expand` (string): Comma-separated list of relations to expand
+  - Available expansions: `billing_addresses`, `shipping_addresses`, `orders`
+  - Example: `?expand=billing_addresses,shipping_addresses,orders`
+
+#### Example Request
+```bash
+curl -X GET "http://localhost:3100/server/customer/retrieve/customer-uuid?expand=billing_addresses,shipping_addresses,orders"
+```
+
+#### Response Format
+```json
+{
+  "success": true,
+  "data": {
+    "id": "customer-uuid",
+    "email": "john.doe@example.com",
+    "first_name": "John",
+    "last_name": "Doe",
+    "full_name": "John Doe",
+    "phone": "+420123456789",
+    "country": "CZ",
+    "subscribed": true,
+    "account_enabled": true,
+    "gender": "MALE",
+    "tags": "VIP",
+    "billing_addresses": [
+      {
+        "id": "billing-uuid",
+        "first_name": "John",
+        "last_name": "Doe",
+        "address": "123 Main St",
+        "city": "Prague",
+        "zip": "11000",
+        "country": "CZ"
+      }
+    ],
+    "shipping_addresses": [
+      {
+        "id": "shipping-uuid",
+        "first_name": "John",
+        "last_name": "Doe",
+    "address": "123 Main St",
+        "city": "Prague",
+        "zip": "11000",
+        "country": "CZ",
+        "type": "HOME"
+      }
+    ]
+  }
+}
+```
+
+### 3. Find Customer by Email or Phone
+**GET** `/server/customer/retrieve/find`
+
+Find a customer by email or phone number.
+
+#### Query Parameters
+- `email` (string): Customer email
+- `phone` (string): Customer phone
+
+**Note:** Either email or phone is required.
+
+#### Example Requests
+
+**Find by Email:**
+```bash
+curl -X GET "http://localhost:3100/server/customer/retrieve/find?email=john.doe@example.com"
+```
+
+**Find by Phone:**
+```bash
+curl -X GET "http://localhost:3100/server/customer/retrieve/find?phone=%2B420123456789"
+```
+
+#### Response Format
+```json
+{
+  "success": true,
+  "data": {
+    "id": "customer-uuid",
+    "email": "john.doe@example.com",
+    "first_name": "John",
+    "last_name": "Doe",
+    "phone": "+420123456789",
+    "country": "CZ"
+  }
+}
+```
+
+### 4. Create Customer
+**POST** `/server/customer/create`
+
+Create a new customer with optional addresses.
+
+#### Request Body
+```json
+{
+  "email": "john.doe@example.com",
+  "phone": "+420123456789",
+  "first_name": "John",
+  "last_name": "Doe",
+  "country": "CZ",
+  "subscribed": true,
+  "account_enabled": false,
+  "tags": "new,prospect",
+  "shipping_address": {
+    "first_name": "John",
+    "last_name": "Doe",
+    "address": "123 Main St",
+    "city": "Prague",
+    "zip": "11000",
+    "country": "CZ",
+    "phone": "+420123456789"
+  },
+  "billing_address": {
+    "first_name": "John",
+    "last_name": "Doe",
+    "company": "Acme Corp",
+    "company_id": "12345678",
+    "company_vat": "CZ12345678",
+    "address": "456 Business Ave",
+    "city": "Prague",
+    "zip": "11000",
+    "country": "CZ"
+  }
+}
+```
+
+**Required Fields:**
+- Either `email` or `phone` is required
+
+**Optional Fields:**
+- `first_name` (string): First name (used for gender detection)
+- `last_name` (string): Last name
+- `country` (string): Country code
+- `subscribed` (boolean): Marketing subscription (default: false)
+- `account_enabled` (boolean): Account status (default: false)
+- `gender` (string): Gender (auto-detected if not provided)
+- `tags` (string): Comma-separated tags
+- `benefits` (object): Customer benefits data
+- `shipping_address` (object): Shipping address to create
+- `billing_address` (object): Billing address to create
+
+#### Example Request
+```bash
+curl -X POST "http://localhost:3100/server/customer/create" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "email": "john.doe@example.com",
+    "phone": "+420123456789",
+    "first_name": "John",
+    "last_name": "Doe",
+    "country": "CZ",
+    "subscribed": true,
+    "tags": "new"
+  }'
+```
+
+#### Response Format
+```json
+{
+  "success": true,
+  "data": {
+    "id": "new-customer-uuid",
+    "email": "john.doe@example.com",
+    "phone": "+420123456789",
+    "first_name": "John",
+    "last_name": "Doe",
+    "full_name": "John Doe",
+    "country": "CZ",
+    "subscribed": true,
+    "account_enabled": false,
+    "gender": "MALE",
+    "tags": "new",
+    "created_at": "2024-01-15T10:00:00Z"
+  },
+    "shipping_address": {
+    "id": "shipping-uuid",
+    "customer": "new-customer-uuid",
+    "address": "123 Main St",
+    "city": "Prague"
+  },
+  "billing_address": {
+    "id": "billing-uuid",
+    "customer": "new-customer-uuid",
+    "address": "456 Business Ave",
+    "city": "Prague"
+  }
+}
+```
+
+### 5. Modify Customer
+**PUT** `/server/customer/modify/:id`
+
+Update customer information.
+
+#### URL Parameters
+- `id` (string, required): Customer UUID
+
+#### Request Body
+```json
+{
+  "first_name": "John",
+  "last_name": "Doe",
+  "phone": "+420987654321",
+  "country": "CZ",
+  "subscribed": false,
+      "account_enabled": true,
+  "tags": "VIP,premium"
+}
+```
+
+#### Example Request
+```bash
+curl -X PUT "http://localhost:3100/server/customer/modify/customer-uuid" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "subscribed": false,
+    "tags": "VIP,premium"
+  }'
+```
+
+#### Response Format
+```json
+{
+  "success": true,
+  "data": {
+    "id": "customer-uuid",
+    "email": "john.doe@example.com",
+    "first_name": "John",
+    "last_name": "Doe",
+    "subscribed": false,
+    "tags": "VIP,premium",
+    "updated_at": "2024-01-15T11:00:00Z"
+  }
+}
+```
+
+### 6. Delete Customer
+**DELETE** `/server/customer/delete/:id`
+
+Delete a customer and all associated data.
+
+#### URL Parameters
+- `id` (string, required): Customer UUID
+
+#### Example Request
+```bash
+curl -X DELETE "http://localhost:3100/server/customer/delete/customer-uuid"
+```
+
+#### Response Format
+```json
+{
+  "success": true,
+  "message": "Customer deleted successfully"
+}
+```
+
+## 📊 **Database Schema**
+
+### Customers Table
+```sql
+CREATE TABLE customers (
+  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  email TEXT,
+  phone TEXT,
+  country TEXT REFERENCES countries(id),
+  first_name TEXT,
+  last_name TEXT,
+  full_name TEXT,
+  subscribed BOOLEAN,
+  account_enabled BOOLEAN DEFAULT FALSE,
+  gender gender DEFAULT 'NOT_FOUND',
+  benefits JSONB,
+  default_billing UUID REFERENCES billing_address(id),
+  default_shipping UUID REFERENCES shipping_address(id),
+  tags TEXT,
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);
+```
+
+### Billing Address Table
+```sql
+CREATE TABLE billing_address (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  customer UUID REFERENCES customers(id),
+  first_name TEXT,
+  last_name TEXT,
+  company TEXT,
+  company_id TEXT,
+  company_vat TEXT,
+  address TEXT,
+  additional_address TEXT,
+  zip TEXT,
+  province TEXT,
+  city TEXT,
+  country TEXT REFERENCES countries(id),
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);
+```
+
+### Shipping Address Table
+```sql
+CREATE TABLE shipping_address (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  customer UUID REFERENCES customers(id),
+  first_name TEXT,
+  last_name TEXT,
+  address TEXT,
+  additional_address TEXT,
+  zip TEXT,
+  province TEXT,
+  city TEXT,
+  country TEXT REFERENCES countries(id),
+  phone TEXT,
+  type TEXT CHECK (type IN ('HOME', 'WORK', 'OTHER')),
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);
+```
+
+## 🔍 **Customer Relations**
+
+### Data Structure
+```
+customers
+├── email (string)
+├── phone (string)
+├── country (string) → countries
+├── first_name (string)
+├── last_name (string)
+├── full_name (string)
+├── subscribed (boolean)
+├── account_enabled (boolean)
+├── gender (enum: MALE, FEMALE, NOT_FOUND)
+├── tags (string)
+├── default_billing (UUID) → billing_address
+├── default_shipping (UUID) → shipping_address
+├── benefits (jsonb)
+└── orders → orders table
+```
+
+### Expansion Options
+- **`orders`**: Includes customer's order history
+
+## 🛠 **Core Functions**
+
+### Query Function
+**Location:** `functions/customers/query.js`
+
+```javascript
+const queryCustomers = require('./functions/customers/query');
+
+await queryCustomers({
+  filters: {
+    country: 'CZ',
+    subscribed: true
+  },
+  expand: ['orders'],
+  page: 1,
+  limit: 50,
+  orderBy: 'created_at',
+  ascending: false,
+  search: 'john'
+});
+```
+
+### Retrieve Functions
+**Location:** `functions/customers/retrieve.js`
+
+```javascript
+const retrieveCustomer = require('./functions/customers/retrieve');
+const { findCustomer } = require('./functions/customers/retrieve');
+
+// By ID
+await retrieveCustomer(customerId, 'billing_addresses,shipping_addresses');
+
+// By email or phone
+await findCustomer({ email: 'john@example.com' });
+await findCustomer({ phone: '+420123456789' });
+```
+
+### Create Function
+**Location:** `functions/customers/create.js`
+
+```javascript
+const createCustomer = require('./functions/customers/create');
+
+await createCustomer({
+  email: 'john@example.com',
+  first_name: 'John',
+  last_name: 'Doe',
+  country: 'CZ',
+  subscribed: true,
+  shipping_address: {
+    address: '123 Main St',
+    city: 'Prague',
+    zip: '11000',
+    country: 'CZ'
+  }
+});
+```
+
+## 🚨 **Error Handling**
+
+### Common Errors
+- `Either email or phone is required` - Missing required contact information
+- `Customer ID is required` - Missing customer ID
+- `A customer with this email already exists` - Duplicate email
+- `Customer with ID {id} not found` - Invalid customer ID
+- `Either email or phone is required for customer lookup` - Missing search criteria
+- `No customer found with the provided criteria` - Customer not found
+
+### Error Response Format
+```json
+{
+  "success": false,
+  "error": "Error message description"
+}
+```
+
+## 📈 **Gender Detection System**
+
+The customer module includes automatic gender detection:
+
+### How It Works
+1. When creating a customer with `first_name` but no `gender`
+2. AI-powered gender detection analyzes the first name
+3. Gender is automatically set to: MALE, FEMALE, or NOT_FOUND
+4. Can be overridden by providing `gender` in create request
+
+### Gender Values
+- **`MALE`**: Detected as male name
+- **`FEMALE`**: Detected as female name
+- **`NOT_FOUND`**: Could not determine or no first name provided
+
+## 🔐 **Security Considerations**
+
+### Input Validation
+- Email format validation
+- Phone number validation
+- Country code validation
+- Duplicate email prevention
+- Customer existence verification
+
+### Data Integrity
+- Foreign key constraints for addresses
+- Unique email constraint (soft enforcement)
+- Default address references
+- Cascading deletes for addresses
+
+## 📋 **Best Practices**
+
+1. **Always provide email or phone** when creating customers
+2. **Use search for lookups** instead of filtering by email
+3. **Include addresses** when retrieving for checkout/orders
+4. **Use tags for segmentation** (VIP, wholesale, etc.)
+5. **Set subscribed status** for marketing compliance
+6. **Enable accounts** only when customer registers
+7. **Provide first_name** for automatic gender detection
+8. **Use expansion** only when needed to reduce payload
+9. **Paginate queries** for better performance
+10. **Search across fields** for flexible customer lookup
+
+## 💡 **Common Use Cases**
+
+### 1. Customer Lookup at Checkout
+```bash
+curl -X GET "http://localhost:3100/server/customer/retrieve/find?email=john@example.com&expand=billing_addresses,shipping_addresses"
+```
+
+### 2. CRM Dashboard
+```bash
+curl -X GET "http://localhost:3100/server/customer/query?page=1&limit=50&expand=orders&orderBy=created_at&ascending=false"
+```
+
+### 3. Marketing List
+```bash
+curl -X GET "http://localhost:3100/server/customer/query?subscribed=true&country=CZ"
+```
+
+### 4. VIP Customers
+```bash
+curl -X GET "http://localhost:3100/server/customer/query?tags=VIP&expand=orders"
+```
+
+### 5. Customer Registration
+```bash
+curl -X POST "http://localhost:3100/server/customer/create" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "email": "new@example.com",
+    "first_name": "Jane",
+    "last_name": "Smith",
+    "subscribed": true,
+    "account_enabled": true
+  }'
+```
+
+## 📚 **Related Systems**
+
+### Integration with Other Modules
+- **Orders**: Track customer purchase history
+- **Addresses**: Manage billing and shipping addresses
+- **Sessions**: Link anonymous sessions to customers
+- **Reviews**: Customer product reviews
+- **Discounts**: Customer-specific discount codes
+
+### Address Management
+- **Billing Addresses**: Company information, VAT numbers
+- **Shipping Addresses**: Multiple delivery locations, address types
+- **Default Addresses**: Set preferred billing/shipping addresses
+
+## 🤝 **Support**
+
+For questions or issues:
+1. Verify email or phone is provided when creating
+2. Check for duplicate emails before creation
+3. Use find endpoint for email/phone lookups
+4. Include addresses when needed for checkout
+5. Use tags for customer segmentation
+6. Monitor gender detection for accuracy
+7. Use expansion to reduce API calls
+
+This customers system provides a robust foundation for customer relationship management that scales with your business needs! 🚀
+

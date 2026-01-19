@@ -163,22 +163,6 @@ export function BackordersTable({
         </Box>
       ),
     }),
-    genericColumnFactory({
-      field: "location_name",
-      headerName: "Location",
-      minWidth: 150,
-      flex: 1.5,
-      renderCell: (params) => (
-        <Box
-          sx={{
-            fontSize: "s",
-            color: "gray.700",
-          }}
-        >
-          {params.value}
-        </Box>
-      ),
-    }),
     numericColumnFactory({
       field: "quantity_requested",
       headerName: "Requested",
@@ -284,6 +268,22 @@ export function BackordersTable({
           }}
         >
           <NeviosBadge value={params.value} configKey="autoFulfill" />
+        </Box>
+      ),
+    }),
+    genericColumnFactory({
+      field: "location_name",
+      headerName: "Location",
+      minWidth: 150,
+      flex: 1.5,
+      renderCell: (params) => (
+        <Box
+          sx={{
+            fontSize: "s",
+            color: "gray.700",
+          }}
+        >
+          {params.value}
         </Box>
       ),
     }),

@@ -41,7 +41,7 @@ export async function modifyBillingAddress(customerId, addressId, updateData, se
     if (updateData.country !== undefined) payload.country = updateData.country;
     
     // Build URL with query parameter if setAsDefault is true
-    let endpoint = `/server/customers/billing-address/${customerId}/${addressId}`;
+    let endpoint = `/server/customer/billing-address/${customerId}/${addressId}`;
     if (setAsDefault) {
       endpoint += '?setAsDefault=true';
     }

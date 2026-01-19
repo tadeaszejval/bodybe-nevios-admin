@@ -1,5 +1,5 @@
 "use client";
-import React, { useState, useEffect } from "react";
+import React, { useState, useCallback, useMemo } from "react";
 import { useRouter } from "next/navigation";
 import { 
   Button,
@@ -16,11 +16,11 @@ import { NeviosFormPaper } from "../../../components/nevios/NeviosFormPaper";
 import { NeviosFormPaperBlock } from "../../../components/nevios/NeviosFormPaperBlock";
 import { TbArrowLeft, TbUser, TbPencil, TbBuildingCommunity } from "react-icons/tb";
 import { NeviosTwoColumnFormContainer } from "../../../components/nevios/NeviosFormContainer";
-import { supabase } from "../../../utils/supabase";
+import { useModuleRetrieve } from "../../../hooks/useModuleRetrieve";
 import { SubscribedBadge } from "../../../components/dashboard/customers/SubscribedBadge";
 import { getCountryName } from "../../../core/countryName";
-import { formatReadableDatetime } from "../../../core/formatters";
-import ActivityLogs from "../../../components/dashboard/customers/ActivityLogs";
+import { formatReadableDatetime, formatCurrencyNumber } from "../../../core/formatters";
+// import ActivityLogs from "../../../components/dashboard/customers/ActivityLogs";
 import NeviosGroupButton from "../../../components/nevios/NeviosGroupButton";
 import NeviosPaginationButtons from "../../../components/nevios/NeviosPaginationButtons";
 import ContactPopup from "../../../components/dashboard/customers/ContactPopup";
@@ -35,35 +35,49 @@ import { createBillingAddress } from "../../../../actions/customers/billing-addr
 import { createShippingAddress } from "../../../../actions/customers/shipping-address/create";
 import { NeviosBadge } from "../../../components/nevios/NeviosBadge";
 import { ContentLoadingScreen } from "../../../components/ContentLoadingScreen";
-// Sample customer activity data for testing
-const sampleCustomerActivities = [
-  {
-    type: 'order',
-    description: 'Placed an order',
-    timestamp: '2023-06-15T14:30:00Z',
-    details: 'Order #12345 - 3 items - $150.00'
-  },
-  {
-    type: 'viewed',
-    description: 'Viewed product page',
-    timestamp: '2023-06-15T13:45:00Z',
-    details: 'Product: Wireless Headphones'
-  },
-  {
-    type: 'cart',
-    description: 'Added item to cart',
-    timestamp: '2023-06-15T13:40:00Z',
-    details: 'Wireless Headphones - $89.99'
-  }
-];
+import { ShippingAddressDisplay } from "../../../components/ShippingAddressDisplay";
 
 export function CustomerView({ customerId }) {
   const router = useRouter();
-  const [loading, setLoading] = useState(true);
-  const [customer, setCustomer] = useState(null);
-  const [billingAddress, setBillingAddress] = useState(null);
-  const [shippingAddress, setShippingAddress] = useState(null);
-  const [error, setError] = useState(null);
+  
+  // ✅ NEW: Use useModuleRetrieve hook to fetch customer data via Express API
+  const { 
+    data: customer, 
+    loading, 
+    error: fetchError, 
+    refreshData 
+  } = useModuleRetrieve('customer', customerId, {
+    expand: ['billing_addresses', 'shipping_addresses', 'orders']
+  });
+
+  // Extract addresses from the expanded data
+  const billingAddress = useMemo(() => {
+    // Get the first billing address or the default one
+    if (customer?.billing_addresses && customer.billing_addresses.length > 0) {
+      const defaultBilling = customer.billing_addresses.find(addr => addr.id === customer.default_billing);
+      return defaultBilling || customer.billing_addresses[0];
+    }
+    return null;
+  }, [customer]);
+
+  const shippingAddress = useMemo(() => {
+    // Get the first shipping address or the default one
+    if (customer?.shipping_addresses && customer.shipping_addresses.length > 0) {
+      const defaultShipping = customer.shipping_addresses.find(addr => addr.id === customer.default_shipping);
+      return defaultShipping || customer.shipping_addresses[0];
+    }
+    return null;
+  }, [customer]);
+
+  // Get recent orders (limit to 5)
+  const recentOrders = useMemo(() => {
+    if (customer?.orders && Array.isArray(customer.orders)) {
+      return customer.orders.slice(0, 5);
+    }
+    return [];
+  }, [customer]);
+
+  // UI State
   const [snackbar, setSnackbar] = useState({
     open: false,
     message: '',
@@ -77,102 +91,8 @@ export function CustomerView({ customerId }) {
   const [savingShipping, setSavingShipping] = useState(false);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [deletingCustomer, setDeletingCustomer] = useState(false);
-  const [orders, setOrders] = useState([]);
-  const [ordersLoading, setOrdersLoading] = useState(true);
-  useEffect(() => {
-    if (customerId) {
-      fetchCustomerData(customerId);
-    }
-  }, [customerId]);
 
-  useEffect(() => {
-    async function fetchCustomerOrders() {
-      if (!customer) return;
-      try {
-        setOrdersLoading(true);
-        const { data, error } = await supabase
-          .from('orders')
-          .select('id, name, created_at, fulfillment_status, payment_status, local_currency')
-          .eq('customer', customer.id)
-          .order('created_at', { ascending: false })
-          .limit(5);
-        if (error) throw error;
-        setOrders(data || []);
-      } catch (err) {
-        setOrders([]);
-      } finally {
-        setOrdersLoading(false);
-      }
-    }
-    fetchCustomerOrders();
-  }, [customer]);
-
-  const fetchCustomerData = async (id) => {
-    try {
-      setLoading(true);
-      // Fetch customer details
-      const { data: customerData, error: customerError } = await supabase
-        .from('customers')
-        .select('*')
-        .eq('id', id)
-        .single();
-
-      if (customerError) throw customerError;
-      if (!customerData) throw new Error('Customer not found');
-      
-      setCustomer(customerData);
-
-      // Fetch billing address if available
-      if (customerData.default_billing) {
-        const { data: billingData, error: billingError } = await supabase
-          .from('billing_address')
-          .select('*')
-          .eq('id', customerData.default_billing)
-          .single();
-
-        if (!billingError) {
-          setBillingAddress(billingData);
-        }
-      }
-
-      // Fetch shipping address if available
-      if (customerData.default_shipping) {
-        const { data: shippingData, error: shippingError } = await supabase
-          .from('shipping_address')
-          .select('*')
-          .eq('id', customerData.default_shipping)
-          .single();
-
-        if (!shippingError) {
-          setShippingAddress(shippingData);
-        }
-      } else {
-        // If no default shipping address, try to fetch any shipping address for this customer
-        const { data: shippingData, error: shippingError } = await supabase
-          .from('shipping_address')
-          .select('*')
-          .eq('customer', id)
-          .order('created_at', { ascending: false })
-          .limit(1);
-
-        if (!shippingError && shippingData && shippingData.length > 0) {
-          setShippingAddress(shippingData[0]);
-        }
-      }
-    } catch (err) {
-      console.error('Error fetching customer data:', err);
-      setError(err.message || 'Failed to fetch customer data');
-      setSnackbar({
-        open: true,
-        message: err.message || 'Failed to fetch customer data',
-        severity: 'error'
-      });
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const handleEditCustomer = async (formData) => {
+  const handleEditCustomer = useCallback(async (formData) => {
     try {
       setSavingContact(true);
       
@@ -189,14 +109,8 @@ export function CustomerView({ customerId }) {
         throw new Error(response.error || 'Failed to update customer');
       }
       
-      // Update local state with new data
-      setCustomer(prev => ({
-        ...prev,
-        first_name: formData.firstName,
-        last_name: formData.lastName,
-        email: formData.email,
-        phone: formData.phone
-      }));
+      // ✅ Refresh data from API instead of manual state update
+      await refreshData();
       
       setSnackbar({
         open: true,
@@ -216,9 +130,9 @@ export function CustomerView({ customerId }) {
     } finally {
       setSavingContact(false);
     }
-  };
+  }, [customerId, refreshData]);
 
-  const handleEditBillingAddress = async (formData) => {
+  const handleEditBillingAddress = useCallback(async (formData) => {
     try {
       setSavingBilling(true);
       
@@ -248,14 +162,8 @@ export function CustomerView({ customerId }) {
         throw new Error(response.error || 'Failed to update billing address');
       }
       
-      // Update local state with new data
-      setBillingAddress(prev => {
-        const updatedAddress = response.data || {
-          ...prev,
-          ...addressData
-        };
-        return updatedAddress;
-      });
+      // ✅ Refresh data from API instead of manual state update
+      await refreshData();
       
       setSnackbar({
         open: true,
@@ -275,9 +183,9 @@ export function CustomerView({ customerId }) {
     } finally {
       setSavingBilling(false);
     }
-  };
+  }, [customerId, billingAddress, refreshData]);
 
-  const handleEditShippingAddress = async (formData) => {
+  const handleEditShippingAddress = useCallback(async (formData) => {
     try {
       setSavingShipping(true);
       
@@ -304,14 +212,8 @@ export function CustomerView({ customerId }) {
         throw new Error(response.error || 'Failed to update shipping address');
       }
       
-      // Update local state with new data
-      setShippingAddress(prev => {
-        const updatedAddress = response.data || {
-          ...prev,
-          ...addressData
-        };
-        return updatedAddress;
-      });
+      // ✅ Refresh data from API instead of manual state update
+      await refreshData();
       
       setSnackbar({
         open: true,
@@ -331,7 +233,7 @@ export function CustomerView({ customerId }) {
     } finally {
       setSavingShipping(false);
     }
-  };
+  }, [customerId, shippingAddress, refreshData]);
 
   const handleOpenDeleteDialog = () => {
     setDeleteDialogOpen(true);
@@ -410,11 +312,11 @@ export function CustomerView({ customerId }) {
     return <ContentLoadingScreen />;
   }
 
-  if (error || !customer) {
+  if (fetchError || !customer) {
     return (
       <PageContainer>
         <Alert severity="error">
-          {error || 'Customer not found'}
+          {fetchError || 'Customer not found'}
         </Alert>
         <Box sx={{ mt: 2 }}>
           <Button 
@@ -495,14 +397,6 @@ export function CustomerView({ customerId }) {
         iconTooltipTitle="Back to list of customers"
         actions={
           <Box sx={{ display: 'flex', gap: 1 }}>
-            <NeviosGroupButton
-              buttonText="Actions"
-              menuItems={[
-                { label: 'Email customer', onClick: () => {} },
-                { label: 'Send account invite', onClick: () => {} },
-                { label: 'Delete customer', color: '#b50000', onClick: handleOpenDeleteDialog }
-              ]}
-            /> 
             <NeviosPaginationButtons
               previousButtonOnClick={() => {}}
               nextButtonOnClick={() => {}}
@@ -515,7 +409,7 @@ export function CustomerView({ customerId }) {
             {billingAddress && billingAddress.company && (
               <NeviosBadge label={billingAddress.company} color="blue" icon={<TbBuildingCommunity size={14} />} />
             )}
-            <SubscribedBadge status={customer.subscribed} />
+            <NeviosBadge value={customer.subscribed} configKey="customerSubscribedStatus" />
             <NeviosBadge value={customer.account_enabled} configKey="customerAccountStatus" />
           </Box>
         }
@@ -523,55 +417,55 @@ export function CustomerView({ customerId }) {
       <NeviosTwoColumnFormContainer
         mainContent={
           <>
-            <NeviosFormPaper title="Last order placed">
-              {ordersLoading ? (
-                <Box sx={{ display: 'flex', justifyContent: 'center', p: 2 }}>
-                  <CircularProgress size={20} />
-                </Box>
-              ) : orders.length === 0 ? (
+            <NeviosFormPaper title="Recent Orders">
+              {recentOrders.length === 0 ? (
                 <Typography color="text.secondary">No orders found</Typography>
               ) : (
                 <Box sx={{ display: 'flex', flexDirection: 'column', border: '0.7px solid rgba(0, 0, 0, 0.12)', borderRadius: "12px" }}>
-                  {orders.map((order, idx) => {
-                    let total = '';
-                    if (order.orders_pricing && Array.isArray(order.orders_pricing)) {
-                      const totalObj = order.orders_pricing.find(p => p.component === 'total');
-                      if (totalObj) total = `${order.local_currency} ${formatCurrencyNumber(totalObj.gross_local)}`;
-                    }
-                    return (
-                      <Box
-                        key={order.id}
-                        sx={{
-                          display: 'flex',
-                          alignItems: 'center',
-                          gap: 2,
-                          py: 1.5,
-                          px: 2,
-                          borderBottom: idx !== orders.length - 1 ? '0.7px solid rgba(0, 0, 0, 0.12)' : 'none'
-                        }}
-                      >
-                        <Box sx={{ flex: 1 }}>
-                          <Typography variant="body2" fontWeight={600} sx={{ cursor: "pointer", "&:hover": { textDecoration: "underline" } }} onClick={() => router.push(`/dashboard/orders/${order.id}`)}>{order.name || order.id}</Typography>
-                          <Typography variant="caption" color="text.secondary">{formatReadableDatetime(order.created_at)}</Typography>
-                        </Box>
-                        <Box sx={{ minWidth: 90 }}>
-                          <Typography variant="body2" fontWeight={600}>{total}</Typography>
-                        </Box>
-                        <Box sx={{ minWidth: 120, display: 'flex', gap: 1 }}>
-                          <NeviosBadge value={order.fulfillment_status} configKey="orderFulfillmentStatus" />
-                          <NeviosBadge value={order.payment_status} configKey="paymentStatus" showDot={true} />
-                        </Box>
+                  {recentOrders.map((order, idx) => (
+                    <Box
+                      key={order.id}
+                      sx={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: 2,
+                        py: 1.5,
+                        px: 2,
+                        borderBottom: idx !== recentOrders.length - 1 ? '0.7px solid rgba(0, 0, 0, 0.12)' : 'none'
+                      }}
+                    >
+                      <Box sx={{ flex: 1 }}>
+                        <Typography 
+                          variant="body2" 
+                          fontWeight={600} 
+                          sx={{ cursor: "pointer", "&:hover": { textDecoration: "underline" } }} 
+                          onClick={() => router.push(`/dashboard/orders/${order.id}`)}
+                        >
+                          {order.name || order.id}
+                        </Typography>
+                        <Typography variant="caption" color="text.secondary">
+                          {formatReadableDatetime(order.created_at)}
+                        </Typography>
                       </Box>
-                    );
-                  })}
+                      <Box sx={{ minWidth: 120, display: 'flex', gap: 1 }}>
+                        {order.fulfillment_status && (
+                          <NeviosBadge value={order.fulfillment_status} configKey="orderFulfillmentStatus" />
+                        )}
+                        {order.payment_status && (
+                          <NeviosBadge value={order.payment_status} configKey="paymentStatus" showDot={true} />
+                        )}
+                      </Box>
+                    </Box>
+                  ))}
                 </Box>
               )}
             </NeviosFormPaper>
-            <NeviosFormPaper title="Customer Activity" gap={2}>
+            {/* ⚠️ Customer Activity - Commented out for now */}
+            {/* <NeviosFormPaper title="Customer Activity" gap={2}>
               <ActivityLogs 
                 activities={sampleCustomerActivities} 
               />
-            </NeviosFormPaper>
+            </NeviosFormPaper> */}
           </>
         }
         sideContent={
@@ -624,22 +518,7 @@ export function CustomerView({ customerId }) {
             <NeviosFormPaper title="Benefit Account" gap={4}>
                 <NeviosBadge value={customer.account_enabled} configKey="customerAccountStatus" />
             </NeviosFormPaper>
-            <NeviosFormPaper 
-              title="Shipping Address" 
-              icon={<TbPencil />} 
-              onClick={() => setShippingPopupOpen(true)}
-              gap={0.5} 
-              footerDescription="Default or last used address by the customer."
-            >
-              {shippingAddress && (
-                <>
-                  <Typography variant="body2" fontWeight={500}>{shippingAddress.first_name} {shippingAddress.last_name}</Typography>
-                  <Typography variant="body2">{shippingAddress.address}</Typography>
-                  <Typography variant="body2">{shippingAddress.city}, {shippingAddress.zip}</Typography>
-                  <Typography variant="body2">{getCountryName(shippingAddress.country)}</Typography>
-                </>
-              )}
-            </NeviosFormPaper>
+            <ShippingAddressDisplay address={shippingAddress} />
           </>
         }
       />

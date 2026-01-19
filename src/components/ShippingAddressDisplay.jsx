@@ -1,6 +1,6 @@
 "use client";
 import { Typography, Box } from "@mui/material";
-import { TbTruck } from "react-icons/tb";
+import { TbHome, TbTruck, TbMapPin, TbBuildingStore } from "react-icons/tb";
 import { NeviosFormPaper } from "./nevios/NeviosFormPaper";
 import { NeviosFormPaperBlock } from "./nevios/NeviosFormPaperBlock";
 import { getCountryName } from "../core/countryName";
@@ -37,7 +37,7 @@ export function ShippingAddressDisplay({ address }) {
   // HOME type - Standard home delivery
   if (addressType === 'HOME') {
     return (
-      <NeviosFormPaper title="Shipping Address" >
+      <NeviosFormPaper title="Shipping Address" titleIcon={<TbHome size={16} />}>
         <NeviosFormPaperBlock>
           <Typography variant="body2" fontWeight={600}>
             {address.first_name} {address.last_name}
@@ -75,7 +75,7 @@ export function ShippingAddressDisplay({ address }) {
   // POINT type - Pickup point delivery
   if (addressType === 'POINT') {
     return (
-      <NeviosFormPaper title="Shipping Address" >
+      <NeviosFormPaper title="Pickup Point" titleIcon={<TbMapPin size={16} />}>
         <NeviosFormPaperBlock>
           <Typography variant="body2">
             {address.first_name} {address.last_name}
@@ -99,7 +99,7 @@ export function ShippingAddressDisplay({ address }) {
   // STORE type - Store pickup
   if (addressType === 'STORE') {
     return (
-      <NeviosFormPaper title="Shipping Address" >
+      <NeviosFormPaper title="Store" titleIcon={<TbBuildingStore size={16} />}>
         <NeviosFormPaperBlock>
           <Box sx={{ 
             mb: 1, 

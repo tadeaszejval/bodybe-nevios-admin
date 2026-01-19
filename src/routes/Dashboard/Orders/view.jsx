@@ -1,8 +1,9 @@
 "use client";
+import React, { useMemo } from "react";
+import { useRouter } from "next/navigation";
 import { 
   Box, 
   Typography,
-  CircularProgress,
   Table,
   TableBody,
   TableCell,
@@ -18,13 +19,9 @@ import { NeviosFormPaper } from "../../../components/nevios/NeviosFormPaper";
 import { TbPencil, TbPackage, TbShoppingCart } from "react-icons/tb";
 import { NeviosTwoColumnFormContainer } from "../../../components/nevios/NeviosFormContainer";
 import { formatReadableDatetime, formatCurrencyNumber } from "../../../core/formatters";
-import NeviosGroupButton from "../../../components/nevios/NeviosGroupButton";
-import { NeviosShadowButton, NeviosDangerButton } from "../../../components/nevios/NeviosButtons";
+import { NeviosDangerButton } from "../../../components/nevios/NeviosButtons";
 import NeviosPaginationButtons from "../../../components/nevios/NeviosPaginationButtons";
-import { useState, useEffect } from "react";
-import { useRouter } from "next/navigation";
-import React from "react";
-import { supabase } from "../../../utils/supabase";
+import { useModuleRetrieve } from "../../../hooks/useModuleRetrieve";
 import { NeviosFormPaperBlock } from "../../../components/nevios/NeviosFormPaperBlock";
 import { NeviosCopyBlock } from "../../../components/nevios/NeviosCopyBlock";
 import { getCountryName } from "../../../core/countryName";
@@ -33,173 +30,40 @@ import { ShippingAddressDisplay } from "../../../components/ShippingAddressDispl
 import { NeviosBadge } from "../../../components/nevios/NeviosBadge";
 
 export function OrderView({ orderId }) {
-  const [order, setOrder] = useState({ name: '', created_at: null });
-  const [orderItems, setOrderItems] = useState([]);
-  const [orderPricing, setOrderPricing] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [itemsLoading, setItemsLoading] = useState(true);
-  const [pricingLoading, setPricingLoading] = useState(true);
   const router = useRouter();
-  const [customer, setCustomer] = useState(null);
-  const [billingAddress, setBillingAddress] = useState(null);
-  const [shippingAddress, setShippingAddress] = useState(null);
-  const [customerLoading, setCustomerLoading] = useState(true);
 
-  useEffect(() => {
-    async function fetchOrder() {
-      try {
-        setLoading(true);
-        const { data, error } = await supabase
-          .from('orders')
-          .select('*, local_currency')
-          .eq('id', orderId)
-          .single();
+  // ✅ NEW: Use useModuleRetrieve hook to fetch order data via Express API
+  const { 
+    data: order, 
+    loading, 
+    error: fetchError, 
+    refreshData 
+  } = useModuleRetrieve('order', orderId, {
+    expand: ['customer', 'items', 'pricing', 'items.pricing']
+  });
 
-        if (error) {
-          console.error('Error fetching order:', error);
-          return;
-        }
-
-        if (data) {
-          setOrder(data);
-        }
-      } catch (error) {
-        console.error('Unexpected error:', error);
-      } finally {
-        setLoading(false);
-      }
-    }
-
-    async function fetchOrderItems() {
-      try {
-        setItemsLoading(true);
-        
-        // Fetch the order items
-        const { data: items, error: itemsError } = await supabase
-          .from('order_item')
-          .select('*')
-          .eq('"order"', orderId);
-          
-        if (itemsError) throw itemsError;
-        
-        if (items && items.length > 0) {
-          // Get all the item IDs to fetch their pricing
-          const itemIds = items.map(item => item.id);
-          
-          // Fetch pricing for all items
-          const { data: pricingData, error: pricingError } = await supabase
-            .from('order_items_pricing')
-            .select('*')
-            .in('order_item', itemIds);
-            
-          if (pricingError) throw pricingError;
-          
-          // Combine items with their pricing
-          const itemsWithPricing = items.map(item => {
-            const pricing = pricingData?.find(p => p.order_item === item.id) || null;
-            return { ...item, pricing };
-          });
-          
-          setOrderItems(itemsWithPricing);
-        } else {
-          setOrderItems([]);
-        }
-      } catch (error) {
-        console.error('Error fetching order items:', error);
-      } finally {
-        setItemsLoading(false);
-      }
-    }
-
-    async function fetchOrderPricing() {
-      try {
-        setPricingLoading(true);
-        
-        // Fetch order pricing components
-        const { data: pricingData, error: pricingError } = await supabase
-          .from('orders_pricing')
-          .select('*')
-          .eq('order_id', orderId);
-          
-        if (pricingError) throw pricingError;
-        
-        if (pricingData) {
-          // Sort pricing components in logical order
-          const sortOrder = {
-            'subtotal': 1,
-            'discount': 2,
-            'shipping': 3,
-            'payment': 4, 
-            'tip': 5,
-            'total': 6
-          };
-          
-          const sortedPricing = pricingData.sort((a, b) => {
-            return (sortOrder[a.component] || 99) - (sortOrder[b.component] || 99);
-          });
-          
-          setOrderPricing(sortedPricing);
-        }
-      } catch (error) {
-        console.error('Error fetching order pricing:', error);
-      } finally {
-        setPricingLoading(false);
-      }
-    }
-
-    if (orderId) {
-      fetchOrder();
-      fetchOrderItems();
-      fetchOrderPricing();
-    }
-  }, [orderId]);
-
-  useEffect(() => {
-    async function fetchCustomerAndAddresses() {
-      try {
-        setCustomerLoading(true);
-        // Fetch customer
-        let customerData = null;
-        if (order.customer) {
-          const { data: cust, error: custErr } = await supabase
-            .from('customers')
-            .select('*')
-            .eq('id', order.customer)
-            .single();
-          if (custErr) throw custErr;
-          customerData = cust;
-          setCustomer(cust);
-        }
-        // Fetch billing address
-        if (order.billing_address) {
-          const { data: billing, error: billingErr } = await supabase
-            .from('billing_address')
-            .select('*')
-            .eq('id', order.billing_address)
-            .single();
-          if (billingErr) throw billingErr;
-          setBillingAddress(billing);
-        }
-        // Fetch shipping address
-        if (order.shipping_address) {
-          const { data: shipping, error: shippingErr } = await supabase
-            .from('shipping_address')
-            .select('*')
-            .eq('id', order.shipping_address)
-            .single();
-          if (shippingErr) throw shippingErr;
-          setShippingAddress(shipping);
-        }
-      } catch (err) {
-        console.error('Error fetching customer or addresses:', err);
-      } finally {
-        setCustomerLoading(false);
-      }
-    }
-    if (order && order.customer) {
-      fetchCustomerAndAddresses();
-    }
-  }, [order]);
+  // Sort pricing components in logical order
+  const sortedPricing = useMemo(() => {
+    // Handle both array format and object with components array
+    const pricingArray = Array.isArray(order?.pricing) 
+      ? order.pricing 
+      : order?.pricing?.components;
+    
+    if (!pricingArray || !Array.isArray(pricingArray)) return [];
+    
+    const sortOrder = {
+      'subtotal': 1,
+      'discount': 2,
+      'shipping': 3,
+      'payment': 4, 
+      'tip': 5,
+      'total': 6
+    };
+    
+    return [...pricingArray].sort((a, b) => {
+      return (sortOrder[a.component] || 99) - (sortOrder[b.component] || 99);
+    });
+  }, [order?.pricing]);
 
   const handleOpenDeleteDialog = () => {
     // Will implement later
@@ -231,6 +95,18 @@ export function OrderView({ orderId }) {
     return <ContentLoadingScreen />;
   }
 
+  if (fetchError || !order) {
+    return (
+      <PageContainer>
+        <Box sx={{ p: 3 }}>
+          <Typography color="error">
+            {fetchError || 'Order not found'}
+          </Typography>
+        </Box>
+      </PageContainer>
+    );
+  }
+
   return (
     <PageContainer
       customSx={{
@@ -239,16 +115,16 @@ export function OrderView({ orderId }) {
     >
       <>
           <DashboardHeader
-            title={`${order.name || 'Order details'}`}
+            title={order?.name || 'Order details'}
             icon={<TbShoppingCart size={24} />}
             iconOnClick={() => {router.push('/dashboard/orders')}}  
             iconTooltipTitle="Back to list of orders"
             badges={
               <Box sx={{ display: 'flex', gap: 1 }}>
-                <NeviosBadge value={order.status} configKey="orderStatus" />
-                <NeviosBadge value={order.payment_status} configKey="paymentStatus" />
-                <NeviosBadge value={order.fulfillment_status} configKey="orderFulfillmentStatus" />
-                <NeviosBadge value={order.inventory_status} configKey="inventoryStatus" />
+                {order?.status && <NeviosBadge value={order.status} configKey="orderStatus" />}
+                {order?.payment_status && <NeviosBadge value={order.payment_status} configKey="paymentStatus" />}
+                {order?.fulfillment_status && <NeviosBadge value={order.fulfillment_status} configKey="orderFulfillmentStatus" />}
+                {order?.inventory_status && <NeviosBadge value={order.inventory_status} configKey="inventoryStatus" />}
               </Box>
             }
             actions={
@@ -260,17 +136,13 @@ export function OrderView({ orderId }) {
                 />  
               </Box>
             }
-            subtitle={order.created_at ? `Created ${formatReadableDatetime(order.created_at)}` : ''}
+            subtitle={order?.created_at ? `Created ${formatReadableDatetime(order.created_at)}` : ''}
           />
           <NeviosTwoColumnFormContainer
             mainContent={
               <>
                 <NeviosFormPaper>
-                  {itemsLoading ? (
-                    <Box sx={{ display: 'flex', justifyContent: 'center', p: 3 }}>
-                      <CircularProgress size={24} />
-                    </Box>
-                  ) : orderItems.length === 0 ? (
+                  {!order?.items || order.items.length === 0 ? (
                     <Box sx={{ py: 2, textAlign: 'center' }}>
                       <Typography color="text.secondary">No products in this order</Typography>
                     </Box>
@@ -286,8 +158,8 @@ export function OrderView({ orderId }) {
                         </Box>
                       )}
                       <Box sx={{ borderRadius: "12px", p: 0, border: '0.7px solid rgba(0, 0, 0, 0.12)' }}>
-                        {orderItems.map((item, idx) => (
-                          <Box key={item.id} sx={{ display: 'flex', alignItems: 'flex-start', px: 1.5, py: 1.5, borderBottom: idx !== orderItems.length - 1 ? '0.7px solid rgba(0, 0, 0, 0.12)' : 'none', gap: 2 }}>
+                        {order.items.map((item, idx) => (
+                          <Box key={item.id} sx={{ display: 'flex', alignItems: 'flex-start', px: 1.5, py: 1.5, borderBottom: idx !== order.items.length - 1 ? '0.7px solid rgba(0, 0, 0, 0.12)' : 'none', gap: 2 }}>
                             <Avatar src={item.image} alt={item.handle || 'Product'} icon={<TbPackage />} sx={{ width: 45, height: 45, borderRadius: "12px", backgroundColor: "#fafbfc", border: "0.7px solid rgba(0, 0, 0, 0.12)" }} />
                             <Box sx={{ flex: 1, minWidth: 0, gap: 0.5, display: "flex", flexDirection: "column", justifyContent: "center" }}>
                                 <Typography variant="body2" fontWeight={600} sx={{ whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{item.product_title || 'Unknown product'}</Typography>
@@ -309,11 +181,7 @@ export function OrderView({ orderId }) {
                 </NeviosFormPaper>
                 
                 <NeviosFormPaper>
-                  {pricingLoading ? (
-                    <Box sx={{ display: 'flex', justifyContent: 'center', p: 3 }}>
-                      <CircularProgress size={24} />
-                    </Box>
-                  ) : orderPricing.length === 0 ? (
+                  {sortedPricing.length === 0 ? (
                     <Box sx={{ py: 2, textAlign: 'center' }}>
                       <Typography color="text.secondary">No pricing information available</Typography>
                     </Box>
@@ -321,7 +189,7 @@ export function OrderView({ orderId }) {
                     <TableContainer component={Paper} elevation={0}>
                       <Table size="small">
                         <TableBody>
-                          {orderPricing.map((pricing, index) => {
+                          {sortedPricing.map((pricing, index) => {
                             const isTotal = pricing.component === 'total';
                             const isSubtotal = pricing.component === 'subtotal';
                             const isDiscount = pricing.component === 'discount';
@@ -424,51 +292,57 @@ export function OrderView({ orderId }) {
                   title="Notes" 
                   gap={4} 
                   icon={<TbPencil />}
-                  description="No notes from customer"
+                  description={order?.customer_note || order?.internal_note ? undefined : "No notes from customer"}
                 >
+                  {order?.customer_note && (
+                    <NeviosFormPaperBlock title="Customer Note">
+                      <Typography variant="body2">{order.customer_note}</Typography>
+                    </NeviosFormPaperBlock>
+                  )}
+                  {order?.internal_note && (
+                    <NeviosFormPaperBlock title="Internal Note">
+                      <Typography variant="body2" color="text.secondary">{order.internal_note}</Typography>
+                    </NeviosFormPaperBlock>
+                  )}
                 </NeviosFormPaper>
                 <NeviosFormPaper title="Customer" gap={3}>
-                  {customerLoading ? (
-                    <Box sx={{ display: 'flex', justifyContent: 'center', p: 2 }}>
-                      <CircularProgress size={20} />
-                    </Box>
-                  ) : !customer ? (
+                  {!order?.customer ? (
                     <Typography color="text.secondary">No customer data</Typography>
                   ) : (
                     <>
                       <NeviosFormPaperBlock>
                         <Tooltip title="View customer profile">
                           <Typography 
-                            onClick={() => router.push(`/dashboard/customers/${customer.id}`)} 
+                            onClick={() => router.push(`/dashboard/customers/${order.customer.id}`)} 
                             variant="body2x" 
                             sx={{ width: 'fit-content', cursor: 'pointer', color: 'primary.main', '&:hover': { textDecoration: 'underline' } }}
-                        >
-                          {customer.first_name} {customer.last_name}
-                        </Typography>
+                          >
+                            {order.customer.first_name} {order.customer.last_name}
+                          </Typography>
                         </Tooltip>
-                        {customer.email && <NeviosCopyBlock copyValue={customer.email} />}
-                        {customer.phone && <NeviosCopyBlock copyValue={customer.phone} />}
-                        {customer.country && (
+                        {order.customer.email && <NeviosCopyBlock copyValue={order.customer.email} />}
+                        {order.customer.phone && <NeviosCopyBlock copyValue={order.customer.phone} />}
+                        {order.customer.country && (
                           <Typography variant="body2" color="text.secondary">
-                            {getCountryName(customer.country)}
+                            {getCountryName(order.customer.country)}
                           </Typography>
                         )}
                       </NeviosFormPaperBlock>
                       <NeviosFormPaperBlock title="Billing Address">
-                        {billingAddress ? (
+                        {order.billing_address_log ? (
                           <>
-                            <Typography variant="body2">{billingAddress.first_name} {billingAddress.last_name}</Typography>
-                            {billingAddress.company && (
-                              <Typography variant="body2">{billingAddress.company}</Typography>
+                            <Typography variant="body2">{order.billing_address_log.first_name} {order.billing_address_log.last_name}</Typography>
+                            {order.billing_address_log.company && (
+                              <Typography variant="body2">{order.billing_address_log.company}</Typography>
                             )}
-                            <Typography variant="body2">{billingAddress.address}</Typography>
-                            <Typography variant="body2">{billingAddress.city}, {billingAddress.zip}</Typography>
-                            <Typography variant="body2">{getCountryName(billingAddress.country)}</Typography>
-                            {billingAddress.company_id && (
-                              <Typography variant="body2x">ID: {billingAddress.company_id}</Typography>
+                            <Typography variant="body2">{order.billing_address_log.address}</Typography>
+                            <Typography variant="body2">{order.billing_address_log.city}, {order.billing_address_log.zip}</Typography>
+                            <Typography variant="body2">{getCountryName(order.billing_address_log.country)}</Typography>
+                            {order.billing_address_log.company_id && (
+                              <Typography variant="body2x">ID: {order.billing_address_log.company_id}</Typography>
                             )}
-                            {billingAddress.company_vat && (
-                              <Typography variant="body2x">VAT: {billingAddress.company_vat}</Typography>
+                            {order.billing_address_log.company_vat && (
+                              <Typography variant="body2x">VAT: {order.billing_address_log.company_vat}</Typography>
                             )}
                           </>
                         ) : (
@@ -478,7 +352,7 @@ export function OrderView({ orderId }) {
                     </>
                   )}
                 </NeviosFormPaper>
-                <ShippingAddressDisplay address={shippingAddress} />
+                <ShippingAddressDisplay address={order?.shipping_address_log} />
               </>
             }
           />

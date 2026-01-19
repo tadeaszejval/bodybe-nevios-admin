@@ -32,7 +32,7 @@ export async function modifyCustomer(customerId, updateData) {
     if (updateData.metadata !== undefined) payload.metadata = updateData.metadata;
     
     // Call the API
-    const response = await putRequest(`/server/customers/modify/${customerId}`, payload);
+    const response = await putRequest(`/server/customer/modify/${customerId}`, payload);
     return response;
   } catch (error) {
     console.error('Error modifying customer:', error);

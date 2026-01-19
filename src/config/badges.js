@@ -482,7 +482,7 @@ export const BADGE_CONFIGS = {
     },
     WHOLESALE: {
       label: "Wholesale",
-      color: "purple",
+      color: "violet",
       icon: <TbTruckDelivery size={14} />
     },
     B2B: {
@@ -559,6 +559,39 @@ export const BADGE_CONFIGS = {
     }
   },
 
+  // Subscribed status badges
+  customerSubscribedStatus: {
+    true: {
+      label: "Subscribed",
+      color: "green",
+      icon: <TbMail size={14} />
+    },
+    false: {
+      label: "Unsubscribed",
+      color: "gray",
+      icon: <TbMailOff size={14} />
+    },
+    SUBSCRIBED: {
+      label: "Subscribed",
+      color: "green",
+      icon: <TbMail size={14} />
+    },
+    UNSUBSCRIBED: {
+      label: "Unsubscribed",
+      color: "gray",
+      icon: <TbMailOff size={14} />
+    },
+    null: {
+      label: "Unsubscribed",
+      color: "yellow",
+      icon: <TbMailOff size={14} />
+    },
+    undefined: {
+      label: "Unsubscribed",
+      color: "yellow",
+      icon: <TbMailOff size={14} />
+    }
+  },
   // Company badge (just displays company name with icon)
   company: {
     // This is a special badge that just displays the value with an icon
@@ -616,7 +649,7 @@ export const BADGE_CONFIGS = {
     },
     TRANSFER: {
       label: "Transfer",
-      color: "purple",
+      color: "violet",
       icon: <TbArrowsExchange size={14} />
     },
     OTHER: {
@@ -729,7 +762,7 @@ export const BADGE_CONFIGS = {
     },
     TRANSFER: {
       label: "Transfer",
-      color: "purple",
+      color: "violet",
       icon: <TbArrowsExchange size={14} />
     },
     RESTOCK: {

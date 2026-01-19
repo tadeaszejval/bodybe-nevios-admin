@@ -19,6 +19,7 @@ The order system provides comprehensive order management functionality for e-com
 - **Customer Matching**: Find and update existing customers by email instead of duplicating
 - **Address Deduplication**: Automatically detect and reuse matching addresses
 - **Address Type Support**: HOME delivery, POINT pickup, and STORE pickup with validation
+- **Address Logging**: Automatic snapshots of billing and shipping addresses for historical preservation
 - **Gender Detection**: Automatically determine customer gender from first name using AI
 - **Default Address Management**: Set default billing and shipping addresses for customers
 
@@ -68,6 +69,60 @@ The order system provides comprehensive order management functionality for e-com
 - **Status Change**: Order status set to CANCELLED
 - **Flexible Options**: Optional cancellation reason and internal notes
 
+## 📋 **Address Logging System**
+
+The order system automatically creates address snapshots for historical preservation and audit trail purposes.
+
+### Address Log Fields
+- **`shipping_address_log`**: Complete JSONB snapshot of shipping address at order creation
+- **`billing_address_log`**: Complete JSONB snapshot of billing address at order creation
+
+### Address Log Structure
+```json
+{
+  "shipping_address_log": {
+    "id": "d73e551a-d8f2-4b35-ba2d-92f295091754",
+    "first_name": "Tadeáš",
+    "last_name": "Zejval",
+    "company": null,
+    "address": "Krnsko 150",
+    "additional_address": null,
+    "city": "Krnsko",
+    "zip": "29431",
+    "country": "CZ",
+    "province": null,
+    "type": "HOME",
+    "customer": "b7082507-9864-4698-98d6-c9141d3aa954",
+    "company_id": null,
+    "company_vat": null,
+    "created_at": "2025-05-31T14:21:08.9307+00:00"
+  },
+  "billing_address_log": {
+    "id": "a82f441b-c7e1-4a24-ab3c-e8252e4bb865",
+    "first_name": "Tadeáš",
+    "last_name": "Zejval",
+    "company": "Vasky s.r.o.",
+    "address": "Krnsko 150",
+    "additional_address": null,
+    "city": "Krnsko",
+    "zip": "29431",
+    "country": "CZ",
+    "province": null,
+    "type": "BILLING",
+    "customer": "b7082507-9864-4698-98d6-c9141d3aa954",
+    "company_id": "12345678",
+    "company_vat": "CZ12345678",
+    "created_at": "2025-05-31T14:21:08.9307+00:00"
+  }
+}
+```
+
+### Benefits
+1. **Historical Preservation**: Address data remains unchanged even if customer addresses are updated
+2. **Audit Trail**: Complete record of where orders were shipped/billed at creation time
+3. **Document Consistency**: Invoices and shipping labels use logged address data for accuracy
+4. **Legal Compliance**: Maintains accurate billing information for tax and legal purposes
+
 ## 🔧 **API Endpoints**
 
 ### Query & Retrieval
@@ -92,10 +147,9 @@ See [QUERY.md](./QUERY.md) for detailed documentation.
 Retrieve a single order by ID with optional related data.
 
 **Query Parameters:**
-- `includeItems` (boolean) - Include order items
-- `includePricing` (boolean) - Include pricing components
-- `includeCustomer` (boolean) - Include customer details
-- `includeAddresses` (boolean) - Include billing and shipping addresses
+- `expand` (string) - Comma-separated list of relations to expand
+  - Available expansions: `customer`, `items`, `pricing`, `billing_address`, `shipping_address`
+  - Example: `?expand=customer,items,pricing`
 
 **Response includes:**
 - Order details (name, status, pricing totals)
@@ -133,8 +187,7 @@ Retrieve all orders for a specific customer with optional filtering.
 Find all orders containing a specific product or multiple products.
 
 **Query Parameters:**
-- `includeItems` (boolean) - Include all order items
-- `includeCustomer` (boolean) - Include customer details
+- `expand` (string) - Comma-separated list of relations to expand (e.g., `items,customer`)
 - `status` (string) - Filter by order status
 - `limit` (number) - Maximum number of orders to return
 - `order` (string) - Sort field
@@ -1094,7 +1147,7 @@ CREATE TABLE public.orders (
 - `home_currency` - Business home currency for reporting
 - `fx_rate` - Exchange rate from local to home currency
 - `shipping_method` / `payment_method` - JSONB snapshots of method details
-- `address_log` - Historical address data for audit trail
+- `shipping_address_log` / `billing_address_log` - JSONB snapshots of address data for historical preservation
 - `status` - Order status: ACTIVE (default), HOLD, ARCHIVED, or CANCELLED
 - `alerts` - Array of alert objects for order issues/warnings (JSONB)
 - `customer_note` - Customer-facing note visible to customer (TEXT)
@@ -1189,7 +1242,8 @@ The `alerts` field is a JSONB array that stores warnings, issues, or notificatio
   "value": "Human-readable alert message",
   "key": "alert_type_identifier",
   "level": "low|medium|high",
-  "action": null
+  "action": null,
+  "order_item": "order-item-uuid"
 }
 ```
 
@@ -1198,33 +1252,55 @@ The `alerts` field is a JSONB array that stores warnings, issues, or notificatio
 - `key` (string, nullable) - Optional identifier for filtering specific alert types (e.g., "wrong_address", "out_of_stock")
 - `level` (string, required) - Alert severity: "low", "medium", or "high"
 - `action` (nullable) - Reserved for future use (currently null)
+- `order_item` (string, nullable) - Optional order_item UUID for item-specific alerts (enables granular alert removal)
 
 **Example Alerts:**
 ```json
 [
   {
-    "value": "Cart item not in stock!",
-    "key": "out_of_stock",
+    "value": "ℹ️ Item backordered: Product Name - 2 units on backorder (demand tracking)",
+    "key": "item_backordered",
+    "level": "low",
+    "action": null,
+    "order_item": "a1b2c3d4-e5f6-7890-abcd-ef1234567890"
+  },
+  {
+    "value": "⚠️ INSUFFICIENT STOCK: Product Name - Only 5/10 units available",
+    "key": "insufficient_stock",
     "level": "high",
-    "action": null
+    "action": null,
+    "order_item": "b2c3d4e5-f6a7-8901-bcde-f12345678901"
   },
   {
     "value": "Wrong address format",
     "key": "wrong_address",
     "level": "medium",
-    "action": null
-  },
-  {
-    "value": "Customer requested express delivery",
-    "key": null,
-    "level": "low",
-    "action": null
+    "action": null,
+    "order_item": null
   }
 ]
 ```
 
 **Common Alert Types:**
-- `out_of_stock` - One or more items not available
+
+**Inventory Alerts:**
+- `item_backordered` (low) - Item on backorder with demand tracking (auto-removed when all backorders fulfilled/cancelled)
+- `insufficient_stock` (high) - Partial or no stock available, blocking backorder created
+- `oversell_no_tracking` (high) - Physical item oversold without backorder tracking
+- `critical_oversold` (high) - Limited item sold without sufficient stock
+- `backorder_created` (high) - Blocking backorder created, order on HOLD
+- `no_fulfillment_location` (high) - Cannot determine warehouse for order
+- `inventory_check_failed` (high) - Error during inventory checking
+- `inventory_check_error` (high) - Complete inventory check failure
+
+**Alert Lifecycle:**
+- Low-level alerts (e.g., `item_backordered`) are informational and don't block order processing
+- Item-specific alerts include `order_item` UUID for granular tracking
+- `item_backordered` alerts are automatically removed when the specific backorder item is fulfilled or cancelled
+- If an order has 3 items backordered and 1 is fulfilled, only that item's alert is removed (other 2 remain)
+- High-level alerts require manual review and resolution
+
+**Other Alert Types (examples):**
 - `wrong_address` - Address validation issues
 - `payment_pending` - Payment requires manual verification
 - `high_value` - Order exceeds normal value threshold
@@ -1432,6 +1508,12 @@ When querying orders, you can expand related data:
 3. **Let system handle address deduplication** - Matching addresses are automatically reused
 4. **Fill customer data completely** - More complete data = better matching and fewer duplicates
 
+### Address Logging & Historical Preservation
+1. **Automatic address snapshots** - System automatically stores complete address data in `shipping_address_log` and `billing_address_log` fields
+2. **Historical accuracy** - Address logs preserve exact address information at order creation time
+3. **Audit trail compliance** - Address changes in customer records don't affect existing order addresses
+4. **Document consistency** - Documents inherit address data from order logs, ensuring accuracy across invoices and shipping labels
+
 ### Order Management
 1. **Query with expansions** - Use expand parameter to reduce API calls
 2. **Filter by status** - Use payment_status and fulfillment_status for efficient queries
@@ -1456,7 +1538,7 @@ When querying orders, you can expand related data:
 ### Integration
 1. **Link to payments** - Create payment records after order creation
 2. **Track fulfillments** - Update fulfillment_status as orders ship
-3. **Log address changes** - Use address_log fields for audit trail
+3. **Address logging** - System automatically logs address snapshots in shipping_address_log and billing_address_log for audit trail
 4. **Monitor order lifecycle** - Track status changes for analytics
 5. **Generate order names** - Let system auto-generate from sales channel format
 
@@ -1814,12 +1896,12 @@ curl -X POST "http://localhost:3010/api/server/order/query" \
 
 ### 4. Get Customer Order History
 ```bash
-curl -X GET "http://localhost:3010/api/server/order/by-customer/customer-uuid?includeItems=true&limit=20&direction=desc"
+curl -X GET "http://localhost:3010/api/server/order/by-customer/customer-uuid?expand=items&limit=20&direction=desc"
 ```
 
 ### 5. Find Orders with Specific Product
 ```bash
-curl -X GET "http://localhost:3010/api/server/order/by-product/product-uuid?includeCustomer=true&includeItems=true"
+curl -X GET "http://localhost:3010/api/server/order/by-product/product-uuid?expand=customer,items"
 ```
 
 ### 6. Search Orders by Name or Customer
@@ -1834,7 +1916,7 @@ curl -X POST "http://localhost:3010/api/server/order/query" \
 
 ### 7. Retrieve Single Order with Details
 ```bash
-curl -X GET "http://localhost:3010/api/server/order/retrieve/order-uuid?includeItems=true&includePricing=true&includeCustomer=true&includeAddresses=true"
+curl -X GET "http://localhost:3010/api/server/order/retrieve/order-uuid?expand=items,pricing,customer,billing_address,shipping_address"
 ```
 
 ### 8. Apply Discount to Order

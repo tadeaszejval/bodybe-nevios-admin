@@ -10,6 +10,8 @@ import { NeviosEnhancedTable } from "../../nevios/NeviosEnhancedTable";
 import { formatCurrencyNumber } from "../../../core/formatters";
 import { useModuleQuery } from "../../../hooks/useModuleQuery";
 import { INVENTORY_FILTER_CONFIG } from "../../nevios/NeviosFilters/InventoryFilterConfig";
+import { NeviosCustomBadge } from "../../nevios/NeviosCustomBadge";
+import { TbBuildingStore } from "react-icons/tb";
 
 // Helper function to transform filters for API
 const transformFiltersForAPI = (filters) => {
@@ -143,25 +145,6 @@ export function InventoryTable({
         </Box>
       ),
     }),
-    genericColumnFactory({
-      field: "location_name",
-      headerName: "Location",
-      minWidth: 150,
-      flex: 1.5,
-      renderCell: (params) => (
-        <Box
-          sx={{
-            lineHeight: 1.2,
-            display: "flex",
-            flexDirection: "column",
-            height: "100%",
-            justifyContent: "center",
-          }}
-        >
-          <Box sx={{ fontWeight: 500, fontSize: "s" }}>{params.value}</Box>
-        </Box>
-      ),
-    }),
     numericColumnFactory({
       field: "available",
       headerName: "Available",
@@ -234,7 +217,7 @@ export function InventoryTable({
     }),
     numericColumnFactory({
       field: "quantity",
-      headerName: "Total Qty",
+      headerName: "Total Stock",
       minWidth: 100,
       flex: 0.8,
       renderCell: (params) => (
@@ -255,7 +238,7 @@ export function InventoryTable({
             height: "100%",
             width: "100%",
             px: 0.5,
-            color: "gray.700",
+            color: "gray.800",
             fontWeight: 500,
             backgroundColor: "gray.50",
             borderRadius: "4px",
@@ -266,82 +249,6 @@ export function InventoryTable({
           </Box>
         </Box>
       ),
-    }),
-    numericColumnFactory({
-      field: "backorder_total",
-      headerName: "Backorders",
-      minWidth: 110,
-      flex: 0.9,
-      renderCell: (params) => {
-        const hasValue = params.value > 0;
-        return (
-          <Box
-            sx={{
-              width: "100%",
-              lineHeight: 2,
-              height: "100%",
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "flex-end",
-            }}
-          >
-            <Box sx={{ 
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-              height: "100%",
-              width: "100%",
-              px: 0.5,
-              color: hasValue ? "orange.600" : "gray.500",
-              fontWeight: 500,
-              backgroundColor: hasValue ? "orange.50" : "gray.50",
-              borderRadius: "4px",
-              height: "fit-content",
-              fontSize: "sm"
-            }}>
-              {formatCurrencyNumber(params.value, 0)}
-            </Box>
-          </Box>
-        );
-      },
-    }),
-    numericColumnFactory({
-      field: "backorder_pending",
-      headerName: "Pending",
-      minWidth: 100,
-      flex: 0.8,
-      renderCell: (params) => {
-        const hasValue = params.value > 0;
-        return (
-          <Box
-            sx={{
-              width: "100%",
-              lineHeight: 2,
-              height: "100%",
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "flex-end",
-            }}
-          >
-            <Box sx={{ 
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-              height: "100%",
-              width: "100%",
-              px: 0.5,
-              color: hasValue ? "yellow.700" : "gray.500",
-              fontWeight: 500,
-              backgroundColor: hasValue ? "yellow.50" : "gray.50",
-              borderRadius: "4px",
-              height: "fit-content",
-              fontSize: "sm"
-            }}>
-              {formatCurrencyNumber(params.value, 0)}
-            </Box>
-          </Box>
-        );
-      },
     }),
     numericColumnFactory({
       field: "awaiting_demand",
@@ -368,9 +275,9 @@ export function InventoryTable({
               height: "100%",
               width: "100%",
               px: 0.5,
-              color: hasValue ? "red.600" : "gray.500",
+              color: hasValue ? "yellow.700" : "gray.500",
               fontWeight: 500,
-              backgroundColor: hasValue ? "red.50" : "gray.50",
+              backgroundColor: hasValue ? "yellow.50" : "gray.50",
               borderRadius: "4px",
               height: "fit-content",
               fontSize: "sm"
@@ -418,6 +325,25 @@ export function InventoryTable({
           </Box>
         );
       },
+    }),
+    genericColumnFactory({
+      field: "location_name",
+      headerName: "Location",
+      minWidth: 150,
+      flex: 1.5,
+      renderCell: (params) => (
+        <Box
+          sx={{
+            lineHeight: 1.2,
+            display: "flex",
+            flexDirection: "column",
+            height: "100%",
+            justifyContent: "center",
+          }}
+        >
+          <NeviosCustomBadge value={params.value} color="gray" icon={<TbBuildingStore size={14} />} />
+        </Box>
+      ),
     }),
   ];
 
