@@ -1,0 +1,1363 @@
+# Returns Management System
+
+## Overview
+
+The Returns Management System provides comprehensive handling of customer returns and exchanges. It supports flexible return policies, automated workflows, inventory management, refund processing, and maintains a complete audit trail of all return activities.
+
+## Key Features 🚀
+
+- **Flexible Return Policies** - Configure market-specific return rules (window, fees, auto-approval)
+- **Multi-Status Workflow** - Track returns through complete lifecycle (requested → approved → shipped → received → inspected → completed)
+- **Auto-Approval** - Configurable automatic approval based on policy rules
+- **Return & Exchange Support** - Handle both refunds and product exchanges
+- **Inventory Integration** - Automatic inventory adjustments based on item condition
+- **Refund Calculation** - Automatic calculation of refunds including restocking fees and shipping costs
+- **Refund Processing** - Track and manage refund payments with configurable auto-processing
+- **Inspection Tracking** - Record item condition and resalability
+- **Advanced Query System** - Filter, search, and sort returns with comparison operators
+- **Relation Expansion** - Include customer, order, items, and location details
+- **Sequential Numbering** - Auto-generated return numbers (RET-XXXXXXXXXX)
+
+## Return Statuses
+
+```
+REQUESTED    → Return request submitted by customer
+APPROVED     → Return approved by merchant
+IN_TRANSIT   → Customer shipped items back
+RECEIVED     → Items received at warehouse
+INSPECTED    → Items inspected for condition
+COMPLETED    → Return fully processed
+REJECTED     → Return request rejected
+CANCELLED    → Return cancelled by customer or merchant
+```
+
+## API Endpoints 🔧
+
+### 1. Query Returns
+
+Query return records with filtering, search, pagination, and expansion.
+
+**Endpoint:** `POST /server/return/query`
+
+**Request Body:**
+```json
+{
+  "page": 1,
+  "limit": 20,
+  "orderBy": "requested_at",
+  "ascending": false,
+  "search": "RET-150000000001",
+  "expand": "customer,order,items",
+  "status": "REQUESTED",
+  "customer": "customer-uuid",
+  "refund_processed": false
+}
+```
+
+**Example:**
+```bash
+curl -X POST http://localhost:3100/server/return/query \
+  -H "Content-Type: application/json" \
+  -d '{
+    "status": "REQUESTED",
+    "expand": "customer,order,items",
+    "orderBy": "requested_at",
+    "ascending": true
+  }'
+```
+
+**Response:**
+```json
+{
+  "success": true,
+  "data": {
+    "returns": [
+      {
+        "id": "return-uuid-1",
+        "return_number": "RET-150000000001",
+        "order": {
+          "order_number": "ORD-100000000123"
+        },
+        "customer": {
+          "first_name": "John",
+          "last_name": "Doe",
+          "email": "john@example.com"
+        },
+        "items": [
+          {
+            "variant": {
+              "sku": "SHIRT-BLK-M",
+              "title": "Black / Medium"
+            },
+            "quantity_requested": 1,
+            "original_price": 2999
+          }
+        ],
+        "status": "REQUESTED",
+        "type": "RETURN",
+        "reason": "SIZE_FIT",
+        "total_refund_amount": 2999,
+        "requested_at": "2026-01-13T10:00:00Z"
+      }
+    ],
+    "pagination": {
+      "total": 45,
+      "limit": 20,
+      "offset": 0,
+      "page": 1,
+      "pages": 3
+    }
+  }
+}
+```
+
+**See [QUERY.md](./QUERY.md) for detailed documentation.**
+
+---
+
+### 2. Create Return
+
+Create a new return request. Validates order eligibility, applies return policy, and optionally auto-approves.
+
+**Endpoint:** `POST /server/return/create`
+
+**Request Body (Option 1: Specific Items):**
+```json
+{
+  "order": "order-uuid",
+  "type": "RETURN",
+  "reason": "SIZE_FIT",
+  "items": [
+    {
+      "order_item": "order-item-uuid",
+      "quantity_requested": 1
+    }
+  ],
+  "customer_note": "Size is too small"
+}
+```
+
+**Request Body (Option 2: Return All Items):**
+```json
+{
+  "order": "order-uuid",
+  "type": "RETURN",
+  "reason": "SIZE_FIT",
+  "return_all": true,
+  "customer_note": "Want to return entire order"
+}
+```
+
+**Required Fields:**
+- `order` - Order UUID
+- `type` - Return type (RETURN, EXCHANGE, COMPLAINT, WARRANTY)
+- `items` - Array of items (required if `return_all` is not true)
+- `return_all` - Boolean to return all order items (if true, `items` not required)
+
+**Optional Fields:**
+- `fulfillment` - Fulfillment UUID
+- `reason` - Return reason (DEFECTIVE, SIZE_FIT, WRONG_ITEM, NOT_AS_DESCRIBED, CHANGED_MIND, OTHER)
+- `customer_note` - Customer's note
+- `tracking_number` - Tracking number (if customer already shipped)
+- `tracking_link` - Tracking URL
+- `carrier` - Carrier name
+- `location` - Location UUID
+
+**Example (Specific Items):**
+```bash
+curl -X POST http://localhost:3100/server/return/create \
+  -H "Content-Type: application/json" \
+  -d '{
+    "order": "a1b2c3d4-e5f6-7890-abcd-ef1234567890",
+    "type": "RETURN",
+    "reason": "SIZE_FIT",
+    "items": [
+      {
+        "order_item": "b2c3d4e5-f6g7-8901-bcde-fg2345678901",
+        "quantity_requested": 1
+      }
+    ],
+    "customer_note": "Product size is too small"
+  }'
+```
+
+**Example (Return All):**
+```bash
+curl -X POST http://localhost:3100/server/return/create \
+  -H "Content-Type: application/json" \
+  -d '{
+    "order": "a1b2c3d4-e5f6-7890-abcd-ef1234567890",
+    "type": "RETURN",
+    "reason": "CHANGED_MIND",
+    "return_all": true,
+    "customer_note": "Changed my mind, want to return everything"
+  }'
+```
+
+**Response:**
+```json
+{
+  "success": true,
+  "data": {
+    "id": "return-uuid-1",
+    "return_number": "RET-150000000001",
+    "order": "order-uuid",
+    "customer": "customer-uuid",
+    "status": "APPROVED",
+    "type": "RETURN",
+    "reason": "SIZE_FIT",
+    "resolution": "REFUND",
+    "auto_approved": true,
+    "policy_window_days": 30,
+    "total_refund_amount": 2999,
+    "items": [
+      {
+        "order_item": "order-item-uuid",
+        "variant": "variant-uuid",
+        "quantity_requested": 1,
+        "quantity_approved": 1,
+        "original_price": 2999,
+        "refund_amount": 2999
+      }
+    ],
+    "requested_at": "2026-01-13T10:00:00Z",
+    "approved_at": "2026-01-13T10:00:00Z"
+  }
+}
+```
+
+**Validation:**
+- Order must exist and be delivered
+- Items must belong to the order
+- Return window must be valid (based on policy)
+- Quantities must not exceed ordered quantities
+- Cannot return gift cards or non-returnable items
+
+---
+
+### 3. Retrieve Return
+
+Retrieve a single return record by ID or all returns for an order.
+
+**Endpoint:** `GET /server/return/retrieve/:id`
+
+**Query Parameters:**
+- `expand` - Comma-separated relations to expand
+
+**Example:**
+```bash
+curl -X GET "http://localhost:3100/server/return/retrieve/return-uuid-1?expand=customer,order,items.variant,location"
+```
+
+**Retrieve by Order:**
+
+**Endpoint:** `GET /server/return/retrieve/by-order/:orderId`
+
+**Example:**
+```bash
+curl -X GET "http://localhost:3100/server/return/retrieve/by-order/order-uuid-1?expand=customer,items"
+```
+
+**Response:**
+```json
+{
+  "success": true,
+  "data": {
+    "id": "return-uuid-1",
+    "return_number": "RET-150000000001",
+    "order": {
+      "order_number": "ORD-100000000123",
+      "status": "DELIVERED"
+    },
+    "customer": {
+      "first_name": "John",
+      "last_name": "Doe",
+      "email": "john@example.com"
+    },
+    "items": [
+      {
+        "variant": {
+          "sku": "SHIRT-BLK-M",
+          "title": "Black / Medium",
+          "price": 2999
+        },
+        "quantity_requested": 1,
+        "quantity_received": 1,
+        "quantity_approved": 1,
+        "condition": "NEW",
+        "resalable": true,
+        "original_price": 2999,
+        "refund_amount": 2999
+      }
+    ],
+    "status": "COMPLETED",
+    "total_refund_amount": 2999,
+    "refund_processed": true,
+    "refund_method": "ORIGINAL_PAYMENT"
+  }
+}
+```
+
+---
+
+### 4. Modify Return
+
+Modify return metadata (tracking info, notes). Cannot modify status - use specialized operations.
+
+**Endpoint:** `PUT /server/return/modify/:id`
+
+**Request Body:**
+```json
+{
+  "tracking_number": "1Z999AA10123456789",
+  "tracking_link": "https://track.ups.com/1Z999AA10123456789",
+  "carrier": "UPS",
+  "internal_note": "Customer called to confirm shipment"
+}
+```
+
+**Example:**
+```bash
+curl -X PUT http://localhost:3100/server/return/modify/return-uuid-1 \
+  -H "Content-Type: application/json" \
+  -d '{
+    "internal_note": "Customer confirmed return shipment"
+  }'
+```
+
+**Allowed Fields:**
+- `tracking_number`, `tracking_link`, `carrier`
+- `customer_note`, `internal_note`
+- Cannot modify after status is COMPLETED, REJECTED, or CANCELLED
+
+---
+
+### 5. Delete Return (Cancel)
+
+Cancel a return request. Only allowed for REQUESTED or APPROVED status.
+
+**Endpoint:** `DELETE /server/return/delete/:id`
+
+**Request Body:**
+```json
+{
+  "cancellation_reason": "Customer changed mind"
+}
+```
+
+**Example:**
+```bash
+curl -X DELETE http://localhost:3100/server/return/delete/return-uuid-1 \
+  -H "Content-Type: application/json" \
+  -d '{
+    "cancellation_reason": "Customer no longer wants to return"
+  }'
+```
+
+**Response:**
+```json
+{
+  "success": true,
+  "data": {
+    "id": "return-uuid-1",
+    "status": "CANCELLED",
+    "internal_note": "Customer no longer wants to return",
+    "cancelled_at": "2026-01-13T11:00:00Z"
+  }
+}
+```
+
+**Validation:**
+- Can only cancel returns with status REQUESTED or APPROVED
+- Cannot cancel returns that are IN_TRANSIT, RECEIVED, INSPECTED, or COMPLETED
+
+---
+
+### 6. Approve Return
+
+Approve a return request. Sets status to APPROVED and updates item quantities.
+
+**Endpoint:** `PUT /server/return/approve/:id`
+
+**Request Body:**
+```json
+{
+  "internal_note": "Return approved - standard processing"
+}
+```
+
+**Example:**
+```bash
+curl -X PUT http://localhost:3100/server/return/approve/return-uuid-1 \
+  -H "Content-Type: application/json" \
+  -d '{
+    "internal_note": "Return approved - customer in good standing"
+  }'
+```
+
+**Response:**
+```json
+{
+  "success": true,
+  "data": {
+    "id": "return-uuid-1",
+    "status": "APPROVED",
+    "items": [
+      {
+        "quantity_approved": 1
+      }
+    ],
+    "approved_at": "2026-01-13T10:30:00Z"
+  }
+}
+```
+
+**Validation:**
+- Can only approve returns with status REQUESTED
+- Automatically sets quantity_approved = quantity_requested for all items
+
+---
+
+### 7. Reject Return
+
+Reject a return request. Sets status to REJECTED.
+
+**Endpoint:** `PUT /server/return/reject/:id`
+
+**Request Body:**
+```json
+{
+  "rejection_reason": "Outside return window",
+  "internal_note": "Order delivered 45 days ago"
+}
+```
+
+**Example:**
+```bash
+curl -X PUT http://localhost:3100/server/return/reject/return-uuid-1 \
+  -H "Content-Type: application/json" \
+  -d '{
+    "rejection_reason": "Outside return window",
+    "internal_note": "Order was delivered 45 days ago, policy allows 30 days"
+  }'
+```
+
+**Response:**
+```json
+{
+  "success": true,
+  "data": {
+    "id": "return-uuid-1",
+    "status": "REJECTED",
+    "rejection_reason": "Outside return window",
+    "items": [
+      {
+        "action_taken": "REJECTED"
+      }
+    ],
+    "rejected_at": "2026-01-13T10:30:00Z"
+  }
+}
+```
+
+**Validation:**
+- Can only reject returns with status REQUESTED
+- Rejection reason is required
+
+---
+
+### 8. Mark Shipped
+
+Mark return as shipped by customer. Sets status to IN_TRANSIT.
+
+**Endpoint:** `PUT /server/return/mark-shipped/:id`
+
+**Request Body:**
+```json
+{
+  "tracking_number": "1Z999AA10123456789",
+  "tracking_link": "https://track.ups.com/1Z999AA10123456789",
+  "carrier": "UPS"
+}
+```
+
+**Example:**
+```bash
+curl -X PUT http://localhost:3100/server/return/mark-shipped/return-uuid-1 \
+  -H "Content-Type: application/json" \
+  -d '{
+    "tracking_number": "1Z999AA10123456789",
+    "tracking_link": "https://track.ups.com/1Z999AA10123456789",
+    "carrier": "UPS"
+  }'
+```
+
+**Response:**
+```json
+{
+  "success": true,
+  "data": {
+    "id": "return-uuid-1",
+    "status": "IN_TRANSIT",
+    "tracking_number": "1Z999AA10123456789",
+    "carrier": "UPS",
+    "shipped_at": "2026-01-13T11:00:00Z"
+  }
+}
+```
+
+**Validation:**
+- Can only mark shipped for returns with status APPROVED
+- Tracking number is required
+
+---
+
+### 9. Mark Received
+
+Mark return as received at warehouse. Sets status to RECEIVED.
+
+**Endpoint:** `PUT /server/return/mark-received/:id`
+
+**Request Body:**
+```json
+{
+  "internal_note": "Package received in good condition"
+}
+```
+
+**Example:**
+```bash
+curl -X PUT http://localhost:3100/server/return/mark-received/return-uuid-1 \
+  -H "Content-Type: application/json" \
+  -d '{
+    "internal_note": "Package received, ready for inspection"
+  }'
+```
+
+**Response:**
+```json
+{
+  "success": true,
+  "data": {
+    "id": "return-uuid-1",
+    "status": "RECEIVED",
+    "items": [
+      {
+        "quantity_received": 1
+      }
+    ],
+    "received_at": "2026-01-13T14:00:00Z"
+  }
+}
+```
+
+**Validation:**
+- Can only mark received for returns with status IN_TRANSIT
+- Automatically sets quantity_received = quantity_approved for all items
+
+---
+
+### 10. Inspect Return
+
+Record inspection results for return items. Sets status to INSPECTED.
+
+**Endpoint:** `PUT /server/return/inspect/:id`
+
+**Request Body:**
+```json
+{
+  "items": [
+    {
+      "return_item_id": "return-item-uuid",
+      "condition": "NEW",
+      "resalable": true,
+      "inspection_notes": "Perfect condition, tags still attached"
+    }
+  ],
+  "inspection_note": "Inspection completed by warehouse staff"
+}
+```
+
+**Condition Options:**
+- `NEW` - Unopened, perfect condition
+- `LIKE_NEW` - Opened but unused
+- `GOOD` - Used, good condition
+- `FAIR` - Used, some wear
+- `DAMAGED` - Damaged, not resalable
+
+**Example:**
+```bash
+curl -X PUT http://localhost:3100/server/return/inspect/return-uuid-1 \
+  -H "Content-Type: application/json" \
+  -d '{
+    "items": [
+      {
+        "return_item_id": "return-item-uuid-1",
+        "condition": "NEW",
+        "resalable": true,
+        "inspection_notes": "Perfect condition, original packaging"
+      }
+    ],
+    "inspection_note": "All items inspected and approved for resale"
+  }'
+```
+
+**Response:**
+```json
+{
+  "success": true,
+  "data": {
+    "id": "return-uuid-1",
+    "status": "INSPECTED",
+    "items": [
+      {
+        "condition": "NEW",
+        "resalable": true,
+        "inspection_notes": "Perfect condition, original packaging"
+      }
+    ],
+    "inspection_note": "All items inspected and approved for resale",
+    "inspected_at": "2026-01-13T15:00:00Z"
+  }
+}
+```
+
+**Validation:**
+- Can only inspect returns with status RECEIVED
+- Must provide condition and resalable status for each item
+- Condition must be valid enum value
+
+---
+
+### 11. Complete Return
+
+Complete the return process. Adjusts inventory, calculates refunds, and optionally processes refund.
+
+**Endpoint:** `PUT /server/return/complete/:id`
+
+**Request Body:**
+```json
+{
+  "skip_inventory": false,
+  "auto_process_refund": false,
+  "refund_method": "MANUAL",
+  "internal_note": "Return processed successfully"
+}
+```
+
+**Example:**
+```bash
+curl -X PUT http://localhost:3100/server/return/complete/return-uuid-1 \
+  -H "Content-Type: application/json" \
+  -d '{
+    "internal_note": "Return completed and inventory adjusted"
+  }'
+```
+
+**Example with Auto-Refund:**
+```bash
+curl -X PUT http://localhost:3100/server/return/complete/return-uuid-1 \
+  -H "Content-Type: application/json" \
+  -d '{
+    "auto_process_refund": true,
+    "refund_method": "ORIGINAL_PAYMENT",
+    "internal_note": "Return completed with automatic refund"
+  }'
+```
+
+**Response:**
+```json
+{
+  "success": true,
+  "data": {
+    "id": "return-uuid-1",
+    "status": "COMPLETED",
+    "items": [
+      {
+        "condition": "NEW",
+        "resalable": true,
+        "refund_amount": 2999
+      }
+    ],
+    "total_refund_amount": 2999,
+    "restocking_fee_amount": 0,
+    "shipping_refund_amount": 0,
+    "refund_processed": true,
+    "refund_method": "ORIGINAL_PAYMENT",
+    "completed_at": "2026-01-13T16:00:00Z"
+  }
+}
+```
+
+**What Happens:**
+1. **Inventory Adjustment** (unless `skip_inventory: true`):
+   - Resalable items → Added back to available stock (RETURNED)
+   - Non-resalable items → Removed from inventory (DAMAGED)
+2. **Refund Calculation**:
+   - Calculates item subtotal
+   - Applies restocking fees (if configured)
+   - Adds shipping refund (if configured)
+   - Updates return and item records with amounts
+3. **Auto-Process Refund** (if enabled in policy or options):
+   - Marks refund as processed
+   - Records refund method and timestamp
+   - Optionally creates payment record for tracking
+
+**Validation:**
+- Can only complete returns with status INSPECTED
+- All items must have condition and resalable status set
+
+---
+
+### 12. Process Refund
+
+Mark refund as processed. Optionally creates payment record for tracking.
+
+**Endpoint:** `POST /server/return/process-refund/:id`
+
+**Request Body:**
+```json
+{
+  "refund_method": "ORIGINAL_PAYMENT",
+  "create_payment_record": false,
+  "internal_note": "Refund processed via Stripe"
+}
+```
+
+**Refund Methods:**
+- `ORIGINAL_PAYMENT` - Refund to original payment method
+- `BANK_TRANSFER` - Manual bank transfer
+- `MANUAL` - Other manual refund method
+- `STORE_CREDIT` - Store credit (future implementation)
+
+**Example:**
+```bash
+curl -X POST http://localhost:3100/server/return/process-refund/return-uuid-1 \
+  -H "Content-Type: application/json" \
+  -d '{
+    "refund_method": "ORIGINAL_PAYMENT",
+    "internal_note": "Refund processed through Stripe gateway"
+  }'
+```
+
+**Example with Payment Record:**
+```bash
+curl -X POST http://localhost:3100/server/return/process-refund/return-uuid-1 \
+  -H "Content-Type: application/json" \
+  -d '{
+    "refund_method": "BANK_TRANSFER",
+    "create_payment_record": true,
+    "internal_note": "Manual bank transfer to customer account"
+  }'
+```
+
+**Response:**
+```json
+{
+  "success": true,
+  "data": {
+    "id": "return-uuid-1",
+    "refund_processed": true,
+    "refund_processed_at": "2026-01-13T17:00:00Z",
+    "refund_method": "ORIGINAL_PAYMENT",
+    "refund_payment_id": "payment-uuid-1"
+  }
+}
+```
+
+**Validation:**
+- Can only process refund for returns with status COMPLETED
+- Refund must not already be processed
+- Refund method is required
+
+---
+
+## Return Policies Configuration
+
+### Query Return Policies
+
+**Endpoint:** `POST /server/configuration/return-policies/query`
+
+**Example:**
+```bash
+curl -X POST http://localhost:3100/server/configuration/return-policies/query \
+  -H "Content-Type: application/json" \
+  -d '{
+    "expand": "market"
+  }'
+```
+
+### Create Return Policy
+
+**Endpoint:** `POST /server/configuration/return-policies/create`
+
+**Example:**
+```bash
+curl -X POST http://localhost:3100/server/configuration/return-policies/create \
+  -H "Content-Type: application/json" \
+  -d '{
+    "market": "US",
+    "return_window_days": 30,
+    "auto_approve": false,
+    "auto_process_refund": false,
+    "require_original_packaging": true,
+    "restocking_fee_enabled": false,
+    "restocking_fee_percentage": 0,
+    "refund_shipping_cost": true,
+    "free_return_shipping": false,
+    "non_returnable_types": ["gift_card"],
+    "accept_opened_items": true,
+    "accept_used_items": false,
+    "is_active": true
+  }'
+```
+
+### Modify Return Policy
+
+**Endpoint:** `PUT /server/configuration/return-policies/modify/:id`
+
+**Example:**
+```bash
+curl -X PUT http://localhost:3100/server/configuration/return-policies/modify/policy-uuid-1 \
+  -H "Content-Type: application/json" \
+  -d '{
+    "auto_process_refund": true,
+    "return_window_days": 60
+  }'
+```
+
+---
+
+## Database Schema 📊
+
+### Returns Table
+
+```sql
+CREATE TABLE returns (
+  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  return_number TEXT UNIQUE NOT NULL,
+  "order" UUID NOT NULL REFERENCES orders(id),
+  fulfillment UUID REFERENCES fulfillments(id),
+  customer UUID NOT NULL REFERENCES customers(id),
+  market_currency UUID REFERENCES market_currencies(id),
+  status TEXT NOT NULL CHECK (status IN ('REQUESTED', 'APPROVED', 'IN_TRANSIT', 'RECEIVED', 'INSPECTED', 'COMPLETED', 'REJECTED', 'CANCELLED')),
+  type TEXT NOT NULL CHECK (type IN ('RETURN', 'EXCHANGE')),
+  reason TEXT CHECK (reason IN ('DEFECTIVE', 'SIZE_FIT', 'WRONG_ITEM', 'NOT_AS_DESCRIBED', 'CHANGED_MIND', 'OTHER')),
+  resolution TEXT CHECK (resolution IN ('REFUND', 'EXCHANGE', 'STORE_CREDIT')),
+  location UUID REFERENCES locations(id),
+  tracking_number TEXT,
+  tracking_link TEXT,
+  carrier TEXT,
+  customer_note TEXT,
+  internal_note TEXT,
+  inspection_note TEXT,
+  rejection_reason TEXT,
+  policy_window_days INTEGER,
+  auto_approved BOOLEAN DEFAULT false,
+  restocking_fee_percentage NUMERIC(5,2) DEFAULT 0,
+  refund_shipping_cost BOOLEAN DEFAULT false,
+  total_refund_amount NUMERIC(10,2) DEFAULT 0,
+  restocking_fee_amount NUMERIC(10,2) DEFAULT 0,
+  shipping_refund_amount NUMERIC(10,2) DEFAULT 0,
+  currency TEXT,
+  refund_processed BOOLEAN DEFAULT false,
+  refund_processed_at TIMESTAMP WITH TIME ZONE,
+  refund_method TEXT CHECK (refund_method IN ('ORIGINAL_PAYMENT', 'BANK_TRANSFER', 'MANUAL', 'STORE_CREDIT')),
+  refund_payment_id UUID REFERENCES payments(id),
+  requested_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+  approved_at TIMESTAMP WITH TIME ZONE,
+  rejected_at TIMESTAMP WITH TIME ZONE,
+  shipped_at TIMESTAMP WITH TIME ZONE,
+  received_at TIMESTAMP WITH TIME ZONE,
+  inspected_at TIMESTAMP WITH TIME ZONE,
+  completed_at TIMESTAMP WITH TIME ZONE,
+  cancelled_at TIMESTAMP WITH TIME ZONE,
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+  updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);
+```
+
+### Return Items Table
+
+```sql
+CREATE TABLE return_items (
+  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  "return" UUID NOT NULL REFERENCES returns(id) ON DELETE CASCADE,
+  order_item UUID NOT NULL REFERENCES order_item(id),
+  variant UUID NOT NULL REFERENCES product_variants(id),
+  quantity_requested INTEGER NOT NULL,
+  quantity_received INTEGER DEFAULT 0,
+  quantity_approved INTEGER DEFAULT 0,
+  condition TEXT CHECK (condition IN ('NEW', 'LIKE_NEW', 'GOOD', 'FAIR', 'DAMAGED')),
+  resalable BOOLEAN,
+  product_title TEXT,
+  variant_title TEXT,
+  product_sku TEXT,
+  variant_sku TEXT,
+  original_price NUMERIC(10,2),
+  refund_amount NUMERIC(10,2),
+  exchange_for_variant UUID REFERENCES product_variants(id),
+  action_taken TEXT,
+  inspection_notes TEXT,
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);
+```
+
+### Return Policies Table
+
+```sql
+CREATE TABLE return_policies (
+  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  market TEXT NOT NULL REFERENCES markets(id),
+  return_window_days INTEGER NOT NULL DEFAULT 30,
+  auto_approve BOOLEAN DEFAULT false,
+  auto_process_refund BOOLEAN DEFAULT false,
+  require_original_packaging BOOLEAN DEFAULT false,
+  restocking_fee_enabled BOOLEAN DEFAULT false,
+  restocking_fee_percentage NUMERIC(5,2) DEFAULT 0,
+  refund_shipping_cost BOOLEAN DEFAULT true,
+  free_return_shipping BOOLEAN DEFAULT false,
+  non_returnable_types TEXT[] DEFAULT ARRAY['gift_card'],
+  accept_opened_items BOOLEAN DEFAULT true,
+  accept_used_items BOOLEAN DEFAULT false,
+  is_active BOOLEAN DEFAULT true,
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+  updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+  UNIQUE(market)
+);
+```
+
+---
+
+## Data Relations 🔍
+
+### Returns Relations
+
+- **`order`** → `orders` (Many-to-One)
+- **`customer`** → `customers` (Many-to-One)
+- **`fulfillment`** → `fulfillments` (Many-to-One, optional)
+- **`location`** → `locations` (Many-to-One, optional)
+- **`market_currency`** → `market_currencies` (Many-to-One) - Stored from order for reference
+- **`refund_payment_id`** → `payments` (Many-to-One, optional)
+
+### Return Items Relations
+
+- **`return`** → `returns` (Many-to-One)
+- **`order_item`** → `order_item` (Many-to-One)
+- **`variant`** → `product_variants` (Many-to-One)
+- **`exchange_for_variant`** → `product_variants` (Many-to-One, optional)
+
+---
+
+## Core Functions 🛠
+
+### Create Return Function
+
+```javascript
+const { createReturn } = require('./functions/returns/create');
+
+const returnRecord = await createReturn({
+  order: 'order-uuid',
+  type: 'RETURN',
+  reason: 'SIZE_FIT',
+  items: [
+    {
+      order_item: 'order-item-uuid',
+      quantity_requested: 1
+    }
+  ],
+  customer_note: 'Size too small'
+});
+
+console.log(`Return created: ${returnRecord.return_number}`);
+```
+
+### Query Returns Function
+
+```javascript
+const { queryReturns } = require('./functions/returns/query');
+
+const result = await queryReturns({
+  status: 'REQUESTED',
+  expand: 'customer,order,items',
+  orderBy: 'requested_at',
+  ascending: true,
+  page: 1,
+  limit: 20
+});
+
+console.log(`Found ${result.returns.length} pending returns`);
+```
+
+### Complete Return Function
+
+```javascript
+const { completeReturn } = require('./functions/returns/complete');
+
+const returnRecord = await completeReturn('return-uuid', {
+  auto_process_refund: true,
+  refund_method: 'ORIGINAL_PAYMENT',
+  internal_note: 'Return completed successfully'
+});
+
+console.log(`Refund amount: ${returnRecord.total_refund_amount}`);
+```
+
+---
+
+## Error Handling 🚨
+
+### Common Errors
+
+**Return Window Expired:**
+```json
+{
+  "success": false,
+  "error": "Return window expired. Order was delivered 45 days ago, policy allows 30 days"
+}
+```
+
+**Invalid Quantity:**
+```json
+{
+  "success": false,
+  "error": "Requested quantity (2) exceeds ordered quantity (1) for item"
+}
+```
+
+**Non-Returnable Item:**
+```json
+{
+  "success": false,
+  "error": "Gift cards are not returnable according to the return policy"
+}
+```
+
+**Invalid Status Transition:**
+```json
+{
+  "success": false,
+  "error": "Cannot approve return with status COMPLETED"
+}
+```
+
+**Already Processed:**
+```json
+{
+  "success": false,
+  "error": "Refund has already been processed"
+}
+```
+
+### Error Response Format
+
+All errors follow this format:
+
+```json
+{
+  "success": false,
+  "error": "Error message describing what went wrong"
+}
+```
+
+HTTP Status Codes:
+- `200` - Success
+- `201` - Created
+- `400` - Bad Request (validation error)
+- `404` - Not Found
+- `500` - Server Error
+
+---
+
+## Best Practices 📋
+
+### 1. Configure Return Policies Per Market
+
+```javascript
+// Create market-specific policies
+await createReturnPolicy({
+  market: 'US',
+  return_window_days: 30,
+  auto_approve: true,
+  refund_shipping_cost: true
+});
+
+await createReturnPolicy({
+  market: 'DE',
+  return_window_days: 14,
+  auto_approve: false,
+  refund_shipping_cost: false
+});
+```
+
+### 2. Use Auto-Approval for Trusted Customers
+
+```javascript
+// Policy with auto-approval
+await createReturnPolicy({
+  market: 'US',
+  auto_approve: true,  // Returns auto-approved
+  return_window_days: 30
+});
+```
+
+### 3. Track Inventory Adjustments
+
+```javascript
+// Complete return with inventory tracking
+await completeReturn('return-uuid', {
+  skip_inventory: false,  // Adjust inventory
+  internal_note: 'Inventory adjusted based on inspection'
+});
+```
+
+### 4. Process Refunds Systematically
+
+```javascript
+// Query completed returns awaiting refund
+const result = await queryReturns({
+  status: 'COMPLETED',
+  refund_processed: false,
+  expand: 'customer,order'
+});
+
+// Process each refund
+for (const ret of result.returns) {
+  await processRefund(ret.id, {
+    refund_method: 'ORIGINAL_PAYMENT',
+    internal_note: `Refund processed for ${ret.return_number}`
+  });
+}
+```
+
+### 5. Monitor Return Reasons
+
+```javascript
+// Query returns by reason for analysis
+const defectiveReturns = await queryReturns({
+  reason: 'DEFECTIVE',
+  expand: 'items.variant'
+});
+
+console.log(`${defectiveReturns.returns.length} defective returns`);
+```
+
+---
+
+## Common Use Cases 💡
+
+### 1. Customer Initiates Return (Specific Items)
+
+```bash
+curl -X POST http://localhost:3100/server/return/create \
+  -H "Content-Type: application/json" \
+  -d '{
+    "order": "order-uuid",
+    "type": "RETURN",
+    "reason": "SIZE_FIT",
+    "items": [{"order_item": "item-uuid", "quantity_requested": 1}],
+    "customer_note": "Size too small"
+  }'
+```
+
+### 1b. Customer Initiates Return (All Items)
+
+```bash
+curl -X POST http://localhost:3100/server/return/create \
+  -H "Content-Type: application/json" \
+  -d '{
+    "order": "order-uuid",
+    "type": "RETURN",
+    "reason": "CHANGED_MIND",
+    "return_all": true,
+    "customer_note": "Want to return entire order"
+  }'
+```
+
+### 2. Approve Return Request
+
+```bash
+curl -X PUT http://localhost:3100/server/return/approve/return-uuid \
+  -H "Content-Type: application/json" \
+  -d '{
+    "internal_note": "Return approved"
+  }'
+```
+
+### 3. Customer Ships Return
+
+```bash
+curl -X PUT http://localhost:3100/server/return/mark-shipped/return-uuid \
+  -H "Content-Type: application/json" \
+  -d '{
+    "tracking_number": "1Z999AA10123456789",
+    "carrier": "UPS"
+  }'
+```
+
+### 4. Receive Return at Warehouse
+
+```bash
+curl -X PUT http://localhost:3100/server/return/mark-received/return-uuid \
+  -H "Content-Type: application/json" \
+  -d '{
+    "internal_note": "Package received"
+  }'
+```
+
+### 5. Inspect Return Items
+
+```bash
+curl -X PUT http://localhost:3100/server/return/inspect/return-uuid \
+  -H "Content-Type: application/json" \
+  -d '{
+    "items": [{
+      "return_item_id": "item-uuid",
+      "condition": "NEW",
+      "resalable": true
+    }]
+  }'
+```
+
+### 6. Complete Return
+
+```bash
+curl -X PUT http://localhost:3100/server/return/complete/return-uuid \
+  -H "Content-Type: application/json" \
+  -d '{
+    "auto_process_refund": true,
+    "refund_method": "ORIGINAL_PAYMENT"
+  }'
+```
+
+---
+
+## Related Systems 📚
+
+### Order System Integration
+- Returns reference original orders
+- Validates order status and delivery date
+- Links to order items for quantity validation
+
+### Inventory System Integration
+- Automatic inventory adjustments on completion
+- Resalable items added back to stock (RETURNED)
+- Damaged items removed from inventory (DAMAGED)
+
+### Payment System Integration
+- Tracks refund processing status
+- Optional payment record creation for refunds
+- Links to original order payments
+
+### Customer System Integration
+- Returns linked to customer records
+- Customer history tracking
+- Return eligibility validation
+
+---
+
+## Typical Workflow
+
+### Standard Return Flow
+
+```
+1. Customer requests return
+   └─> Status: REQUESTED (auto-approved if policy allows)
+
+2. Merchant approves
+   └─> Status: APPROVED
+
+3. Customer ships items
+   └─> Status: IN_TRANSIT
+
+4. Warehouse receives package
+   └─> Status: RECEIVED
+
+5. Staff inspects items
+   └─> Status: INSPECTED
+
+6. Return completed
+   └─> Status: COMPLETED
+   └─> Inventory adjusted
+   └─> Refund calculated
+   └─> Refund processed (if auto-process enabled)
+
+7. Refund processed
+   └─> refund_processed: true
+```
+
+### Rejection Flow
+
+```
+1. Customer requests return
+   └─> Status: REQUESTED
+
+2. Merchant rejects (outside window, etc.)
+   └─> Status: REJECTED
+   └─> Items marked as REJECTED
+```
+
+### Cancellation Flow
+
+```
+1. Customer requests return
+   └─> Status: REQUESTED
+
+2. Customer cancels
+   └─> Status: CANCELLED
+```
+
+---
+
+## Support 🤝
+
+### Troubleshooting
+
+**Problem:** Return request fails with "outside return window"
+- **Solution:** Check order delivery date and policy window
+- **Cause:** Order delivered beyond policy return_window_days
+- **Prevention:** Configure appropriate return windows per market
+
+**Problem:** Cannot approve return
+- **Solution:** Check return status is REQUESTED
+- **Cause:** Return already processed or in different status
+- **Prevention:** Validate status before operations
+
+**Problem:** Inventory not adjusted after completion
+- **Solution:** Check if `skip_inventory: true` was used
+- **Cause:** Inventory adjustment was explicitly skipped
+- **Prevention:** Only skip inventory when necessary
+
+**Problem:** Refund not processing automatically
+- **Solution:** Check policy `auto_process_refund` setting
+- **Cause:** Auto-processing not enabled in policy
+- **Prevention:** Enable in policy or pass `auto_process_refund: true` to complete
+
+---
+
+## API Endpoint Summary
+
+| Endpoint | Method | Purpose |
+|----------|--------|---------|
+| `/server/return/query` | POST | Query returns with filters |
+| `/server/return/create` | POST | Create return request |
+| `/server/return/retrieve/:id` | GET | Get single return |
+| `/server/return/retrieve/by-order/:orderId` | GET | Get returns for order |
+| `/server/return/modify/:id` | PUT | Update return metadata |
+| `/server/return/delete/:id` | DELETE | Cancel return |
+| `/server/return/approve/:id` | PUT | Approve return |
+| `/server/return/reject/:id` | PUT | Reject return |
+| `/server/return/mark-shipped/:id` | PUT | Mark as shipped |
+| `/server/return/mark-received/:id` | PUT | Mark as received |
+| `/server/return/inspect/:id` | PUT | Record inspection |
+| `/server/return/complete/:id` | PUT | Complete return |
+| `/server/return/process-refund/:id` | POST | Process refund |
+| `/server/configuration/return-policies/query` | POST | Query policies |
+| `/server/configuration/return-policies/create` | POST | Create policy |
+| `/server/configuration/return-policies/retrieve/:id` | GET | Get policy |
+| `/server/configuration/return-policies/modify/:id` | PUT | Update policy |
+| `/server/configuration/return-policies/delete/:id` | DELETE | Delete policy |
+
+---
+
+**For detailed query documentation, see [QUERY.md](./QUERY.md)**

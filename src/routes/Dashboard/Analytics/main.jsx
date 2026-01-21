@@ -65,7 +65,8 @@ export default function DashboardAnalytics() {
     revenueGross: null,
     sessions: null,
     ordersAvgValue: null,
-    ordersConversionRate: null
+    ordersConversionRate: null,
+    ordersTotal: null
   });
   const [listData, setListData] = useState(null);
 
@@ -143,7 +144,8 @@ export default function DashboardAnalytics() {
           revenueGrossTimeseriesResponse,
           sessionsTimeseriesResponse,
           ordersAvgValueTimeseriesResponse,
-          ordersConversionRateTimeseriesResponse
+          ordersConversionRateTimeseriesResponse,
+          ordersTotalTimeseriesResponse
         ] = await Promise.all([
           // Revenue Total Gross Timeseries
           postRequest('/server/analytics/components/timeseries/revenue_total_gross', apiParams),
@@ -155,7 +157,10 @@ export default function DashboardAnalytics() {
           postRequest('/server/analytics/components/timeseries/orders_avg_value', apiParams),
 
           // Orders Conversion Rate Timeseries
-          postRequest('/server/analytics/components/timeseries/orders_conversion_rate', apiParams)
+          postRequest('/server/analytics/components/timeseries/orders_conversion_rate', apiParams),
+
+          // Orders Total Timeseries
+          postRequest('/server/analytics/components/timeseries/orders_total', apiParams)
         ]);
 
         // Fetch metrics data for the list component
@@ -194,7 +199,8 @@ export default function DashboardAnalytics() {
           revenueGross: revenueGrossTimeseriesResponse,
           sessions: sessionsTimeseriesResponse,
           ordersAvgValue: ordersAvgValueTimeseriesResponse,
-          ordersConversionRate: ordersConversionRateTimeseriesResponse
+          ordersConversionRate: ordersConversionRateTimeseriesResponse,
+          ordersTotal: ordersTotalTimeseriesResponse
         });
 
         setListData(revenueListMetricsResponse);
@@ -245,7 +251,6 @@ export default function DashboardAnalytics() {
     
     const currentData = responseData.data.timeseries || [];
     const compareData = responseData.data.compare_timeseries || [];
-    
     
     // If no comparison data is available, return data without secondary values
     if (!compareDateRange || compareData.length === 0) {
@@ -368,20 +373,21 @@ export default function DashboardAnalytics() {
         </Box>
 
         <Box sx={{ display: 'flex', gap: 2, flexWrap: 'wrap' }}>
-          <Box sx={{ flex: 1 }}>
+          <Box sx={{ flex: 1, minHeight: 400 }}>
             <NeviosAnalyticsLineChart
-              title="Sessions Total"
-              tooltip="Daily session trends with comparison period"
-              value={formatNumber(timeseriesData.sessions?.data?.total_value || 0)}
-              data={getLineChartData(timeseriesData.sessions)}
+              title="Orders Total"
+              tooltip="Daily order count trends with comparison period"
+              value={formatNumber(timeseriesData.ordersTotal?.data?.total_value || 0)}
+              data={getLineChartData(timeseriesData.ordersTotal)}
               primaryLabel={formatDateRangeForDisplay(dateRange)}
               secondaryLabel={compareDateRange ? formatDateRangeForDisplay(compareDateRange) : null}
               valueLabel=""
-              primaryColor="#F59E0B"
+              primaryColor="#10B981"
               secondaryColor="#D1D5DB"
+              height={400}
             />
           </Box>
-          <Box sx={{ flex: 1 }}>
+          <Box sx={{ flex: 1, minHeight: 400 }}>
             <NeviosAnalyticsLineChart
               title="Orders Average Value"
               tooltip="Daily average order value trends with comparison period"
@@ -392,11 +398,26 @@ export default function DashboardAnalytics() {
               valueLabel="CZK"
               primaryColor="#3B82F6"
               secondaryColor="#A8C9FF"
+              height={400}
             />
           </Box>
         </Box>
         <Box sx={{ display: 'flex', gap: 2, flexWrap: 'wrap' }}>
-          <Box sx={{ flex: 1 }}>
+          <Box sx={{ flex: 1, minHeight: 400 }}>
+            <NeviosAnalyticsLineChart
+              title="Sessions Total"
+              tooltip="Daily session trends with comparison period"
+              value={formatNumber(timeseriesData.sessions?.data?.total_value || 0)}
+              data={getLineChartData(timeseriesData.sessions)}
+              primaryLabel={formatDateRangeForDisplay(dateRange)}
+              secondaryLabel={compareDateRange ? formatDateRangeForDisplay(compareDateRange) : null}
+              valueLabel=""
+              primaryColor="#F59E0B"
+              secondaryColor="#D1D5DB"
+              height={400}
+            />
+          </Box>
+          <Box sx={{ flex: 1, minHeight: 400 }}>
             <NeviosAnalyticsLineChart
               title="Orders Conversion Rate"
               tooltip="Daily conversion rate trends with comparison period"
@@ -407,6 +428,7 @@ export default function DashboardAnalytics() {
               valueLabel="%"
               primaryColor="#EF4444"
               secondaryColor="#D1D5DB"
+              height={400}
             />
           </Box>
         </Box>

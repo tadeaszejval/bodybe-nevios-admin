@@ -131,7 +131,6 @@ export function Sidebar() {
 						/>
 						<SidebarItem
 							href="/dashboard/returns"
-							deemphasized={true}
 							title="Returns"
 							icon={<TbArrowBackUp size={ICON_SIZE} />}
 						/>

@@ -58,7 +58,7 @@ export const BADGE_CONFIGS = {
     },
     FEMALE: {
       label: "Female",
-      color: "pink",
+      color: "red",
       icon: <TbGenderFemale size={14} />
     },
     NOT_SPECIFIED: {
@@ -947,6 +947,157 @@ export const BADGE_CONFIGS = {
     UNKNOWN: {
       label: "Unknown",
       color: "gray"
+    }
+  },
+
+  // Return status badges
+  returnStatus: {
+    REQUESTED: {
+      label: "Requested",
+      color: "blue",
+      icon: <TbMailPlus size={14} />
+    },
+    APPROVED: {
+      label: "Approved",
+      color: "green",
+      icon: <TbCheck size={14} />
+    },
+    IN_TRANSIT: {
+      label: "In Transit",
+      color: "purple",
+      icon: <TbTruck size={14} />
+    },
+    RECEIVED: {
+      label: "Received",
+      color: "teal",
+      icon: <TbPackage size={14} />
+    },
+    INSPECTED: {
+      label: "Inspected",
+      color: "blue",
+      icon: <TbCircleCheck size={14} />
+    },
+    COMPLETED: {
+      label: "Completed",
+      color: "green",
+      icon: <TbCircleCheck size={14} />
+    },
+    REJECTED: {
+      label: "Rejected",
+      color: "red",
+      icon: <TbX size={14} />
+    },
+    CANCELLED: {
+      label: "Cancelled",
+      color: "gray",
+      icon: <TbX size={14} />
+    },
+    UNKNOWN: {
+      label: "Unknown",
+      color: "gray"
+    }
+  },
+
+  // Return type badges
+  returnType: {
+    RETURN: {
+      label: "Return",
+      color: "blue",
+      icon: <TbArrowBack size={14} />
+    },
+    EXCHANGE: {
+      label: "Exchange",
+      color: "purple",
+      icon: <TbArrowsExchange size={14} />
+    },
+    UNKNOWN: {
+      label: "Unknown",
+      color: "gray"
+    }
+  },
+
+  // Return reason badges
+  returnReason: {
+    DEFECTIVE: {
+      label: "Defective",
+      color: "red",
+      icon: <TbAlertCircle size={14} />
+    },
+    SIZE_FIT: {
+      label: "Size/Fit Issue",
+      color: "blue",
+      icon: <TbAlertTriangle size={14} />
+    },
+    WRONG_ITEM: {
+      label: "Wrong Item",
+      color: "orange",
+      icon: <TbX size={14} />
+    },
+    NOT_AS_DESCRIBED: {
+      label: "Not As Described",
+      color: "yellow",
+      icon: <TbAlertTriangle size={14} />
+    },
+    CHANGED_MIND: {
+      label: "Changed Mind",
+      color: "gray",
+      icon: <TbRefresh size={14} />
+    },
+    OTHER: {
+      label: "Other",
+      color: "gray",
+      icon: <TbDots size={14} />
+    },
+    UNKNOWN: {
+      label: "Unknown",
+      color: "gray"
+    }
+  },
+
+  // Return resolution badges
+  returnResolution: {
+    REFUND: {
+      label: "Refund",
+      color: "green",
+      icon: <TbCash size={14} />
+    },
+    EXCHANGE: {
+      label: "Exchange",
+      color: "purple",
+      icon: <TbArrowsExchange size={14} />
+    },
+    STORE_CREDIT: {
+      label: "Store Credit",
+      color: "blue",
+      icon: <TbReceipt size={14} />
+    },
+    UNKNOWN: {
+      label: "Unknown",
+      color: "gray"
+    }
+  },
+
+  // Refund processed status badges
+  refundProcessed: {
+    true: {
+      label: "Processed",
+      color: "green",
+      icon: <TbCheck size={14} />
+    },
+    false: {
+      label: "Pending",
+      color: "yellow",
+      icon: <TbClock size={14} />
+    },
+    PROCESSED: {
+      label: "Processed",
+      color: "green",
+      icon: <TbCheck size={14} />
+    },
+    PENDING: {
+      label: "Pending",
+      color: "yellow",
+      icon: <TbClock size={14} />
     }
   },
 };

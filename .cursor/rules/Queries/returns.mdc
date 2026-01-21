@@ -1,0 +1,650 @@
+# Returns Query API
+
+## Overview
+
+The returns query endpoint provides flexible querying of return records with support for filtering, searching, pagination, sorting, and relation expansion.
+
+**Endpoint:** `POST /server/return/query`
+
+## Request Parameters
+
+### Pagination & Sorting
+
+| Parameter | Type | Default | Description |
+|-----------|------|---------|-------------|
+| `page` | integer | 1 | Page number |
+| `limit` | integer | 20 | Items per page |
+| `orderBy` | string | created_at | Field to sort by |
+| `ascending` | boolean | false | Sort direction (true = ascending, false = descending) |
+
+### Search
+
+| Parameter | Type | Description |
+|-----------|------|-------------|
+| `search` | string | Multi-field search across return number, customer name, order number, tracking number, and notes |
+
+### Expansion
+
+| Parameter | Type | Description |
+|-----------|------|-------------|
+| `expand` | string | Comma-separated relations to expand (customer, order, fulfillment, location, items, items.variant, items.order_item) |
+
+### Filters
+
+#### Basic Filters
+
+| Parameter | Type | Description |
+|-----------|------|-------------|
+| `status` | string | Filter by status (REQUESTED, APPROVED, IN_TRANSIT, RECEIVED, INSPECTED, COMPLETED, REJECTED, CANCELLED) |
+| `type` | string | Filter by type (RETURN, EXCHANGE) |
+| `reason` | string | Filter by reason (DEFECTIVE, SIZE_FIT, WRONG_ITEM, NOT_AS_DESCRIBED, CHANGED_MIND, OTHER) |
+| `resolution` | string | Filter by resolution (REFUND, EXCHANGE, STORE_CREDIT) |
+| `customer` | uuid | Filter by customer UUID |
+| `order` | uuid | Filter by order UUID |
+| `fulfillment` | uuid | Filter by fulfillment UUID |
+| `location` | uuid | Filter by location UUID |
+| `refund_processed` | boolean | Filter by refund processing status |
+
+#### Date Range Filters
+
+| Parameter | Type | Description |
+|-----------|------|-------------|
+| `requested_after` | ISO date | Returns requested after this date |
+| `requested_before` | ISO date | Returns requested before this date |
+| `completed_after` | ISO date | Returns completed after this date |
+| `completed_before` | ISO date | Returns completed before this date |
+| `created_at_from` | string | Filter returns created on or after this date (YYYY-MM-DD) |
+| `created_at_to` | string | Filter returns created on or before this date (YYYY-MM-DD) |
+
+## Available Expansions
+
+### `customer`
+Expands the customer relation to include full customer details:
+- Basic info (id, eid, xid, first_name, last_name, email, phone)
+- Address information
+- Customer settings
+
+### `order`
+Expands the order relation to include order details:
+- Order number, status, totals
+- Order dates and metadata
+- Payment and shipping information
+
+### `fulfillment`
+Expands the fulfillment relation to include fulfillment details:
+- Fulfillment number, status
+- Tracking information
+- Shipment dates
+
+### `location`
+Expands the location relation to include warehouse/store details:
+- Location name, code
+- Address information
+- Location settings
+
+### `items`
+Expands the return_items relation to include all items in the return:
+- Item quantities (requested, received, approved)
+- Item condition and resalability
+- Product and variant information
+- Refund amounts per item
+
+### `items.variant`
+Nested expansion that includes return items with full variant details:
+- All return item fields
+- Complete variant object (SKU, title, price, etc.)
+
+### `items.order_item`
+Nested expansion that includes return items with original order item details:
+- All return item fields
+- Original order item data
+
+
+## Common Use Cases
+
+### 1. Get All Returns with Pagination
+
+```bash
+curl -X POST http://localhost:3100/server/return/query \
+  -H "Content-Type: application/json" \
+  -d '{
+    "page": 1,
+    "limit": 20
+  }'
+```
+
+### 2. Get Pending Returns (Awaiting Approval)
+
+```bash
+curl -X POST http://localhost:3100/server/return/query \
+  -H "Content-Type: application/json" \
+  -d '{
+    "status": "REQUESTED",
+    "expand": "customer,order",
+    "orderBy": "requested_at",
+    "ascending": true
+  }'
+```
+
+### 3. Get Returns for Specific Customer
+
+```bash
+curl -X POST http://localhost:3100/server/return/query \
+  -H "Content-Type: application/json" \
+  -d '{
+    "customer": "customer-uuid-here",
+    "expand": "order,items"
+  }'
+```
+
+### 4. Get Returns for Specific Order
+
+```bash
+curl -X POST http://localhost:3100/server/return/query \
+  -H "Content-Type: application/json" \
+  -d '{
+    "order": "order-uuid-here",
+    "expand": "customer,items.variant"
+  }'
+```
+
+### 5. Get Completed Returns Awaiting Refund
+
+```bash
+curl -X POST http://localhost:3100/server/return/query \
+  -H "Content-Type: application/json" \
+  -d '{
+    "status": "COMPLETED",
+    "refund_processed": false,
+    "expand": "customer,order",
+    "orderBy": "completed_at",
+    "ascending": true
+  }'
+```
+
+### 6. Get Returns in Transit
+
+```bash
+curl -X POST http://localhost:3100/server/return/query \
+  -H "Content-Type: application/json" \
+  -d '{
+    "status": "IN_TRANSIT",
+    "expand": "customer,order,location"
+  }'
+```
+
+### 7. Search Returns by Number or Tracking
+
+```bash
+curl -X POST http://localhost:3100/server/return/query \
+  -H "Content-Type: application/json" \
+  -d '{
+    "search": "RET-150000000001",
+    "expand": "customer,order,items"
+  }'
+```
+
+### 8. Get Returns by Date Range
+
+```bash
+curl -X POST http://localhost:3100/server/return/query \
+  -H "Content-Type: application/json" \
+  -d '{
+    "requested_after": "2026-01-01",
+    "requested_before": "2026-01-31",
+    "expand": "customer,order"
+  }'
+```
+
+### 9. Get Rejected Returns
+
+```bash
+curl -X POST http://localhost:3100/server/return/query \
+  -H "Content-Type: application/json" \
+  -d '{
+    "status": "REJECTED",
+    "expand": "customer,order",
+    "orderBy": "rejected_at",
+    "ascending": false
+  }'
+```
+
+### 10. Get Returns by Reason
+
+```bash
+curl -X POST http://localhost:3100/server/return/query \
+  -H "Content-Type: application/json" \
+  -d '{
+    "reason": "DEFECTIVE",
+    "expand": "customer,order,items.variant"
+  }'
+```
+
+## Response Format
+
+### Basic Response (No Expansions)
+
+```json
+{
+  "success": true,
+  "data": {
+    "returns": [
+      {
+        "id": "return-uuid-1",
+        "return_number": "RET-150000000001",
+        "order": "order-uuid-1",
+        "customer": "customer-uuid-1",
+        "status": "REQUESTED",
+        "type": "RETURN",
+        "reason": "SIZE_FIT",
+        "resolution": "REFUND",
+        "total_refund_amount": 2999,
+        "currency": "USD",
+        "customer_note": "Size too small",
+        "requested_at": "2026-01-13T10:00:00Z",
+        "created_at": "2026-01-13T10:00:00Z"
+      }
+    ],
+    "pagination": {
+      "total": 45,
+      "limit": 20,
+      "offset": 0,
+      "page": 1,
+      "pages": 3
+    }
+  }
+}
+```
+
+### Response with Expansions
+
+```json
+{
+  "success": true,
+  "data": {
+    "returns": [
+      {
+        "id": "return-uuid-1",
+        "return_number": "RET-150000000001",
+        "order": {
+          "id": "order-uuid-1",
+          "order_number": "ORD-100000000123",
+          "status": "DELIVERED",
+          "total_price": 5998,
+          "currency": "USD"
+        },
+        "customer": {
+          "id": "customer-uuid-1",
+          "first_name": "John",
+          "last_name": "Doe",
+          "email": "john@example.com",
+          "phone": "+1234567890"
+        },
+        "location": {
+          "id": "location-uuid-1",
+          "name": "Main Warehouse",
+          "code": "WH-001",
+          "city": "New York"
+        },
+        "items": [
+          {
+            "id": "return-item-uuid-1",
+            "variant": {
+              "id": "variant-uuid-1",
+              "sku": "SHIRT-BLK-M",
+              "title": "Black / Medium",
+              "price": 2999
+            },
+            "quantity_requested": 1,
+            "quantity_received": 0,
+            "quantity_approved": 0,
+            "condition": null,
+            "resalable": null,
+            "original_price": 2999,
+            "refund_amount": 2999
+          }
+        ],
+        "status": "REQUESTED",
+        "type": "RETURN",
+        "reason": "SIZE_FIT",
+        "resolution": "REFUND",
+        "total_refund_amount": 2999,
+        "restocking_fee_amount": 0,
+        "shipping_refund_amount": 0,
+        "currency": "USD",
+        "customer_note": "Size too small",
+        "refund_processed": false,
+        "requested_at": "2026-01-13T10:00:00Z",
+        "created_at": "2026-01-13T10:00:00Z"
+      }
+    ],
+    "pagination": {
+      "total": 45,
+      "limit": 20,
+      "offset": 0,
+      "page": 1,
+      "pages": 3
+    }
+  }
+}
+```
+
+## Dashboard Integration Examples
+
+### React/TypeScript: Pending Returns Component
+
+```typescript
+import { useState, useEffect } from 'react';
+
+interface Return {
+  id: string;
+  return_number: string;
+  status: string;
+  customer: {
+    first_name: string;
+    last_name: string;
+    email: string;
+  };
+  order: {
+    order_number: string;
+  };
+  total_refund_amount: number;
+  currency: string;
+  requested_at: string;
+}
+
+export function PendingReturns() {
+  const [returns, setReturns] = useState<Return[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    fetchPendingReturns();
+  }, []);
+
+  const fetchPendingReturns = async () => {
+    try {
+      const response = await fetch('http://localhost:3100/server/return/query', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          status: 'REQUESTED',
+          expand: 'customer,order',
+          orderBy: 'requested_at',
+          ascending: true,
+          limit: 50
+        })
+      });
+
+      const result = await response.json();
+      if (result.success) {
+        setReturns(result.data.returns);
+      }
+    } catch (error) {
+      console.error('Error fetching pending returns:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  if (loading) return <div>Loading...</div>;
+
+  return (
+    <div className="pending-returns">
+      <h2>Pending Returns ({returns.length})</h2>
+      <table>
+        <thead>
+          <tr>
+            <th>Return #</th>
+            <th>Customer</th>
+            <th>Order #</th>
+            <th>Refund Amount</th>
+            <th>Requested</th>
+            <th>Actions</th>
+          </tr>
+        </thead>
+        <tbody>
+          {returns.map(ret => (
+            <tr key={ret.id}>
+              <td>{ret.return_number}</td>
+              <td>{ret.customer.first_name} {ret.customer.last_name}</td>
+              <td>{ret.order.order_number}</td>
+              <td>${(ret.total_refund_amount / 100).toFixed(2)}</td>
+              <td>{new Date(ret.requested_at).toLocaleDateString()}</td>
+              <td>
+                <button onClick={() => handleApprove(ret.id)}>Approve</button>
+                <button onClick={() => handleReject(ret.id)}>Reject</button>
+              </td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
+  );
+}
+```
+
+### React/TypeScript: Returns Search Component
+
+```typescript
+import { useState } from 'react';
+
+export function ReturnsSearch() {
+  const [searchTerm, setSearchTerm] = useState('');
+  const [results, setResults] = useState([]);
+  const [loading, setLoading] = useState(false);
+
+  const handleSearch = async () => {
+    if (!searchTerm.trim()) return;
+
+    setLoading(true);
+    try {
+      const response = await fetch('http://localhost:3100/server/return/query', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          search: searchTerm,
+          expand: 'customer,order,items',
+          limit: 50
+        })
+      });
+
+      const result = await response.json();
+      if (result.success) {
+        setResults(result.data.returns);
+      }
+    } catch (error) {
+      console.error('Error searching returns:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return (
+    <div className="returns-search">
+      <div className="search-bar">
+        <input
+          type="text"
+          value={searchTerm}
+          onChange={(e) => setSearchTerm(e.target.value)}
+          onKeyPress={(e) => e.key === 'Enter' && handleSearch()}
+          placeholder="Search by return number, order number, tracking..."
+        />
+        <button onClick={handleSearch} disabled={loading}>
+          {loading ? 'Searching...' : 'Search'}
+        </button>
+      </div>
+
+      {results.length > 0 && (
+        <div className="search-results">
+          <h3>Found {results.length} returns</h3>
+          {/* Render results */}
+        </div>
+      )}
+    </div>
+  );
+}
+```
+
+## Performance Notes
+
+### Indexing
+The returns table should have indexes on:
+- `return_number` (unique, frequently searched)
+- `"order"` (foreign key, frequently filtered)
+- `customer` (foreign key, frequently filtered)
+- `status` (frequently filtered)
+- `requested_at` (frequently sorted)
+- `completed_at` (frequently filtered)
+
+### Search Performance
+- Client-side search is performed after database query
+- For large result sets, consider limiting the initial query with filters
+- Search is case-insensitive and matches partial strings
+- Search covers: return_number, tracking_number, customer data, order data, notes
+
+### Expansion Performance
+- Use expansions judiciously - each expansion adds join overhead
+- `items.variant` (nested expansion) is more expensive than `items`
+- For large datasets, consider paginating with smaller limits
+
+## Best Practices
+
+### 1. Always Use Filters When Possible
+Instead of querying all returns and filtering client-side, use database filters:
+
+```bash
+# Good: Filter at database level
+curl -X POST http://localhost:3100/server/return/query \
+  -H "Content-Type: application/json" \
+  -d '{"status": "REQUESTED", "customer": "customer-uuid"}'
+
+# Avoid: Fetching all and filtering client-side
+curl -X POST http://localhost:3100/server/return/query \
+  -H "Content-Type: application/json" \
+  -d '{"limit": 1000}'
+```
+
+### 2. Use Date Ranges for Reports
+Leverage date filters for efficient reporting:
+
+```bash
+# Get returns for current month
+curl -X POST http://localhost:3100/server/return/query \
+  -H "Content-Type: application/json" \
+  -d '{
+    "requested_after": "2026-01-01",
+    "requested_before": "2026-01-31",
+    "expand": "customer,order"
+  }'
+```
+
+### 3. Expand Only What You Need
+Don't expand relations unless you need the data:
+
+```bash
+# If you only need return status, don't expand
+curl -X POST http://localhost:3100/server/return/query \
+  -H "Content-Type: application/json" \
+  -d '{"status": "REQUESTED"}'
+
+# Expand only when displaying detailed information
+curl -X POST http://localhost:3100/server/return/query \
+  -H "Content-Type: application/json" \
+  -d '{
+    "status": "REQUESTED",
+    "expand": "customer,order,items.variant"
+  }'
+```
+
+### 4. Use Pagination for Large Datasets
+Always paginate when dealing with many returns:
+
+```bash
+curl -X POST http://localhost:3100/server/return/query \
+  -H "Content-Type: application/json" \
+  -d '{
+    "page": 1,
+    "limit": 50,
+    "orderBy": "requested_at",
+    "ascending": false
+  }'
+```
+
+### 5. Combine Filters for Specific Queries
+Combine multiple filters for precise results:
+
+```bash
+# Find completed returns awaiting refund for specific customer
+curl -X POST http://localhost:3100/server/return/query \
+  -H "Content-Type: application/json" \
+  -d '{
+    "customer": "customer-uuid",
+    "status": "COMPLETED",
+    "refund_processed": false,
+    "expand": "order"
+  }'
+```
+
+## Related Endpoints
+
+- **[Create Return](../RETURNS/README.md#2-create-return)** - Create new return request
+- **[Retrieve Return](../RETURNS/README.md#3-retrieve-return)** - Get single return record
+- **[Approve Return](../RETURNS/README.md#6-approve-return)** - Approve return request
+- **[Inspect Return](../RETURNS/README.md#10-inspect-return)** - Record inspection results
+- **[Complete Return](../RETURNS/README.md#11-complete-return)** - Complete return process
+- **[Process Refund](../RETURNS/README.md#12-process-refund)** - Process refund payment
+
+## Filter Combinations
+
+### Pending Approval (Status = REQUESTED)
+```bash
+curl -X POST http://localhost:3100/server/return/query \
+  -H "Content-Type: application/json" \
+  -d '{
+    "status": "REQUESTED",
+    "expand": "customer,order"
+  }'
+```
+
+### Awaiting Inspection (Status = RECEIVED)
+```bash
+curl -X POST http://localhost:3100/server/return/query \
+  -H "Content-Type: application/json" \
+  -d '{
+    "status": "RECEIVED",
+    "expand": "customer,order,items"
+  }'
+```
+
+### Awaiting Refund (Completed but not processed)
+```bash
+curl -X POST http://localhost:3100/server/return/query \
+  -H "Content-Type: application/json" \
+  -d '{
+    "status": "COMPLETED",
+    "refund_processed": false,
+    "expand": "customer,order"
+  }'
+```
+
+### Recent Returns (Last 7 days)
+```bash
+curl -X POST http://localhost:3100/server/return/query \
+  -H "Content-Type: application/json" \
+  -d '{
+    "requested_after": "2026-01-06",
+    "expand": "customer,order",
+    "orderBy": "requested_at",
+    "ascending": false
+  }'
+```
+
+### Returns by Specific Location
+```bash
+curl -X POST http://localhost:3100/server/return/query \
+  -H "Content-Type: application/json" \
+  -d '{
+    "location": "location-uuid",
+    "expand": "customer,order,items"
+  }'
+```
