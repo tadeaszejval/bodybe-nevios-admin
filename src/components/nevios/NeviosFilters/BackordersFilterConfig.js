@@ -1,6 +1,7 @@
 "use client";
 import { FilterMultipleSelect } from './FilterMultipleSelect';
 import { FilterDateRange } from './FilterDateRange';
+import { FilterContains } from './FilterContains';
 
 /**
  * Backorders Filter Configuration
@@ -46,6 +47,15 @@ export const BACKORDERS_FILTER_CONFIG = [
       fromLabel: 'From Date',
       toLabel: 'To Date',
       fieldPrefix: 'created_at'
+    }
+  },
+  {
+    id: 'order_name',
+    label: 'Order',
+    component: FilterContains,
+    props: {
+      placeholder: 'Search by order name...',
+      debounceMs: 500
     }
   },
   {

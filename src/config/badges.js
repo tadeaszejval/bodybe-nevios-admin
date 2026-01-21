@@ -874,6 +874,11 @@ export const BADGE_CONFIGS = {
       color: "red",
       icon: <TbAlertCircle size={14} />
     },
+    CANCELLED: {
+      label: "Cancelled",
+      color: "red",
+      icon: <TbX size={14} />
+    },
     UNKNOWN: {
       label: "Unknown",
       color: "gray"

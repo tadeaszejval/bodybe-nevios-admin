@@ -48,6 +48,7 @@ The backorder items query endpoint provides flexible querying of backorder recor
 | `order_item` | uuid | Filter by order item UUID |
 | `variant` | uuid | Filter by product variant UUID |
 | `location` | uuid | Filter by warehouse/location UUID |
+| `order_name` | string | Filter by order name (partial match, case-insensitive) |
 
 #### Queue Management Filters
 
@@ -172,7 +173,22 @@ curl -X POST http://localhost:3100/server/backorder/query \
 
 **Use Case:** Customer service checking what items are holding up an order.
 
-### 6. Get Partially Fulfilled Backorders
+### 6. Get Backorders by Order Name
+
+```bash
+curl -X POST http://localhost:3100/server/backorder/query \
+  -H "Content-Type: application/json" \
+  -d '{
+    "filters": {
+      "order_name": "100001234"
+    },
+    "expand": ["variant", "location", "order"]
+  }'
+```
+
+**Use Case:** Search for backorders by order number when customer calls asking about their order status.
+
+### 7. Get Partially Fulfilled Backorders
 
 ```bash
 curl -X POST http://localhost:3100/server/backorder/query \
@@ -187,7 +203,7 @@ curl -X POST http://localhost:3100/server/backorder/query \
 
 **Use Case:** Track backorders that have been partially fulfilled, awaiting more stock.
 
-### 7. Get Backorders Needing Customer Notification
+### 8. Get Backorders Needing Customer Notification
 
 ```bash
 curl -X POST http://localhost:3100/server/backorder/query \
@@ -203,7 +219,7 @@ curl -X POST http://localhost:3100/server/backorder/query \
 
 **Use Case:** Find customers who need to be notified about stock delays.
 
-### 8. Get Auto-Fulfill Queue (What Will Be Fulfilled Next)
+### 9. Get Auto-Fulfill Queue (What Will Be Fulfilled Next)
 
 ```bash
 curl -X POST http://localhost:3100/server/backorder/query \

@@ -10,6 +10,14 @@ import { FilterDateRange } from './FilterDateRange';
  * Defines available filters for the orders table
  */
 
+// Order Status Filter Options
+const ORDER_STATUS_OPTIONS = [
+  { value: 'ACTIVE', label: 'Active' },
+  { value: 'HOLD', label: 'Hold' },
+  { value: 'ARCHIVED', label: 'Archived' },
+  { value: 'CANCELLED', label: 'Cancelled' }
+];
+
 // Payment Status Filter Options
 const PAYMENT_STATUS_OPTIONS = [
   { value: 'PAID', label: 'Paid' },
@@ -57,6 +65,16 @@ export const ORDERS_FILTER_CONFIG = [
       fromLabel: 'From Date',
       toLabel: 'To Date',
       fieldPrefix: 'created_at'
+    }
+  },
+  {
+    id: 'status',
+    label: 'Status',
+    component: FilterMultipleSelect,
+    options: ORDER_STATUS_OPTIONS,
+    props: {
+      placeholder: 'All statuses',
+      maxDisplayChips: 2
     }
   },
   {
@@ -121,6 +139,7 @@ export const ORDERS_FILTER_CONFIG = [
 
 // Export individual filter configs for flexibility
 export {
+  ORDER_STATUS_OPTIONS,
   PAYMENT_STATUS_OPTIONS,
   FULFILLMENT_STATUS_OPTIONS,
   INVENTORY_STATUS_OPTIONS,
