@@ -13,7 +13,7 @@ import dayjs from "dayjs";
 import { ContentLoadingScreen } from "../../../components/ContentLoadingScreen";
 import { useAnalyticsUrlParams } from "../../../hooks/useAnalyticsUrlParams";
 
-const MARKET = "bodybe/czechia";
+const MARKET = process.env.NEXT_PUBLIC_DEFAULT_MARKET || "bodybe/czechia";
 
 // Helper function to format currency
 const formatCurrency = (value) => {
