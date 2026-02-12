@@ -1,96 +1,122 @@
 "use client";
-import React, { useState, useEffect } from "react";
+import React, { useState, useMemo } from "react";
 import { useRouter } from "next/navigation";
 import { 
   Box,
   Typography,
   Alert,
-  CircularProgress,
+  Snackbar,
   Tooltip,
   Link,
-  Avatar
+  Avatar,
+  Button,
+  Table,
+  TableBody,
+  TableCell,
+  TableContainer,
+  TableRow,
+  Paper
 } from "@mui/material";
 import { DashboardHeader } from "../../../components/DashboardHeader";
 import { PageContainer } from "../../../components/PageContainer";
 import { NeviosFormPaper } from "../../../components/nevios/NeviosFormPaper";
-import { TbTruckDelivery, TbExternalLink, TbPackage } from "react-icons/tb";
+import { TbTruckDelivery, TbExternalLink, TbPackage, TbReceipt, TbArrowLeft, TbClock } from "react-icons/tb";
 import { NeviosTwoColumnFormContainer } from "../../../components/nevios/NeviosFormContainer";
-import { supabase } from "../../../utils/supabase";
 import { formatReadableDatetime } from "../../../core/formatters";
 import { NeviosCopyBlock } from "../../../components/nevios/NeviosCopyBlock";
 import { NeviosFormPaperBlock } from "../../../components/nevios/NeviosFormPaperBlock";
 import { NeviosBadge } from "../../../components/nevios/NeviosBadge";
 import NeviosPaginationButtons from "../../../components/nevios/NeviosPaginationButtons";
-import { getCountryName } from "../../../core/countryName";
+import NeviosGroupButton from "../../../components/nevios/NeviosGroupButton";
 import { ContentLoadingScreen } from "../../../components/ContentLoadingScreen";
-import { ShippingAddressDisplay } from "../../../components/ShippingAddressDisplay";
+import { ShippingAddressCard } from "../../../components/ShippingAddressCard";
+import { NeviosCustomerCard } from "../../../components/nevios/NeviosCustomerCard";
+import { NeviosOrderCard } from "../../../components/nevios/NeviosOrderCard";
+import { useModuleRetrieve } from "../../../hooks/useModuleRetrieve";
 
 export function FulfillmentView({ fulfillmentId }) {
   const router = useRouter();
-  const [fulfillment, setFulfillment] = useState(null);
-  const [loading, setLoading] = useState(true);
   const [snackbar, setSnackbar] = useState({ open: false, message: '', severity: 'info' });
 
-  // Fetch fulfillment data
-  useEffect(() => {
-    if (!fulfillmentId) return;
-
-    const fetchFulfillment = async () => {
-      try {
-        setLoading(true);
-        
-        // Fetch the fulfillment data with related information
-        const { data, error } = await supabase
-          .from('fulfillments')
-          .select(`
-            *,
-            customer:customers(id, first_name, last_name, email, phone),
-            order:orders(id, name),
-            shipping_address:shipping_address(
-              id, first_name, last_name, company, address, additional_address, 
-              city, province, country, zip
-            ),
-            items:fulfillment_items(
-              id, shipped_quantity,
-              order_item:order_item(
-                id, quantity, product_title, sku, variant_title, image
-              )
-            )
-          `)
-          .eq('id', fulfillmentId)
-          .single();
-          
-        if (error) throw error;
-        
-        setFulfillment(data);
-      } catch (err) {
-        console.error("Error fetching fulfillment:", err);
-        setSnackbar({
-          open: true,
-          message: "Failed to load fulfillment: " + (err.message || "Unknown error"),
-          severity: "error"
-        });
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    fetchFulfillment();
-  }, [fulfillmentId]);
+  // ✅ Use useModuleRetrieve hook to fetch fulfillment data via Express API
+  // Note: Only expand items, shipping_address, and tracking_history
+  // Customer and order cards fetch their own data by ID
+  const { 
+    data: fulfillment, 
+    loading, 
+    error: fetchError, 
+    refreshData 
+  } = useModuleRetrieve('fulfillment', fulfillmentId, {
+    expand: ['items', 'shipping_address', 'tracking_history']
+  });
 
   // Close snackbar
   const handleCloseSnackbar = () => {
     setSnackbar({ ...snackbar, open: false });
   };
 
+  const handleFulfill = async () => {
+    // TODO: Implement with separate endpoint
+    console.log('Fulfill clicked for fulfillment:', fulfillmentId);
+  };
+
+  const handleUnfulfill = async () => {
+    // TODO: Implement with separate endpoint
+    console.log('Unfulfill clicked for fulfillment:', fulfillmentId);
+  };
+
+  const handleAddTracking = async () => {
+    // TODO: Implement with separate endpoint
+    console.log('Add tracking clicked for fulfillment:', fulfillmentId);
+  };
+
+  const handleCancel = async () => {
+    // TODO: Implement with separate endpoint
+    console.log('Cancel clicked for fulfillment:', fulfillmentId);
+  };
+
+  // Build complete tracking history including initial creation (newest first)
+  const completeTrackingHistory = useMemo(() => {
+    if (!fulfillment) return [];
+
+    const history = fulfillment.tracking_history || [];
+    const allStatuses = [];
+
+    // Add initial "Created" status using fulfillment creation date
+    allStatuses.push({
+      id: 'created',
+      new_delivery_status: 'CREATED',
+      new_carrier_status: null,
+      created_at: fulfillment.created_at
+    });
+
+    // Add all tracking history entries
+    allStatuses.push(...history);
+
+    // Reverse to show newest first (latest at top)
+    return allStatuses.reverse();
+  }, [fulfillment]);
+
   if (loading) {
     return <ContentLoadingScreen />;
   }
 
-  if (!fulfillment) {
+  if (fetchError || !fulfillment) {
     return (
       <PageContainer>
-        <Alert severity="error">Fulfillment not found</Alert>
+        <Alert severity="error">
+          {fetchError || 'Fulfillment not found'}
+        </Alert>
+        <Box sx={{ mt: 2 }}>
+          <Button 
+            variant="outlined" 
+            color="primary" 
+            startIcon={<TbArrowLeft />} 
+            onClick={() => router.push('/dashboard/fulfillments')}
+          >
+            Back to Fulfillments
+          </Button>
+        </Box>
       </PageContainer>
     );
   }
@@ -101,6 +127,21 @@ export function FulfillmentView({ fulfillmentId }) {
         maxWidth: "950px"
       }}
     >
+      <Snackbar 
+        open={snackbar.open} 
+        autoHideDuration={6000} 
+        onClose={handleCloseSnackbar}
+        anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }}
+      >
+        <Alert 
+          onClose={handleCloseSnackbar} 
+          severity={snackbar.severity} 
+          sx={{ width: '100%' }}
+        >
+          {snackbar.message}
+        </Alert>
+      </Snackbar>
+
       <DashboardHeader
         title={fulfillment.name || "Fulfillment"}
         icon={<TbTruckDelivery size={24} />}
@@ -108,13 +149,37 @@ export function FulfillmentView({ fulfillmentId }) {
         iconTooltipTitle="Back to fulfillments"
         actions={
           <Box sx={{ display: 'flex', gap: 1 }}>
+            <NeviosGroupButton
+              buttonText="Actions"
+              menuItems={[
+                { 
+                  label: 'Fulfill Package', 
+                  onClick: handleFulfill,
+                  disabled: fulfillment.status === 'FULFILLED'
+                },
+                { 
+                  label: 'Unfulfill Package', 
+                  onClick: handleUnfulfill,
+                  disabled: fulfillment.status !== 'FULFILLED' || ['IN_TRANSIT', 'OUT_FOR_DELIVERY', 'DELIVERED'].includes(fulfillment.delivery_status)
+                },
+                { 
+                  label: 'Add Tracking', 
+                  onClick: handleAddTracking
+                },
+                { 
+                  label: 'Cancel Fulfillment', 
+                  onClick: handleCancel,
+                  disabled: fulfillment.status === 'FULFILLED'
+                }
+              ]}
+            />
             <NeviosPaginationButtons
               previousButtonOnClick={() => {}}
               nextButtonOnClick={() => {}}
             />  
           </Box>
         }
-        subtitle={`Created at ${formatReadableDatetime(fulfillment.created_at)}`}
+        subtitle={`Created ${formatReadableDatetime(fulfillment.created_at)}`}
         badges={
           <Box sx={{ display: 'flex', gap: 1 }}>
             <NeviosBadge value={fulfillment.status} configKey="fulfillmentModuleStatus" />
@@ -148,24 +213,24 @@ export function FulfillmentView({ fulfillmentId }) {
                       }}
                     >
                       <Box sx={{ display: 'flex', alignItems: 'flex-start', gap: 2 }}>
-                        <Avatar src={item.order_item.image} alt={item.order_item.product_title} icon={<TbPackage />} sx={{ width: 45, height: 45, borderRadius: "12px", backgroundColor: "#fafbfc", border: "0.7px solid rgba(0, 0, 0, 0.12)" }} />
+                        <Avatar src={item.order_item?.image} alt={item.order_item?.product_title} icon={<TbPackage />} sx={{ width: 45, height: 45, borderRadius: "12px", backgroundColor: "#fafbfc", border: "0.7px solid rgba(0, 0, 0, 0.12)" }} />
                       </Box>
                       <Box sx={{ flex: 1, display: 'flex', flexDirection: 'column', gap: 0.5 }}>
                         <Typography variant="subtitle2" sx={{ fontWeight: 600 }}>
-                          {item.order_item.product_title || 'Unknown Product'}
+                          {item.order_item?.product_title || 'Unknown Product'}
                         </Typography>
-                        {item.order_item.variant_title && (
-                          <Typography variant="body2" color="text.secondary">
+                        {item.order_item?.variant_title && (
+                          <Typography sx={{ fontSize: "12px", fontWeight: 500, backgroundColor: "#f0f0f0", padding: "2px 6px", borderRadius: "8px", width: "fit-content" }}>
                             {item.order_item.variant_title}
                           </Typography>
                         )}
                         <Typography variant="caption" color="text.secondary">
-                          SKU: {item.order_item.sku || 'N/A'}
+                          SKU: {item.order_item?.sku || 'N/A'}
                         </Typography>
                       </Box>
                       <Box sx={{ textAlign: 'right' }}>
                         <Typography variant="body2" sx={{ fontWeight: 500 }}>
-                          Shipped: <strong>{item.shipped_quantity}</strong> out of {item.order_item.quantity}
+                          Quantity: <strong>{item.shipped_quantity}</strong>
                         </Typography>
 
                       </Box>
@@ -177,108 +242,62 @@ export function FulfillmentView({ fulfillmentId }) {
               </Box>
             </NeviosFormPaper>
 
-            <ShippingAddressDisplay address={fulfillment.shipping_address} />
+            {completeTrackingHistory.length > 0 && (
+              <NeviosFormPaper title="Tracking History" titleIcon={<TbClock size={16} />}>
+                <TableContainer component={Paper} elevation={0}>
+                  <Table size="small">
+                    <TableBody>
+                      {completeTrackingHistory.map((history, index) => (
+                        <TableRow
+                          key={history.id}
+                          sx={{
+                            "&:last-child td": {
+                              borderBottom: "none",
+                            }
+                          }}
+                        >
+                          <TableCell sx={{ padding: "10px 15px", borderBottom: index !== completeTrackingHistory.length - 1 ? "1px solid" : "none", borderColor: "grey.200" }}>
+                            <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.5 }}>
+                              <NeviosBadge
+                                value={history.new_delivery_status}
+                                configKey="deliveryStatus"
+                              />
+                              {history.new_carrier_status && (
+                                <Typography variant="caption" color="text.secondary">
+                                  {history.new_carrier_status}
+                                </Typography>
+                              )}
+                            </Box>
+                          </TableCell>
+                          <TableCell align="right" sx={{ padding: "10px 15px", borderBottom: index !== completeTrackingHistory.length - 1 ? "1px solid" : "none", borderColor: "grey.200" }}>
+                            <Typography variant="body2" color="text.secondary">
+                              {formatReadableDatetime(history.created_at)}
+                            </Typography>
+                          </TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                </TableContainer>
+              </NeviosFormPaper>
+            )}
           </>
         }
         sideContent={
           <>
-            <NeviosFormPaper title="Details" gap={3}>
-              <NeviosFormPaperBlock title="Fulfillment Name:">
-                <Typography variant="body2x">
-                  {fulfillment.name || 'N/A'}
-                </Typography>
-              </NeviosFormPaperBlock>
-              
-              <NeviosFormPaperBlock title="Type:">
-                <Typography variant="body2x">
-                  {fulfillment.shipping_type}
-                </Typography>
-              </NeviosFormPaperBlock>
 
-              <NeviosFormPaperBlock title="Carrier:">
-                <Typography variant="body2x">
-                  {fulfillment.carrier_name || 'Unknown'}
-                </Typography>
-                {fulfillment.external_name && fulfillment.external_name !== fulfillment.carrier_name && (
-                  <Typography variant="caption" color="text.secondary">
-                    External: {fulfillment.external_name}
-                  </Typography>
-                )}
-              </NeviosFormPaperBlock>
+            <ShippingAddressCard address={fulfillment?.shipping_address} />
+            <NeviosCustomerCard 
+              customer={fulfillment?.customer}
+              showBillingAddress={false}
+            />
 
-              {fulfillment.tracking && fulfillment.tracking !== 'N/A' && (
-                <NeviosFormPaperBlock title="Tracking:">
-                  {fulfillment.tracking_link ? (
-                    <Link
-                      href={fulfillment.tracking_link}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      sx={{
-                        display: "flex",
-                        alignItems: "center",
-                        gap: 0.5,
-                        color: "primary.main",
-                        textDecoration: "none",
-                        "&:hover": {
-                          textDecoration: "underline",
-                        },
-                      }}
-                    >
-                      {fulfillment.tracking}
-                      <TbExternalLink size={14} />
-                    </Link>
-                  ) : (
-                    <NeviosCopyBlock copyValue={fulfillment.tracking} />
-                  )}
-                </NeviosFormPaperBlock>
-              )}
-
-              <NeviosFormPaperBlock title="Shipping Type:">
-                <Typography variant="body2x">
-                  {fulfillment.shipping_type || 'standard'}
-                </Typography>
-              </NeviosFormPaperBlock>
-            </NeviosFormPaper>
-
-            {fulfillment.customer && (
-              <NeviosFormPaper title="Customer" gap={3}>
-                <Tooltip title="View customer" placement="right">
-                  <Typography 
-                    variant="body2x" 
-                    sx={{ 
-                      width: 'fit-content', 
-                      cursor: 'pointer', 
-                      color: 'primary.main', 
-                      '&:hover': { textDecoration: 'underline' } 
-                    }}
-                    onClick={() => router.push(`/dashboard/customers/${fulfillment.customer.id}`)}
-                  >
-                    {fulfillment.customer.first_name} {fulfillment.customer.last_name}
-                  </Typography>
-                </Tooltip>
-                <NeviosCopyBlock copyValue={fulfillment.customer.email} />
-              </NeviosFormPaper>
-            )}
-
-            {fulfillment.order && (
-              <NeviosFormPaper title="Order" gap={3}>
-                <Typography variant="body2x">
-                  {fulfillment.order.name}
-                </Typography>
-                <Typography 
-                  variant="body2x" 
-                  sx={{ 
-                    width: 'fit-content', 
-                    cursor: 'pointer', 
-                    color: 'primary.main', 
-                    '&:hover': { textDecoration: 'underline' } 
-                  }}
-                  onClick={() => router.push(`/dashboard/orders/${fulfillment.order.id}`)}
-                >
-                  View Order
-                </Typography>
-              </NeviosFormPaper>
-            )}
+            <NeviosOrderCard 
+              order={fulfillment?.order}
+              showTotalAmount={true}
+              showCreatedDate={true}
+              showOrderStatus={true}
+            />
           </>
         }
       />

@@ -1,0 +1,910 @@
+# Payment System Documentation
+
+## Overview
+The payment system provides comprehensive payment processing, tracking, and reconciliation functionality with support for multiple payment providers and payment methods. It integrates with order management, customer records, and automated fulfillment workflows.
+
+## 🚀 **Key Features**
+
+- **Payment Processing**: Create and process payments with automatic order integration
+- **Multiple Payment Types**: Support for GATEWAY, COD, BANK_TRANSFER, and MANUAL payments
+- **Multiple Payment Providers**: Integration with various payment gateways (e.g., ČSOB)
+- **Status Tracking**: Real-time payment status monitoring with comprehensive history tracking
+- **Refund Management**: Full and partial refund support with automated order status updates
+- **Auto-fulfillment Integration**: Automatic fulfillment creation when payment conditions are met
+- **Order Payment Status Calculation**: Automatic tracking of total paid amounts and payment status (PAID, UNPAID, PARTIALLY_PAID)
+- **Event-Driven Architecture**: Complete audit trail with event capture for all payment operations
+- **Status History**: Detailed tracking of payment status changes over time
+
+## 🔧 **API Endpoints**
+
+### 1. Query Payments
+**POST** `/server/payment/query` - Query payments with filtering, pagination, and search
+
+**Request Body:**
+- `page` (number): Page number (default: 1)
+- `limit` (number): Records per page (default: 50)
+- `orderBy` (string): Sort column (default: 'created_at')
+- `ascending` (boolean): Sort direction (default: false)
+- `search` (string): Search across payment fields
+- `expand` (array): Relations to expand (customer, order, transactions, status_history)
+- `filters` (object): Filter criteria
+  - `order` (string): Filter by order ID
+  - `customer` (string): Filter by customer ID
+  - `status` (string): PAID, UNPAID, REFUNDED
+  - `type` (string): GATEWAY, COD, BANK_TRANSFER, MANUAL
+  - `created_at_from` (string): Date range start (YYYY-MM-DD)
+  - `created_at_to` (string): Date range end (YYYY-MM-DD)
+
+**Example:**
+```bash
+curl -X POST "http://localhost:3010/api/server/payment/query" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "filters": {
+      "status": "UNPAID",
+      "created_at_from": "2026-01-01"
+    },
+    "expand": ["customer", "order"],
+    "page": 1,
+    "limit": 50
+  }'
+```
+
+See [QUERY.md](./QUERY.md) for detailed documentation.
+
+### 2. Create Payment
+**POST** `/server/payment/create` - Create new payment record
+
+**Request Body:**
+- `type` (string, required): Payment type (GATEWAY, COD, BANK_TRANSFER, MANUAL)
+- `amount` (number, required): Payment amount
+- `currency` (string, required): Currency ID
+- `customer` (string, required): Customer ID
+- `order` (string, optional): Order ID
+- `status` (string, optional): Payment status (default: UNPAID)
+- `name` (string, optional): Payment name (auto-generated if not provided)
+- `external_name` (string, optional): External reference/transaction ID
+- `paid_at` (string, optional): Timestamp when paid
+- `refunded_at` (string, optional): Timestamp when refunded
+
+**Smart Order Integration:**
+If only `order` is provided, the system automatically fetches and populates:
+- Customer ID from order
+- Payment amount from order total
+- Currency from order's market currency
+- Payment type from order's payment method
+
+**Example - Manual Payment:**
+```bash
+curl -X POST "http://localhost:3010/api/server/payment/create" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "type": "BANK_TRANSFER",
+    "amount": 1250.00,
+    "currency": "CZK",
+    "customer": "customer-uuid",
+    "order": "order-uuid",
+    "external_name": "REF-2024-001"
+  }'
+```
+
+**Example - Auto-populate from Order:**
+```bash
+curl -X POST "http://localhost:3010/api/server/payment/create" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "order": "order-uuid"
+  }'
+```
+
+**What happens on creation:**
+1. Payment record created in database
+2. Payment name auto-generated (if not provided)
+3. Initial status history entry created
+4. `payment.create` event captured
+5. If status is PAID and order exists, order payment status updated
+6. Automated deposit invoice creation triggered (if configured)
+
+### 3. Retrieve Payment
+**GET** `/server/payment/retrieve/:id` - Get single payment with optional expansions
+
+**Query Parameters:**
+- `expand` (string) - Comma-separated list of relations to expand
+  - Available expansions: `transactions`, `order`, `status_history`
+  - Example: `?expand=transactions,order,status_history`
+
+**Example:**
+```bash
+curl -X GET "http://localhost:3010/api/server/payment/retrieve/payment-uuid?expand=transactions,order,status_history"
+```
+
+**Response:**
+```json
+{
+  "success": true,
+  "data": {
+    "id": "payment-uuid",
+    "name": "PAY-1001",
+    "type": "GATEWAY",
+    "amount": 1250.00,
+    "currency": "CZK",
+    "status": "PAID",
+    "paid_at": "2026-01-15T10:30:00Z",
+    "customer": "customer-uuid",
+    "order": "order-uuid",
+    "external_name": "stripe_pi_123",
+    "created_at": "2026-01-15T10:00:00Z",
+    "order": {
+      "id": "order-uuid",
+      "name": "ORD-1001",
+      "status": "ACTIVE"
+    },
+    "status_history": [
+      {
+        "id": "history-uuid",
+        "payment": "payment-uuid",
+        "previous_status": "UNPAID",
+        "new_status": "PAID",
+        "created_at": "2026-01-15T10:30:00Z"
+      }
+    ]
+  }
+}
+```
+
+**Additional Functions:**
+- `findPaymentsByOrder(orderId, options)` - Find all payments for an order
+- `getPaymentStatusHistory(paymentId, options)` - Get paginated status history
+
+### 4. Modify Payment
+**PUT** `/server/payment/modify/:id` - Update payment details
+
+**Request Body (all optional):**
+- `name` (string): Payment name
+- `type` (string): Payment type
+- `amount` (number): Payment amount
+- `currency` (string): Currency ID
+- `status` (string): Payment status
+- `paid_at` (string): Paid timestamp
+- `refunded_at` (string): Refunded timestamp
+- `customer` (string): Customer ID
+- `order` (string): Order ID
+- `external_name` (string): External reference
+
+**Example:**
+```bash
+curl -X PUT "http://localhost:3010/api/server/payment/modify/payment-uuid" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "external_name": "stripe_pi_updated_123",
+    "status": "PAID"
+  }'
+```
+
+**Auto-behaviors:**
+- If `status` changed to PAID and `paid_at` not provided, sets current timestamp
+- If `status` changed to REFUNDED and `refunded_at` not provided, sets current timestamp
+- Status changes recorded in payment_status_history
+- Order payment status updated if payment status changed
+
+### 5. Mark Payment as Paid
+**PUT** `/server/payment/update/mark-paid/:id` - Mark payment as paid
+
+**Request Body (optional):**
+- `paid_at` (string): Custom paid timestamp (defaults to current time)
+
+**Example:**
+```bash
+curl -X PUT "http://localhost:3010/api/server/payment/update/mark-paid/payment-uuid" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "paid_at": "2026-01-15T10:30:00Z"
+  }'
+```
+
+**What happens when payment is marked as PAID:**
+1. Payment status updated to `PAID`
+2. `paid_at` timestamp set (current time or custom)
+3. Payment status history recorded
+4. `payment.mark_paid` event captured
+5. **Order payment status recalculated:**
+   - Total paid amount calculated from all PAID payments
+   - Order payment_status updated (UNPAID → PARTIALLY_PAID → PAID)
+6. **If order is now fully PAID:**
+   - Order inventory_status checked
+   - If `inventory_status = AVAILABLE` or `PARTIAL` (without blocking backorders):
+     - Order status changed from HOLD → ACTIVE
+     - Auto-fulfillment check triggered
+     - If products have `auto_fulfill = true`, fulfillment created automatically
+
+### 6. Refund Payment
+**PUT** `/server/payment/update/refund/:id` - Refund a paid payment
+
+**Request Body (optional):**
+- `refunded_at` (string): Custom refund timestamp (defaults to current time)
+
+**Validation:**
+- Only PAID payments can be refunded
+- Payment must exist
+
+**Example:**
+```bash
+curl -X PUT "http://localhost:3010/api/server/payment/update/refund/payment-uuid" \
+  -H "Content-Type: application/json"
+```
+
+**What happens on refund:**
+1. Payment status updated to `REFUNDED`
+2. `refunded_at` timestamp set
+3. Payment status history recorded
+4. Order payment status recalculated
+5. Order payment_status may change (PAID → PARTIALLY_PAID or UNPAID)
+
+### 7. Monitor Payment Status
+**POST** `/server/payment/monitor-status/:paymentId` - Manually check payment gateway status
+
+**Example:**
+```bash
+curl -X POST "http://localhost:3010/api/server/payment/monitor-status/payment-uuid"
+```
+
+**POST** `/server/payment/monitor-status/batch` - Process batch of pending payments
+
+**Request Body:**
+- `batchSize` (number, optional): Number of payments to check (default: 10)
+
+**Example:**
+```bash
+curl -X POST "http://localhost:3010/api/server/payment/monitor-status/batch" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "batchSize": 20
+  }'
+```
+
+### 8. Delete Payment
+**DELETE** `/server/payment/delete/:id` - Delete payment record
+
+**Example:**
+```bash
+curl -X DELETE "http://localhost:3010/api/server/payment/delete/payment-uuid"
+```
+
+## 📊 **Database Schema**
+
+### Main Payments Table
+
+```sql
+CREATE TABLE payments (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  name TEXT UNIQUE,                                    -- Auto-generated payment name (e.g., PAY-1001)
+  type TEXT CHECK (type IN ('GATEWAY', 'COD', 'BANK_TRANSFER', 'MANUAL')),
+  amount NUMERIC,                                      -- Payment amount
+  currency TEXT REFERENCES currencies(id),             -- Currency reference
+  status TEXT CHECK (status IN ('PAID', 'UNPAID', 'REFUNDED')),
+  paid_at TIMESTAMP WITH TIME ZONE,                    -- When payment was paid
+  refunded_at TIMESTAMP WITH TIME ZONE,                -- When payment was refunded
+  customer UUID REFERENCES customers(id),              -- Customer who made payment
+  "order" UUID REFERENCES orders(id),                  -- Associated order (quoted - reserved keyword)
+  external_name TEXT,                                  -- External reference/transaction ID
+  provider_id TEXT,                                    -- Payment provider identifier
+  return UUID REFERENCES returns(id),                  -- Associated return (for refund payments)
+  refund_for_payment UUID REFERENCES payments(id),     -- Original payment being refunded
+  refund_reason TEXT,                                  -- Reason for refund
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);
+```
+
+### Payment Status History Table
+
+Tracks all status changes for audit and reconciliation:
+
+```sql
+CREATE TABLE payment_status_history (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  payment UUID NOT NULL REFERENCES payments(id),       -- Payment being tracked
+  order_id UUID REFERENCES orders(id),                 -- Associated order
+  previous_status TEXT,                                -- Previous payment status
+  new_status TEXT,                                     -- New payment status
+  previous_provider_status_title TEXT,                 -- Gateway status title (before)
+  new_provider_status_title TEXT,                      -- Gateway status title (after)
+  previous_provider_status_code NUMERIC,               -- Gateway status code (before)
+  new_provider_status_code NUMERIC,                    -- Gateway status code (after)
+  created_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW()
+);
+```
+
+### Related Tables
+
+**Payment Method Configuration:**
+
+```sql
+CREATE TABLE payment_method (
+  id UUID PRIMARY KEY,
+  type TEXT,                                           -- Payment method type
+  name TEXT,                                           -- Display name
+  description TEXT,                                    -- Method description
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+  labels TEXT,                                         -- Classification labels
+  gateway TEXT REFERENCES gateways(id)                 -- Associated payment gateway
+);
+
+CREATE TABLE payment_method_sets (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  payment_method UUID REFERENCES payment_method(id),   -- Method reference
+  market_currency TEXT REFERENCES market_currencies(id), -- Market-specific currency
+  price NUMERIC,                                       -- Payment method fee/cost
+  shipping_method_sets UUID REFERENCES shipping_method_sets(id),
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);
+```
+
+## 🔍 **Data Relations**
+
+### Payment → Customer
+Every payment is linked to a customer for tracking payment history and customer account reconciliation.
+
+### Payment → Order
+Payments can be associated with orders. Multiple payments can exist for a single order (partial payments, installments).
+
+### Payment → Currency
+Payments reference the currency table for proper amount formatting and conversion.
+
+### Payment → Payment (Refunds)
+Refund payments can reference the original payment via `refund_for_payment`, creating a payment chain for accounting.
+
+### Payment → Returns
+Refund payments can be linked to return records to track the reason for refund.
+
+## 🔄 **Payment Flow & Order Integration**
+
+### Payment Creation Flow
+1. **Payment Created** with status UNPAID
+2. Payment status history initialized
+3. `payment.create` event captured
+4. Deposit invoice automatically created (if configured)
+
+### Payment to Paid Flow
+1. **Payment Marked as PAID** (manual or webhook)
+2. `paid_at` timestamp set
+3. Payment status history updated
+4. `payment.mark_paid` event captured
+5. **Order Payment Status Recalculated:**
+   - Sum all PAID payments for order
+   - Update order's `total_paid_price_gross`
+   - Update order's `payment_status`:
+     - `UNPAID`: No payments received
+     - `PARTIALLY_PAID`: Some amount paid, less than total
+     - `PAID`: Full amount or more received
+6. **If Order Becomes Fully Paid:**
+   - Check `inventory_status`:
+     - `AVAILABLE`: All items in stock
+     - `PARTIAL`: Some items in stock, some backordered (check if blocking)
+   - Check for blocking backorders (not demand tracking)
+   - **If inventory ready and order on HOLD:**
+     - Order status: HOLD → ACTIVE
+     - Auto-fulfillment check triggered
+     - If products have `auto_fulfill = true`, create fulfillment automatically
+
+### Refund Flow
+1. **Payment Refunded** (only PAID payments)
+2. `refunded_at` timestamp set
+3. Status: PAID → REFUNDED
+4. Payment status history updated
+5. **Order Payment Status Recalculated:**
+   - Total paid amount reduced
+   - Order `payment_status` may change: PAID → PARTIALLY_PAID or UNPAID
+   - Order status may need manual review
+
+## 🛠 **Core Functions**
+
+All payment business logic is located in `/functions/payment/`.
+
+### createPayment(data, eventContext)
+Creates a new payment record with automatic order integration.
+
+**Parameters:**
+- `data.type` (string, required): GATEWAY, COD, BANK_TRANSFER, MANUAL
+- `data.amount` (number, required): Payment amount
+- `data.currency` (string, required): Currency ID
+- `data.customer` (string, required): Customer ID
+- `data.order` (string, optional): Order ID
+- `data.status` (string, optional): PAID, UNPAID, REFUNDED (default: UNPAID)
+- `data.name` (string, optional): Payment name (auto-generated if omitted)
+- `data.external_name` (string, optional): External transaction reference
+- `data.paid_at` (string, optional): Custom paid timestamp
+- `data.refunded_at` (string, optional): Custom refund timestamp
+- `eventContext` (object, optional): Actor and source for event tracking
+
+**Smart Order Integration:**
+If only `order` is provided (without amount, currency, type), the function automatically:
+- Fetches order details from database
+- Extracts `customer` from order
+- Calculates `amount` from `orders_pricing` table (total component)
+- Resolves `currency` from order's market currency or local currency
+- Determines `type` from order's payment method configuration
+
+**Returns:** Created payment object
+
+**Example:**
+```javascript
+const { createPayment } = require('./functions/payment/create');
+
+// Manual creation with all details
+const payment = await createPayment({
+  type: 'BANK_TRANSFER',
+  amount: 1250.00,
+  currency: 'CZK',
+  customer: 'customer-uuid',
+  order: 'order-uuid',
+  external_name: 'REF-2024-001'
+});
+
+// Auto-populate from order
+const payment = await createPayment({
+  order: 'order-uuid'
+});
+```
+
+### queryPayments(options)
+Query payments with filtering, pagination, sorting, and search.
+
+**Parameters:**
+- `options.page` (number): Page number (default: 1)
+- `options.limit` (number): Records per page (default: 50)
+- `options.orderBy` (string): Sort column (default: 'created_at')
+- `options.ascending` (boolean): Sort direction (default: false)
+- `options.search` (string): Search term (searches across multiple fields)
+- `options.expand` (array): Relations to expand
+- `options.filters` (object): Filter criteria
+
+**Search Coverage:**
+When `search` is provided, searches across:
+- Payment fields: name, type, status, external_name, provider_name, amount, currency, id
+- Customer fields (if expanded): full_name, email, phone, id
+- Order fields (if expanded): name, status, id
+
+**Returns:** Query result with pagination metadata
+
+**Example:**
+```javascript
+const { queryPayments } = require('./functions/payment/query');
+
+const result = await queryPayments({
+  filters: {
+    status: 'UNPAID',
+    created_at_from: '2026-01-01',
+    customer: 'customer-uuid'
+  },
+  expand: ['customer', 'order'],
+  search: 'PAY-10',
+  page: 1,
+  limit: 50
+});
+```
+
+### retrievePayment(paymentId, expand)
+Retrieve a single payment with optional relation expansion.
+
+**Parameters:**
+- `paymentId` (string, required): Payment UUID
+- `expand` (string|array, optional): Relations to expand
+
+**Available Expansions:**
+- `transactions`: Payment gateway transactions
+- `order`: Associated order details
+- `status_history`: Payment status change history
+
+**Returns:** `{ success: boolean, data: object, error?: string }`
+
+**Example:**
+```javascript
+const { retrievePayment } = require('./functions/payment/retrieve');
+
+const result = await retrievePayment(
+  'payment-uuid',
+  'transactions,order,status_history'
+);
+
+if (result.success) {
+  console.log(result.data.order);
+  console.log(result.data.status_history);
+}
+```
+
+### modifyPayment(id, data)
+Update payment details with automatic status history tracking.
+
+**Parameters:**
+- `id` (string, required): Payment ID
+- `data` (object): Fields to update (all optional)
+
+**Auto-behaviors:**
+- Status changes recorded in payment_status_history
+- `paid_at` auto-set when status changes to PAID
+- `refunded_at` auto-set when status changes to REFUNDED
+- Order payment status updated when payment status changes
+
+**Example:**
+```javascript
+const { modifyPayment } = require('./functions/payment/modify');
+
+const payment = await modifyPayment('payment-uuid', {
+  external_name: 'stripe_pi_123',
+  status: 'PAID'
+});
+```
+
+### markAsPaid(id, data, eventContext)
+Mark a payment as paid with automatic order processing.
+
+**Parameters:**
+- `id` (string, required): Payment ID
+- `data.paid_at` (string, optional): Custom paid timestamp
+- `eventContext` (object, optional): Actor and source for event tracking
+
+**Automated Actions:**
+1. Sets payment status to PAID
+2. Sets paid_at timestamp
+3. Records status history
+4. Captures `payment.mark_paid` event
+5. Recalculates order payment status
+6. Activates order if conditions met
+7. Triggers auto-fulfillment check
+
+**Example:**
+```javascript
+const { markAsPaid } = require('./functions/payment/update');
+
+const payment = await markAsPaid('payment-uuid', {
+  paid_at: '2026-01-15T10:30:00Z'
+});
+```
+
+### refundPayment(id, data)
+Refund a paid payment.
+
+**Parameters:**
+- `id` (string, required): Payment ID
+- `data.refunded_at` (string, optional): Custom refund timestamp
+
+**Validation:**
+- Only PAID payments can be refunded
+- Payment must exist
+
+**Automated Actions:**
+1. Sets payment status to REFUNDED
+2. Sets refunded_at timestamp
+3. Records status history
+4. Recalculates order payment status
+
+**Example:**
+```javascript
+const { refundPayment } = require('./functions/payment/update');
+
+const payment = await refundPayment('payment-uuid');
+```
+
+### updateOrderPaymentStatus(orderId)
+Recalculates and updates order payment status based on associated payments.
+
+**Parameters:**
+- `orderId` (string, required): Order ID
+
+**Process:**
+1. Fetches all PAID payments for order
+2. Calculates total paid amount
+3. Fetches order total from orders_pricing
+4. Determines payment status (UNPAID, PARTIALLY_PAID, PAID)
+5. Updates order with new totals and status
+6. If order becomes PAID:
+   - Checks inventory status
+   - Checks for blocking backorders
+   - Activates order if ready (HOLD → ACTIVE)
+   - Triggers auto-fulfillment
+
+**Returns:** Updated order object or null
+
+**Example:**
+```javascript
+const { updateOrderPaymentStatus } = require('./functions/payment/update');
+
+const order = await updateOrderPaymentStatus('order-uuid');
+```
+
+### findPaymentsByOrder(orderId, options)
+Find all payments associated with an order.
+
+**Parameters:**
+- `orderId` (string, required): Order ID
+- `options.expand` (string|array, optional): Relations to expand
+- `options.status` (string, optional): Filter by status
+
+**Example:**
+```javascript
+const { findPaymentsByOrder } = require('./functions/payment/retrieve');
+
+const result = await findPaymentsByOrder('order-uuid', {
+  expand: 'status_history',
+  status: 'PAID'
+});
+```
+
+### getPaymentStatusHistory(paymentId, options)
+Get paginated payment status history.
+
+**Parameters:**
+- `paymentId` (string, required): Payment ID
+- `options.page` (number): Page number (default: 1)
+- `options.limit` (number): Items per page (default: 20, max: 100)
+- `options.sortOrder` (string): 'asc' or 'desc' (default: 'desc')
+
+**Example:**
+```javascript
+const { getPaymentStatusHistory } = require('./functions/payment/retrieve');
+
+const result = await getPaymentStatusHistory('payment-uuid', {
+  page: 1,
+  limit: 20,
+  sortOrder: 'desc'
+});
+```
+
+### deletePayment(id)
+Delete a payment record.
+
+**Parameters:**
+- `id` (string, required): Payment ID
+
+**Example:**
+```javascript
+const { deletePayment } = require('./functions/payment/delete');
+
+const payment = await deletePayment('payment-uuid');
+```
+
+## 🎯 **Event System Integration**
+
+The payment system is fully integrated with the event system for comprehensive audit trails.
+
+### Events Captured
+
+#### payment.create
+Captured when a new payment is created.
+
+**Payload:**
+- `payment_id`: Payment UUID
+- `payment_name`: Payment name
+- `amount`: Payment amount (number)
+- `currency`: Currency ID
+- `status`: Payment status
+- `type`: Payment type
+- `order_id`: Associated order ID (nullable)
+- `customer_id`: Customer ID (nullable)
+- `external_name`: External reference (nullable)
+
+**Actor Types:** system, staff, api_user  
+**Sources:** system, dashboard, api, webhook
+
+#### payment.mark_paid
+Captured when a payment is marked as paid.
+
+**Payload:**
+- `payment_id`: Payment UUID
+- `amount`: Payment amount (number)
+- `currency`: Currency ID
+- `gateway_transaction_id`: External transaction ID (nullable)
+- `paid_at`: Timestamp when paid
+
+**Actor Types:** system, webhook, staff  
+**Sources:** webhook, dashboard, system
+
+### Event Context
+
+Functions accept an optional `eventContext` parameter for tracking:
+
+```javascript
+const eventContext = {
+  actor: {
+    type: 'staff',           // customer, staff, api_user, system
+    id: 'user-uuid',
+    name: 'Admin User',
+    email: 'admin@example.com',
+    role: 'admin'
+  },
+  source: 'dashboard'        // storefront, dashboard, webhook, flow, system, api
+};
+
+await createPayment(paymentData, eventContext);
+await markAsPaid(paymentId, {}, eventContext);
+```
+
+## 🔄 **Flow Integration**
+
+### payment-created Flow
+Automatically triggered when `payment.create` event is captured.
+
+**Configuration:**
+- Event: `payment.create`
+- Mode: async
+- Priority: high
+- Enabled: configurable
+
+**Conditions:**
+- Payment exists with required data
+- Payment status is UNPAID
+- Payment has associated order
+
+**Actions:**
+1. **log_payment_creation**: Logs payment creation details
+2. **create_deposit_invoice**: Automatically creates deposit invoice from order
+
+**Use Case:** Generate deposit invoices for customers to pay before fulfillment.
+
+## 💡 **Common Use Cases**
+
+### 1. Monitor Unpaid Payments
+```bash
+curl -X POST "http://localhost:3010/api/server/payment/query" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "filters": {
+      "status": "UNPAID"
+    },
+    "expand": ["customer", "order"]
+  }'
+```
+
+### 2. Customer Payment History
+```bash
+curl -X POST "http://localhost:3010/api/server/payment/query" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "filters": {
+      "customer": "customer-uuid"
+    }
+  }'
+```
+
+### 3. Recent Paid Payments
+```bash
+curl -X POST "http://localhost:3010/api/server/payment/query" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "filters": {
+      "status": "PAID",
+      "created_at_from": "2026-01-01"
+    },
+    "orderBy": "paid_at",
+    "ascending": false
+  }'
+```
+
+### 4. Find Order Payments
+```bash
+curl -X POST "http://localhost:3010/api/server/payment/query" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "filters": {
+      "order": "order-uuid"
+    },
+    "expand": ["status_history"]
+  }'
+```
+
+### 5. Search by External Reference
+```bash
+curl -X POST "http://localhost:3010/api/server/payment/query" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "search": "stripe_pi_123"
+  }'
+```
+
+## 🚨 **Error Handling**
+
+### Common Errors
+
+**Payment Creation Errors:**
+- `Payment type is required` - Missing required type field
+- `Payment amount is required` - Missing required amount field
+- `Currency is required` - Missing required currency field
+- `Invalid payment type` - Type not in allowed values (GATEWAY, COD, BANK_TRANSFER, MANUAL)
+- `Invalid payment status` - Status not in allowed values (PAID, UNPAID, REFUNDED)
+- `Could not fetch order pricing for order` - Order pricing data missing
+
+**Update/Refund Errors:**
+- `Payment ID is required` - Missing payment ID parameter
+- `Payment not found` - Payment with given ID doesn't exist
+- `Only paid payments can be refunded` - Attempting to refund non-PAID payment
+- `At least one field must be provided to update` - Empty update data
+
+### Error Response Format
+
+```json
+{
+  "success": false,
+  "error": "Error message describing what went wrong"
+}
+```
+
+## 📋 **Best Practices**
+
+### Payment Creation
+1. **Use Smart Order Integration**: When creating payments for orders, use `{ order: 'order-uuid' }` to auto-populate all fields
+2. **Set External References**: Always include `external_name` for gateway payments to track transactions
+3. **Provide Event Context**: Pass `eventContext` for proper audit trails in dashboard/API calls
+4. **Validate Currency**: Ensure currency matches order's market currency
+
+### Status Management
+1. **Use Dedicated Functions**: Use `markAsPaid()` instead of `modifyPayment()` for status changes
+2. **Let System Handle Timestamps**: Don't manually set `paid_at`/`refunded_at` unless necessary
+3. **Check Before Refund**: Verify payment status is PAID before attempting refund
+4. **Monitor History**: Use status_history expansion to track payment lifecycle
+
+### Order Integration
+1. **Trust Automatic Calculation**: System automatically calculates order payment status
+2. **Check Inventory Status**: Payment alone doesn't activate orders - inventory must be ready
+3. **Understand Auto-fulfillment**: Only products with `auto_fulfill = true` create fulfillments
+4. **Handle Partial Payments**: System supports multiple payments per order for installments
+
+### Performance
+1. **Use Pagination**: Always paginate payment queries with reasonable limits (50-100)
+2. **Filter Date Ranges**: Use `created_at_from`/`created_at_to` for large datasets
+3. **Expand Selectively**: Only expand relations you need (transactions, order, status_history)
+4. **Search Wisely**: Search is comprehensive but slower - use filters when possible
+
+## 📚 **Related Systems**
+
+### Order System
+Payments are tightly integrated with orders:
+- Order payment status calculated from payments
+- Order activation triggered by payment completion
+- Auto-fulfillment initiated when payment received
+- See `/documentation/ORDER/` for details
+
+### Fulfillment System
+Payment completion can trigger fulfillment:
+- Products with `auto_fulfill = true` create fulfillments automatically
+- Only when order inventory is available
+- Only when order status changes to ACTIVE
+- See `/documentation/FULFILMENT/` for details
+
+### Event System
+All payment operations captured as events:
+- Complete audit trail for compliance
+- Event-driven workflows and automations
+- See `/documentation/EVENTS/` for details
+
+### Document System
+Payments can generate documents:
+- Deposit invoices created on payment creation
+- Invoice generation for completed payments
+- See `/documentation/DOCUMENTS/` for details
+
+## 🤝 **Support**
+
+### Troubleshooting
+
+**Payment Not Marking Order as Paid:**
+- Check if total paid amount equals or exceeds order total
+- Verify all payments are in PAID status (not UNPAID or REFUNDED)
+- Check `orders_pricing` table has correct total
+
+**Order Not Activating After Payment:**
+- Verify order `inventory_status` is AVAILABLE or PARTIAL (without blocking backorders)
+- Check order status is HOLD before payment
+- Ensure backorder items are not blocking (check for demand tracking notes)
+
+**Auto-fulfillment Not Triggering:**
+- Verify products have `auto_fulfill = true`
+- Check order status is ACTIVE after payment
+- Ensure inventory is available
+- Review auto-fulfillment configuration
+
+**Payment History Not Recording:**
+- Status history created automatically - check database directly
+- Errors logged but don't fail main operation
+- Review console logs for history recording errors
+
+This payment system provides robust payment processing and tracking! 🚀

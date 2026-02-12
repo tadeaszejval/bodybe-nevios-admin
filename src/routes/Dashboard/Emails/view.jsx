@@ -21,6 +21,8 @@ import { NeviosBadge } from "../../../components/nevios/NeviosBadge";
 import NeviosPaginationButtons from "../../../components/nevios/NeviosPaginationButtons";
 import { EmailActivityBar } from "../../../components/dashboard/emails/EmailActivityBar";
 import { ContentLoadingScreen } from "../../../components/ContentLoadingScreen";
+import { NeviosCustomerCard } from "../../../components/nevios/NeviosCustomerCard";
+import { NeviosOrderCard } from "../../../components/nevios/NeviosOrderCard";
 
 export function EmailView({ emailId }) {
   const router = useRouter();
@@ -235,20 +237,17 @@ export function EmailView({ emailId }) {
                 <NeviosCopyBlock copyValue={email.from} />
               </NeviosFormPaperBlock>
             </NeviosFormPaper>
-            {email.order &&(
-                <NeviosFormPaper title="Order" gap={3}>
-                    <Typography variant="body2x">
-                        {email.order.name}
-                    </Typography>
-                    <Typography 
-                    variant="body2x" 
-                    sx={{ width: 'fit-content', cursor: 'pointer', color: 'primary.main', '&:hover': { textDecoration: 'underline' } }}
-                    onClick={() => router.push(`/dashboard/orders/${email.order.id}`)}
-                    >
-                    View Order
-                    </Typography>
-                </NeviosFormPaper>
-            )}
+            
+            <NeviosCustomerCard 
+              customer={email?.customer}
+              showBillingAddress={false}
+            />
+            
+            <NeviosOrderCard 
+              order={email?.order}
+              showTotalAmount={false}
+              showCreatedDate={false}
+            />
           </>
         }
       />

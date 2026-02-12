@@ -195,7 +195,7 @@ export const FILTER_FIELDS = {
 						pl: 0,
 						pr: 0.5,
 						py: 0,
-						fontSize: "2xs",
+						fontSize: "xs",
 					}}
 				/>
 			);

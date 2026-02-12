@@ -1,0 +1,1444 @@
+# Fulfilment System Documentation
+
+## Overview
+The fulfillment system provides comprehensive order fulfillment and shipping management functionality. It handles fulfillment creation, tracking updates, carrier integration, delivery status monitoring, and complete shipping workflows from order to delivery.
+
+## 📊 **Status System Explained**
+
+The fulfillment system uses a **two-level status tracking** approach:
+
+### **1. Fulfillment Status (`status` field)**
+**Purpose:** Tracks whether THIS SPECIFIC PACKAGE has been picked, packed, and fulfilled.
+
+**Values:**
+- `UNFULFILLED` - Items not yet picked/packed from warehouse
+- `FULFILLED` - Items picked, packed, and ready (changes when tracking is added)
+
+**Key Point:** Status changes to `FULFILLED` when warehouse **adds tracking information**, NOT when customer receives it. Each fulfillment is a binary state - either done or not done.
+
+### **2. Delivery Status (`delivery_status` field)**
+**Purpose:** Tracks WHERE THE PACKAGE IS in its physical delivery journey.
+
+**Values:**
+- `PENDING` - Package created but not yet prepared
+- `PREPARED` - Package packed and ready for carrier pickup
+- `IN_TRANSIT` - Package moving through carrier network
+- `OUT_FOR_DELIVERY` - Package on delivery vehicle
+- `DELIVERED` - Package received by customer
+- `FAILED` - Delivery attempt failed
+- `RETURNED` - Package returned to sender
+
+### **3. Carrier Status (`carrier_status` field)**
+**Purpose:** Free-text status messages from the carrier.
+
+**Examples:**
+- "Package picked up from warehouse - Praha"
+- "At sorting facility - Praha 5"
+- "On delivery vehicle - driver Jan Novák"
+- "Delivered to recipient - signed by customer"
+
+### **4. Order Fulfillment Status (on orders table)**
+**Purpose:** Tracks overall order fulfillment across ALL packages.
+
+**Values:**
+- `UNFULFILLED` - No items have been fulfilled yet
+- `PARTIALLY_FULFILLED` - Some items fulfilled, some pending (multi-package orders)
+- `FULFILLED` - All order items have been fulfilled
+
+### **Complete Status Flow:**
+
+```
+1. Create Fulfillment  → status: UNFULFILLED,  delivery_status: PENDING
+                         order.fulfillment_status: stays UNFULFILLED
+
+2. Fulfill (pack)      → status: FULFILLED,    delivery_status: PREPARED
+                         Inventory deducted!
+                         order.fulfillment_status: changes to PARTIALLY_FULFILLED or FULFILLED
+
+3. Add Tracking        → status: FULFILLED,    delivery_status: LABEL_CREATED
+
+4. Ship                → status: FULFILLED,    delivery_status: IN_TRANSIT
+
+5. Out for Delivery    → status: FULFILLED,    delivery_status: OUT_FOR_DELIVERY
+
+6. Deliver             → status: FULFILLED,    delivery_status: DELIVERED
+```
+
+**Why two statuses?**
+- `status` = Warehouse perspective (is THIS package done packing?)
+- `delivery_status` = Customer perspective (where's THIS package?)
+- `order.fulfillment_status` = Order perspective (are ALL packages done?)
+
+**Important:** Order fulfillment status only changes when fulfillments are FULFILLED, not when created!
+
+## 🚀 **Key Features**
+
+### Core Fulfilment Functionality
+- **Fulfillment Creation**: Create fulfillments for orders with items
+- **Tracking Management**: Track shipments with carrier tracking numbers
+- **Status Updates**: Monitor fulfillment and delivery status
+- **Carrier Integration**: Support for multiple shipping carriers
+
+### Shipping Management
+- **Partial Fulfillments**: Fulfill orders in multiple shipments
+- **Item Tracking**: Track individual items in fulfillments
+- **Address Override**: Override shipping addresses per fulfillment
+- **Shipping Types**: Support for different shipping methods
+
+### Advanced Features
+- **Carrier Status Sync**: Sync status from carrier APIs
+- **Delivery Tracking**: Monitor delivery progress
+- **Fulfillment Cancellation**: Cancel fulfillments before shipping
+- **External Integration**: Link to external fulfillment systems
+
+## 🔧 **API Endpoints**
+
+### Standard CRUD Operations
+
+#### 1. Query Fulfillments
+**POST** `/server/fulfillment/query`
+
+Query fulfillments with filtering, pagination, search, and expansion.
+
+See [QUERY.md](./QUERY.md) for detailed documentation.
+
+---
+
+#### 2. Create Fulfillment
+**POST** `/server/fulfillment/create`
+
+Create a new fulfillment for an order. Assigns items to a package but does NOT fulfill or deduct inventory yet.
+
+**Request Body:**
+```json
+{
+  "order": "order-uuid",
+  "fulfill_all": true,
+  // OR specify specific items:
+  "items": [
+    {
+      "order_item": "order-item-uuid",
+      "shipped_quantity": 2
+    }
+  ],
+  "shipping_address": "address-uuid", // Optional override
+  "name": "Fulfillment #1" // Optional
+}
+```
+
+**What it does:**
+- Creates fulfillment with status UNFULFILLED
+- Assigns items to the package
+- Updates order_item.fulfilled_quantity (tracking)
+- Sets delivery_status to PENDING
+- Does NOT deduct inventory yet
+- Does NOT change order.fulfillment_status yet
+
+**Status After:**
+- `status`: `UNFULFILLED`
+- `delivery_status`: `PENDING`
+- `carrier_status`: `null`
+- `order.fulfillment_status`: Stays UNFULFILLED
+
+---
+
+#### 3. Retrieve Fulfillment
+**GET** `/server/fulfillment/retrieve/:id`
+
+Retrieve a single fulfillment by ID with optional related data.
+
+**Query Parameters:**
+- `expand` (string) - Comma-separated list of relations to expand
+  - Available expansions: `items`, `order`, `tracking`, `shipping_address`, `tracking_history`
+
+**Returns:**
+All fields from the fulfillments table:
+- `id` (UUID) - Fulfillment unique identifier
+- `name` (string) - Fulfillment name/number
+- `order` (UUID) - Associated order ID
+- `customer` (UUID) - Customer ID
+- `status` (enum) - UNFULFILLED or FULFILLED
+- `tracking` (string) - Tracking number
+- `tracking_link` (string) - URL to track package
+- `carrier_name` (string) - Shipping carrier name
+- `carrier_status` (string) - Carrier's status message
+- `delivery_status` (enum) - PENDING, PREPARED, LABEL_CREATED, IN_TRANSIT, OUT_FOR_DELIVERY, DELIVERED, FAILED, RETURNED
+- `shipping_type` (enum) - HOME, POINT, or STORE
+- `shipping_address` (UUID) - Shipping address ID
+- `external_name` (string) - External system reference
+- `fulfillment_location` (UUID) - Location where fulfillment is processed
+- `created_at` (timestamp) - Creation timestamp
+
+**Optional Expansions:**
+- `items` - Array of fulfillment_items with nested order_item details (id, fulfillment, order_item object with uuid/product_title/variant_title/sku/image, quantity, variant, product)
+- `order` - Complete order object with all order fields
+- `tracking` - Array of tracking events (if tracking number exists)
+- `shipping_address` - Complete shipping address object
+- `tracking_history` - Array of delivery status change history records
+
+**Example:**
+```bash
+curl -X GET "http://localhost:3010/api/server/fulfillment/retrieve/fulfillment-uuid?expand=items,order,shipping_address,tracking_history"
+```
+
+**Response:**
+```json
+{
+  "success": true,
+  "data": {
+    "id": "88abe1c2-83dd-4412-a3e5-88198c2dc2e6",
+    "name": "FF-1001",
+    "order": "order-uuid",
+    "customer": "customer-uuid",
+    "status": "FULFILLED",
+    "tracking": "1Z999AA10123456784",
+    "tracking_link": "https://ups.com/track/...",
+    "carrier_name": "UPS",
+    "carrier_status": "Package in transit",
+    "delivery_status": "IN_TRANSIT",
+    "shipping_type": "HOME",
+    "shipping_address": "address-uuid",
+    "external_name": null,
+    "fulfillment_location": "location-uuid",
+    "created_at": "2024-01-15T10:30:00Z",
+    "items": [
+      {
+        "id": "item-uuid",
+        "fulfillment": "88abe1c2-83dd-4412-a3e5-88198c2dc2e6",
+        "order_item": {
+          "uuid": "order-item-uuid",
+          "product_title": "Premium Cotton T-Shirt",
+          "variant_title": "Size: L, Color: Blue",
+          "sku": "TSHIRT-L-BLUE",
+          "image": "https://cdn.example.com/products/tshirt-blue.jpg"
+        },
+        "quantity": 2,
+        "variant": "variant-uuid",
+        "product": "product-uuid"
+      }
+    ],
+    "order": {
+      "id": "order-uuid",
+      "name": "ORD-1234",
+      "status": "FULFILLED",
+      "total": 99.99
+    },
+    "shipping_address": {
+      "id": "address-uuid",
+      "first_name": "John",
+      "last_name": "Doe",
+      "address": "123 Main Street",
+      "city": "Prague",
+      "zip": "110 00",
+      "country": "CZ",
+      "phone": "+420123456789"
+    },
+    "tracking_history": [
+      {
+        "id": "history-uuid-1",
+        "fulfillment": "88abe1c2-83dd-4412-a3e5-88198c2dc2e6",
+        "order": "order-uuid",
+        "previous_delivery_status": "PREPARED",
+        "new_delivery_status": "IN_TRANSIT",
+        "previous_carrier_status": "Package prepared",
+        "new_carrier_status": "Package in transit",
+        "created_at": "2024-01-15T12:00:00Z"
+      }
+    ]
+  }
+}
+```
+
+---
+
+#### 4. Modify Fulfillment
+**PUT** `/server/fulfillment/modify/:id`
+
+Update fulfillment details before or after fulfilling. Does NOT change status or delivery_status.
+
+**Request Body:**
+```json
+{
+  "tracking": "1Z999AA10123456784",
+  "tracking_link": "https://track.carrier.com/...",
+  "carrier_name": "UPS",
+  "carrier_status": "Package prepared",
+  "shipping_type": "EXPRESS",
+  "shipping_address": "new-address-uuid"
+}
+```
+
+**Updatable Fields:**
+- tracking, tracking_link, carrier_name, carrier_status
+- shipping_type, shipping_address
+- external_name
+
+**Use cases:**
+- Fix wrong tracking number
+- Update carrier information
+- Change shipping address before fulfilling
+
+---
+
+#### 5. Cancel Fulfillment
+**PUT** `/server/fulfillment/cancel/:id`
+
+Delete an UNFULFILLED fulfillment and unassign items. Cannot cancel once fulfilled.
+
+**Request Body:**
+```json
+{
+  "reason": "Wrong items selected" // Optional
+}
+```
+
+**Requirements:**
+- Status must be UNFULFILLED
+- Cannot cancel if FULFILLED (use unfulfill or returns instead)
+
+**What it does:**
+- Deletes fulfillment and fulfillment_items
+- Reverts order_item.fulfilled_quantity (unassigns items)
+- Updates order.fulfillment_status
+- Does NOT touch inventory (never deducted)
+
+**Example:**
+```bash
+curl -X PUT "http://localhost:3010/api/server/fulfillment/cancel/fulfillment-uuid" \
+  -H "Content-Type: application/json" \
+  -d '{"reason": "Customer changed order"}'
+```
+
+---
+
+#### 6. Delete Fulfillment
+**DELETE** `/server/fulfillment/delete/:id`
+
+Permanently delete a fulfillment record (admin operation).
+
+---
+
+### Action Endpoints
+
+#### 7. Fulfill Fulfillment
+**PUT** `/server/fulfillment/fulfill/:id`
+
+Mark fulfillment as fulfilled - picks, packs, and **deducts inventory**. Does NOT require tracking.
+
+**Request Body:**
+```json
+{
+  "notes": "Packed by warehouse team A", // Optional
+  "skip_inventory": false // Optional - if true, skips all inventory processing
+}
+```
+
+**What it does:**
+- Changes status: UNFULFILLED → FULFILLED
+- Sets delivery_status to PREPARED
+- **Deducts inventory** (fulfills reservations) - unless `skip_inventory=true`
+- Updates order.fulfillment_status (may become PARTIALLY_FULFILLED or FULFILLED)
+- Creates tracking history
+- Captures fulfillment.fulfill event
+
+**Important:** This is when inventory is actually deducted!
+
+**Inventory Processing:**
+- **Physical products** (`require_shipping=true`, `track_inventory=true`):
+  - First tries to fulfill from reservations (normal flow)
+  - Falls back to direct inventory deduction if no reservations exist
+  - Creates inventory movements for audit trail
+- **Digital products** (`require_shipping=false`):
+  - Automatically skipped (no inventory impact)
+  - Logged for transparency
+- **Untracked items** (`track_inventory=false`):
+  - Automatically skipped
+- **All items** (if `skip_inventory=true`):
+  - All inventory processing skipped
+  - Useful for manual fulfillments, drop-shipping, or external warehouses
+
+**Example (Normal):**
+```bash
+curl -X PUT "http://localhost:3010/api/server/fulfillment/fulfill/fulfillment-uuid" \
+  -H "Content-Type: application/json" \
+  -d '{"notes": "Package prepared for shipping"}'
+```
+
+**Example (Skip Inventory - Manual/Drop-ship):**
+```bash
+curl -X PUT "http://localhost:3010/api/server/fulfillment/fulfill/fulfillment-uuid" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "notes": "Fulfilled via drop-shipper",
+    "skip_inventory": true
+  }'
+```
+
+**Status After:**
+- `status`: `FULFILLED`
+- `delivery_status`: `PREPARED`
+- `order.fulfillment_status`: May change to PARTIALLY_FULFILLED or FULFILLED
+
+---
+
+#### 8. Unfulfill Fulfillment
+**PUT** `/server/fulfillment/unfulfill/:id`
+
+Reverse a fulfillment before shipping. Returns inventory to warehouse.
+
+**Request Body:**
+```json
+{
+  "reason": "Wrong items packed - need to repack" // Required
+}
+```
+
+**Requirements:**
+- Status must be FULFILLED
+- Delivery_status must be PREPARED or LABEL_CREATED (not shipped yet)
+- Cannot unfulfill if IN_TRANSIT, OUT_FOR_DELIVERY, or DELIVERED
+
+**What it does:**
+- Changes status: FULFILLED → UNFULFILLED
+- Sets delivery_status back to PENDING
+- **Reverses inventory deduction** (recreates reservations, adds stock back)
+- Updates order.fulfillment_status
+- Creates tracking history
+
+**Example:**
+```bash
+curl -X PUT "http://localhost:3010/api/server/fulfillment/unfulfill/fulfillment-uuid" \
+  -H "Content-Type: application/json" \
+  -d '{"reason": "Damaged items found before shipping"}'
+```
+
+**Use cases:**
+- Wrong items packed
+- Damaged items discovered
+- Customer urgent cancellation before carrier pickup
+- Need to repack with different items
+
+---
+
+#### 9. Add Tracking Information
+**PUT** `/server/fulfillment/add-tracking/:id`
+
+Add or update tracking information. Can be done before or after fulfilling.
+
+**Request Body:**
+```json
+{
+  "tracking": "1Z999AA10123456784", // Required
+  "tracking_link": "https://ups.com/track/...", // Optional
+  "carrier_name": "UPS" // Optional
+}
+```
+
+**What it does:**
+- Updates tracking, tracking_link, carrier_name
+- If status is FULFILLED and delivery_status is PREPARED, changes to LABEL_CREATED
+- Does NOT change status if UNFULFILLED
+- Does NOT deduct inventory
+- Creates tracking history if delivery_status changed
+
+**Example:**
+```bash
+curl -X PUT "http://localhost:3010/api/server/fulfillment/add-tracking/fulfillment-uuid" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "tracking": "1Z999AA10123456784",
+    "tracking_link": "https://ups.com/track/...",
+    "carrier_name": "UPS"
+  }'
+```
+
+**Flexible workflow:**
+- Can add tracking before fulfilling (plan ahead)
+- Can add tracking after fulfilling (label created later)
+- Can update tracking if wrong number entered
+
+---
+
+#### 10. Update Status
+**PUT** `/server/fulfillment/update-status/:id`
+
+Update delivery status and/or carrier status as package moves through delivery journey.
+
+**Request Body:**
+```json
+{
+  "delivery_status": "IN_TRANSIT", // Optional
+  "carrier_status": "Package at sorting facility - Praha 5", // Optional
+  "notes": "Carrier scan at 14:30" // Optional
+}
+```
+
+**At least one of `delivery_status` or `carrier_status` must be provided.**
+
+**Delivery Status Values:**
+- PENDING, PREPARED, LABEL_CREATED, IN_TRANSIT, OUT_FOR_DELIVERY, DELIVERED, FAILED, RETURNED
+
+**What it does:**
+- Updates delivery_status (if provided)
+- Updates carrier_status (if provided)
+- Creates tracking history
+- Does NOT change fulfillment status
+- Does NOT touch inventory
+
+**Examples:**
+
+Update delivery status only:
+```bash
+curl -X PUT "http://localhost:3010/api/server/fulfillment/update-status/fulfillment-uuid" \
+  -H "Content-Type: application/json" \
+  -d '{"delivery_status": "IN_TRANSIT"}'
+```
+
+Update carrier status only:
+```bash
+curl -X PUT "http://localhost:3010/api/server/fulfillment/update-status/fulfillment-uuid" \
+  -H "Content-Type: application/json" \
+  -d '{"carrier_status": "Package picked up from warehouse"}'
+```
+
+Update both:
+```bash
+curl -X PUT "http://localhost:3010/api/server/fulfillment/update-status/fulfillment-uuid" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "delivery_status": "OUT_FOR_DELIVERY",
+    "carrier_status": "On delivery vehicle - driver Jan Novák"
+  }'
+```
+
+**Use cases:**
+- Manual status updates from dashboard
+- Carrier webhook notifications
+- API integration with shipping providers
+- Customer service updates
+
+---
+
+#### 11. Get Tracking History
+**GET** `/server/fulfillment/tracking-history/:id`
+
+Retrieve the complete tracking history for a fulfillment showing all delivery status and carrier status changes.
+
+**Returns:**
+Array of tracking history records with:
+- `id` (UUID) - History record ID
+- `fulfillment` (UUID) - Fulfillment ID
+- `order` (UUID) - Order ID
+- `previous_delivery_status` (enum) - Previous delivery status
+- `new_delivery_status` (enum) - New delivery status
+- `previous_carrier_status` (string) - Previous carrier status message
+- `new_carrier_status` (string) - New carrier status message
+- `created_at` (timestamp) - When the change occurred
+
+**Example:**
+```bash
+curl -X GET "http://localhost:3010/api/server/fulfillment/tracking-history/fulfillment-uuid"
+```
+
+**Response:**
+```json
+{
+  "success": true,
+  "data": [
+    {
+      "id": "history-uuid-1",
+      "fulfillment": "fulfillment-uuid",
+      "order": "order-uuid",
+      "previous_delivery_status": "IN_TRANSIT",
+      "new_delivery_status": "DELIVERED",
+      "previous_carrier_status": "On delivery vehicle",
+      "new_carrier_status": "Delivered to recipient",
+      "created_at": "2024-01-20T14:30:00Z"
+    },
+    {
+      "id": "history-uuid-2",
+      "fulfillment": "fulfillment-uuid",
+      "order": "order-uuid",
+      "previous_delivery_status": "PREPARED",
+      "new_delivery_status": "IN_TRANSIT",
+      "previous_carrier_status": "Package prepared",
+      "new_carrier_status": "Package picked up",
+      "created_at": "2024-01-18T10:15:00Z"
+    }
+  ]
+}
+```
+
+**Use cases:**
+- Display delivery timeline to customers
+- Audit trail for status changes
+- Customer service investigation
+- Delivery performance analysis
+
+---
+
+#### 12. Reship Fulfillment
+**POST** `/server/fulfillment/reship/:id`
+
+Create a replacement fulfillment for lost, damaged, or failed delivery.
+
+**Request Body:**
+```json
+{
+  "reason": "Package lost in transit", // Required
+  "shipping_address": "address-uuid", // Optional - override if shipping to different address
+  "notes": "Customer requested rush shipping" // Optional
+}
+```
+
+**Requirements:**
+- Original fulfillment must be FULFILLED
+- Sufficient inventory available for all items
+
+**What it does:**
+- Creates new fulfillment with same items and quantities
+- Copies all details from original (order, customer, items)
+- Reserves inventory for new fulfillment
+- Updates original fulfillment with reship note
+- Captures fulfillment.reship event
+
+**Example:**
+```bash
+curl -X POST "http://localhost:3010/api/server/fulfillment/reship/fulfillment-uuid" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "reason": "Package lost by carrier - confirmed via tracking",
+    "notes": "Express shipping for replacement"
+  }'
+```
+
+**Response:**
+```json
+{
+  "success": true,
+  "message": "Reship fulfillment created successfully",
+  "original_fulfillment": "original-uuid",
+  "new_fulfillment": {
+    "id": "new-fulfillment-uuid",
+    "status": "UNFULFILLED",
+    "items": [...]
+  },
+  "inventory_reserved": true
+}
+```
+
+**Use cases:**
+- Package lost by carrier
+- Package damaged in transit
+- Failed delivery (wrong address)
+- Package returned to sender
+- Customer never received
+
+---
+
+## 💡 **Complete Workflows**
+
+### Workflow A: Standard Fulfillment (Pack First, Label Later)
+
+```bash
+# 1. Create fulfillment
+curl -X POST "http://localhost:3010/api/server/fulfillment/create" \
+  -d '{"order": "order-uuid", "fulfill_all": true}'
+# Result: status=UNFULFILLED, delivery_status=PENDING
+# Order status: Still UNFULFILLED
+
+# 2. Pack the package and mark as fulfilled
+curl -X PUT "http://localhost:3010/api/server/fulfillment/fulfill/fulfillment-uuid" \
+  -d '{"notes": "Packed by warehouse team A"}'
+# Result: status=FULFILLED, delivery_status=PREPARED
+# Inventory DEDUCTED!
+# Order status: Changes to PARTIALLY_FULFILLED or FULFILLED
+
+# 3. Create shipping label and add tracking
+curl -X PUT "http://localhost:3010/api/server/fulfillment/add-tracking/fulfillment-uuid" \
+  -d '{
+    "tracking": "1Z999AA10123456784",
+    "tracking_link": "https://ups.com/track/...",
+    "carrier_name": "UPS"
+  }'
+# Result: delivery_status changes to LABEL_CREATED
+
+# 4. Carrier picks up package
+curl -X PUT "http://localhost:3010/api/server/fulfillment/update-status/fulfillment-uuid" \
+  -d '{
+    "delivery_status": "IN_TRANSIT",
+    "carrier_status": "Package picked up from warehouse"
+  }'
+
+# 5. Package out for delivery
+curl -X PUT "http://localhost:3010/api/server/fulfillment/update-status/fulfillment-uuid" \
+  -d '{
+    "delivery_status": "OUT_FOR_DELIVERY",
+    "carrier_status": "On delivery vehicle"
+  }'
+
+# 6. Package delivered
+curl -X PUT "http://localhost:3010/api/server/fulfillment/update-status/fulfillment-uuid" \
+  -d '{
+    "delivery_status": "DELIVERED",
+    "carrier_status": "Delivered to recipient"
+  }'
+```
+
+---
+
+### Workflow B: Label First, Pack Later
+
+```bash
+# 1. Create fulfillment
+curl -X POST "http://localhost:3010/api/server/fulfillment/create" \
+  -d '{"order": "order-uuid", "items": [...]}'
+# Result: status=UNFULFILLED
+
+# 2. Create shipping label early
+curl -X PUT "http://localhost:3010/api/server/fulfillment/add-tracking/fulfillment-uuid" \
+  -d '{"tracking": "1Z999AA10123456784", "carrier_name": "DHL"}'
+# Result: status still UNFULFILLED (just added tracking info)
+
+# 3. Pack the package
+curl -X PUT "http://localhost:3010/api/server/fulfillment/fulfill/fulfillment-uuid" \
+  -d '{"notes": "Package ready for pickup"}'
+# Result: status=FULFILLED, delivery_status=LABEL_CREATED
+# Inventory DEDUCTED!
+# Order status changes
+
+# 4-6. Same as Workflow A (update statuses as package moves)
+```
+
+---
+
+### Workflow C: No Tracking (Manual Delivery / Pickup)
+
+```bash
+# 1. Create fulfillment
+curl -X POST "http://localhost:3010/api/server/fulfillment/create" \
+  -d '{"order": "order-uuid", "fulfill_all": true}'
+
+# 2. Pack and fulfill (no tracking)
+curl -X PUT "http://localhost:3010/api/server/fulfillment/fulfill/fulfillment-uuid" \
+  -d '{"notes": "Store pickup - no tracking needed"}'
+# Result: status=FULFILLED, delivery_status=PREPARED
+# Inventory DEDUCTED!
+
+# 3. Customer picks up from store
+curl -X PUT "http://localhost:3010/api/server/fulfillment/update-status/fulfillment-uuid" \
+  -d '{
+    "delivery_status": "DELIVERED",
+    "carrier_status": "Picked up by customer at store"
+  }'
+```
+
+---
+
+### Workflow D: Multi-Package Order (Partial Fulfillment)
+
+```bash
+# Order has 5 items total
+
+# 1. Create first fulfillment with 3 items
+curl -X POST "http://localhost:3010/api/server/fulfillment/create" \
+  -d '{
+    "order": "order-uuid",
+    "items": [
+      {"order_item": "item1-uuid", "shipped_quantity": 1},
+      {"order_item": "item2-uuid", "shipped_quantity": 2}
+    ]
+  }'
+# Result: Fulfillment #1 created, order.fulfillment_status: UNFULFILLED
+
+# 2. Fulfill first package
+curl -X PUT "http://localhost:3010/api/server/fulfillment/fulfill/fulfillment1-uuid" \
+  -d '{"notes": "Package 1 of 2 ready"}'
+# Result: 3 items inventory deducted
+# Order status: PARTIALLY_FULFILLED (3 of 5 items fulfilled)
+
+# 3. Add tracking to package 1
+curl -X PUT "http://localhost:3010/api/server/fulfillment/add-tracking/fulfillment1-uuid" \
+  -d '{"tracking": "TRACK001", "carrier_name": "DHL"}'
+
+# 4. Create second fulfillment with remaining 2 items
+curl -X POST "http://localhost:3010/api/server/fulfillment/create" \
+  -d '{
+    "order": "order-uuid",
+    "items": [
+      {"order_item": "item3-uuid", "shipped_quantity": 2}
+    ]
+  }'
+# Result: Fulfillment #2 created, order still PARTIALLY_FULFILLED
+
+# 5. Fulfill second package
+curl -X PUT "http://localhost:3010/api/server/fulfillment/fulfill/fulfillment2-uuid" \
+  -d '{"notes": "Package 2 of 2 ready"}'
+# Result: 2 items inventory deducted
+# Order status: FULFILLED (all 5 items now fulfilled!)
+
+# 6. Add tracking to package 2
+curl -X PUT "http://localhost:3010/api/server/fulfillment/add-tracking/fulfillment2-uuid" \
+  -d '{"tracking": "TRACK002", "carrier_name": "DHL"}'
+
+# Both packages now ship independently
+```
+
+---
+
+### Workflow E: Warehouse Mistake (Unfulfill)
+
+```bash
+# 1. Created and fulfilled fulfillment
+# status=FULFILLED, delivery_status=PREPARED, inventory deducted
+
+# 2. Warehouse realizes wrong items packed
+curl -X PUT "http://localhost:3010/api/server/fulfillment/unfulfill/fulfillment-uuid" \
+  -d '{"reason": "Wrong items packed - item #2 instead of #3"}'
+# Result: status=UNFULFILLED, delivery_status=PENDING
+# Inventory restored! Reservations recreated
+# Order status: May change back to UNFULFILLED or PARTIALLY_FULFILLED
+
+# 3. Fix the items via MODIFY or CANCEL and create new fulfillment
+curl -X PUT "http://localhost:3010/api/server/fulfillment/cancel/fulfillment-uuid" \
+  -d '{"reason": "Creating new fulfillment with correct items"}'
+
+# 4. Create correct fulfillment
+curl -X POST "http://localhost:3010/api/server/fulfillment/create" \
+  -d '{"order": "order-uuid", "items": [correct items]}'
+
+# 5. Fulfill again
+curl -X PUT "http://localhost:3010/api/server/fulfillment/fulfill/new-fulfillment-uuid"
+```
+
+---
+
+### Workflow F: Lost Package (Reship)
+
+```bash
+# 1. Original fulfillment delivered, but package lost
+# Tracking shows: delivery_status=FAILED
+
+# 2. Create replacement fulfillment
+curl -X POST "http://localhost:3010/api/server/fulfillment/reship/original-fulfillment-uuid" \
+  -d '{
+    "reason": "Package lost by carrier - confirmed via tracking",
+    "notes": "Rush shipping for replacement"
+  }'
+# Result: New fulfillment created with same items
+# New inventory reserved
+# Original fulfillment marked with reship note
+
+# 3. Fulfill the replacement
+curl -X PUT "http://localhost:3010/api/server/fulfillment/fulfill/new-fulfillment-uuid" \
+  -d '{"notes": "Replacement package - expedited"}'
+
+# 4. Add tracking and ship
+curl -X PUT "http://localhost:3010/api/server/fulfillment/add-tracking/new-fulfillment-uuid" \
+  -d '{"tracking": "NEW-TRACK-123", "carrier_name": "Express Carrier"}'
+```
+
+---
+
+### Workflow G: Carrier Webhook Integration
+
+```bash
+# Carrier sends webhooks as package moves
+
+# Webhook 1: Package picked up
+POST /api/webhook/carrier
+{
+  "tracking": "1Z999AA10123456784",
+  "status": "PICKED_UP",
+  "message": "Package picked up from warehouse"
+}
+
+# Your system calls:
+curl -X PUT "http://localhost:3010/api/server/fulfillment/update-status/fulfillment-uuid" \
+  -d '{"carrier_status": "Package picked up from warehouse"}'
+
+# Webhook 2: In transit
+POST /api/webhook/carrier
+{
+  "tracking": "1Z999AA10123456784",
+  "status": "IN_TRANSIT",
+  "message": "At sorting facility - Praha"
+}
+
+# Your system calls:
+curl -X PUT "http://localhost:3010/api/server/fulfillment/update-status/fulfillment-uuid" \
+  -d '{
+    "delivery_status": "IN_TRANSIT",
+    "carrier_status": "At sorting facility - Praha"
+  }'
+
+# Continue updating as webhook events arrive...
+```
+
+---
+
+## 📊 **Database Schema**
+
+### Fulfillments Table
+```sql
+CREATE TABLE fulfillments (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  name TEXT,
+  order UUID REFERENCES orders(id),
+  customer UUID REFERENCES customers(id),
+  status fulfillment_status DEFAULT 'UNFULFILLED',
+  tracking TEXT,
+  tracking_link TEXT,
+  carrier_name TEXT,
+  carrier_status TEXT,
+  delivery_status delivery_status_enum,
+  shipping_type shipping_type_enum,
+  shipping_address UUID REFERENCES shipping_address(id),
+  external_name TEXT,
+  fulfillment_location UUID REFERENCES locations(id),
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);
+
+-- Status Enums:
+-- fulfillment_status: UNFULFILLED, FULFILLED
+--   - UNFULFILLED: Items not picked/packed yet
+--   - FULFILLED: Items picked, packed, ready (changes when tracking is added)
+--
+-- delivery_status: PENDING, PREPARED, IN_TRANSIT, OUT_FOR_DELIVERY, DELIVERED, FAILED, RETURNED
+--   - PENDING: Package created, not prepared
+--   - PREPARED: Package packed, ready for pickup
+--   - IN_TRANSIT: Package with carrier
+--   - OUT_FOR_DELIVERY: Package on delivery vehicle
+--   - DELIVERED: Package received by customer
+--   - FAILED: Delivery attempt failed
+--   - RETURNED: Package returned to sender
+--
+-- shipping_type: HOME, POINT, STORE
+```
+
+### Fulfillment Items Table
+```sql
+CREATE TABLE fulfillment_items (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  fulfillment UUID REFERENCES fulfillments(id),
+  order_item UUID REFERENCES order_item(id),
+  shipped_quantity NUMERIC CHECK (shipped_quantity > 0),
+  shipped_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);
+```
+
+## 🔍 **Fulfilment Relations**
+
+### Data Structure
+```
+fulfillments
+├── order (UUID) → orders
+├── customer (UUID) → customers
+├── shipping_address (UUID) → shipping_address
+├── status (enum)
+├── tracking (string)
+├── carrier_name (string)
+└── fulfillment_items → fulfillment_items table
+```
+
+## 🚨 **Error Handling**
+
+### Common Errors
+- `Missing required field: order is required` - Order ID missing
+- `Order with ID {id} not found` - Invalid order ID
+- `Order does not have a shipping address` - Order missing shipping address
+- `Fulfillment not found: {id}` - Invalid fulfillment ID
+- `Cannot cancel fulfilled/delivered fulfillment` - Invalid status for cancellation
+
+## 🔄 **Complete Fulfillment Workflow**
+
+### **Phase 1: Creation**
+```bash
+POST /server/fulfillment/create
+```
+**Status After:**
+- `status`: `UNFULFILLED`
+- `delivery_status`: `PENDING`
+- `carrier_status`: `null`
+
+**Meaning:** Fulfillment created, items not yet picked from warehouse.
+
+---
+
+### **Phase 2: Preparation** (Status Changes Here!)
+```bash
+PUT /server/fulfillment/prepare/:id  # (Future endpoint)
+# Or manually update via modify
+```
+**Status After:**
+- `status`: `FULFILLED` ⭐ (Items picked and packed!)
+- `delivery_status`: `PREPARED`
+- `carrier_status`: `"Package packed and ready for pickup at dock 3"`
+
+**Meaning:** Warehouse work complete, package ready for carrier pickup.
+
+---
+
+### **Phase 3: Shipped**
+```bash
+PUT /server/fulfillment/update/tracking/:id
+```
+**Status After:**
+- `status`: `FULFILLED` (unchanged)
+- `delivery_status`: `IN_TRANSIT`
+- `carrier_status`: `"Package picked up from warehouse - Praha"`
+
+**Meaning:** Carrier has package, moving through network.
+
+---
+
+### **Phase 4: In Transit Updates** (Automatic via webhook)
+```bash
+POST /server/fulfillment/webhook  # (Future endpoint)
+```
+**Status After:**
+- `status`: `FULFILLED`
+- `delivery_status`: `IN_TRANSIT`
+- `carrier_status`: `"Package at sorting facility - Praha 5"`
+
+**Meaning:** Package moving through carrier network, various updates.
+
+---
+
+### **Phase 5: Out for Delivery**
+```bash
+PUT /server/fulfillment/update/status/:id
+```
+**Status After:**
+- `status`: `FULFILLED`
+- `delivery_status`: `OUT_FOR_DELIVERY`
+- `carrier_status`: `"Package on delivery vehicle - driver Jan Novák"`
+
+**Meaning:** Package loaded on delivery vehicle, heading to customer.
+
+---
+
+### **Phase 6: Delivered**
+```bash
+PUT /server/fulfillment/update/deliver/:id
+```
+**Status After:**
+- `status`: `FULFILLED`
+- `delivery_status`: `DELIVERED`
+- `carrier_status`: `"Delivered to recipient - signed by customer"`
+
+**Meaning:** Customer received package. Complete! ✅
+
+---
+
+### **Alternative Outcomes:**
+
+**Delivery Failed:**
+```bash
+PUT /server/fulfillment/update/status/:id
+{ "delivery_status": "FAILED", "carrier_status": "Recipient not home" }
+```
+
+**Package Returned:**
+```bash
+PUT /server/fulfillment/update/status/:id
+{ "delivery_status": "RETURNED", "carrier_status": "Address incorrect" }
+```
+
+---
+
+---
+
+## 🔄 **Inventory & Order Status Flow**
+
+### Complete Inventory Lifecycle
+
+```
+ORDER CREATION
+├─ Order created
+├─ Inventory RESERVED (not deducted)
+├─ Backorders created (if insufficient stock)
+└─ Order status: ACTIVE (if paid) or HOLD (if backorders)
+
+FULFILLMENT CREATION
+├─ Fulfillment created
+├─ Items assigned to package
+├─ order_item.fulfilled_quantity updated (tracking only)
+├─ Inventory: Still RESERVED (no change)
+└─ order.fulfillment_status: Still UNFULFILLED (no change)
+
+FULFILLMENT FULFILLED ← Inventory deducted here!
+├─ Status: UNFULFILLED → FULFILLED
+├─ Delivery status: PENDING → PREPARED
+├─ Inventory DEDUCTED (reservations fulfilled)
+├─ Physical stock removed
+└─ order.fulfillment_status: Changes to PARTIALLY_FULFILLED or FULFILLED
+
+TRACKING ADDED
+├─ Tracking info saved
+├─ Delivery status: PREPARED → LABEL_CREATED
+├─ Inventory: No change (already deducted)
+└─ order.fulfillment_status: No change
+
+PACKAGE SHIPS
+├─ Delivery status: → IN_TRANSIT
+├─ Carrier updates via webhooks
+└─ Inventory: No change
+
+PACKAGE DELIVERED
+├─ Delivery status: → DELIVERED
+└─ Order complete
+```
+
+### Key Decision Points
+
+**When creating fulfillment:**
+- ✅ Assigns items to package
+- ❌ Does NOT deduct inventory
+- ❌ Does NOT change order.fulfillment_status
+
+**When fulfilling:**
+- ✅ Deducts inventory
+- ✅ Changes order.fulfillment_status
+- ✅ This is the point of commitment
+
+**When adding tracking:**
+- ✅ Updates tracking info
+- ❌ Does NOT deduct inventory
+- ❌ Does NOT change order.fulfillment_status
+
+### Order Fulfillment Status Calculation
+
+The system calculates `order.fulfillment_status` by checking quantities in **FULFILLED fulfillments only**:
+
+```
+Total order quantity: 10 items
+
+Fulfillment #1: UNFULFILLED, 3 items
+Fulfillment #2: FULFILLED, 5 items
+Fulfillment #3: UNFULFILLED, 2 items
+
+Calculation:
+- Total in FULFILLED fulfillments: 5 items
+- 5 < 10 → order.fulfillment_status: PARTIALLY_FULFILLED
+
+After fulfilling #1:
+- Total in FULFILLED fulfillments: 8 items (5 + 3)
+- 8 < 10 → order.fulfillment_status: PARTIALLY_FULFILLED
+
+After fulfilling #3:
+- Total in FULFILLED fulfillments: 10 items (5 + 3 + 2)
+- 10 = 10 → order.fulfillment_status: FULFILLED
+```
+
+---
+
+## 📋 **Best Practices**
+
+### Fulfillment Lifecycle
+1. **Create fulfillments early** - Plan packaging without committing inventory
+2. **Fulfill when ready** - Only call FULFILL when package is actually packed
+3. **Track status changes** - Order status updates when fulfillments are FULFILLED
+4. **Use UNFULFILL for mistakes** - Before shipping, use UNFULFILL to reverse
+5. **Use RETURNS after shipping** - Once IN_TRANSIT, use returns system
+
+### Inventory Management
+6. **Inventory deducts on FULFILL** - Not on CREATE, not on ADD-TRACKING
+7. **Monitor UNFULFILLED** - These are packages waiting to be prepared
+8. **CANCEL safely** - Only UNFULFILLED can be cancelled (no inventory impact)
+9. **UNFULFILL carefully** - Reverses inventory, use before carrier pickup
+
+### Tracking & Status
+10. **Tracking is optional** - Can fulfill without tracking (store pickup, etc.)
+11. **Add tracking anytime** - Before or after fulfilling
+12. **Update status regularly** - Use UPDATE-STATUS for delivery progress
+13. **Carrier webhooks** - Integrate for automatic status updates
+
+### Multi-Package Orders
+14. **Use partial fulfillments** - Split orders into multiple packages
+15. **Fulfill independently** - Each package has its own lifecycle
+16. **Order status auto-calculates** - Based on FULFILLED fulfillments
+
+### Error Handling
+17. **RESHIP for lost packages** - Don't try to unfulfill shipped packages
+18. **Check inventory before reship** - RESHIP validates stock availability
+19. **Keep tracking history** - Every status change is logged automatically
+
+## 💡 **Common Use Cases**
+
+### 1. Create and Fulfill Order (Standard Flow)
+```bash
+# Step 1: Create fulfillment
+curl -X POST "http://localhost:3010/api/server/fulfillment/create" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "order": "f31f8bfa-ee03-461b-b087-4ac0614a41fa",
+    "fulfill_all": true
+  }'
+
+# Step 2: Pack and fulfill
+curl -X PUT "http://localhost:3010/api/server/fulfillment/fulfill/fulfillment-uuid" \
+  -H "Content-Type: application/json" \
+  -d '{"notes": "Package prepared for shipping"}'
+
+# Step 3: Add tracking
+curl -X PUT "http://localhost:3010/api/server/fulfillment/add-tracking/fulfillment-uuid" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "tracking": "CZ123456789",
+    "tracking_link": "https://track.ceskaposta.cz/CZ123456789",
+    "carrier_name": "Česká pošta"
+  }'
+```
+
+### 2. Create Partial Fulfillment
+```bash
+curl -X POST "http://localhost:3010/api/server/fulfillment/create" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "order": "f31f8bfa-ee03-461b-b087-4ac0614a41fa",
+    "items": [
+      {
+        "order_item": "3911ca3b-0776-442f-b7db-ac94ec94f5f4",
+        "shipped_quantity": 2
+      }
+    ]
+  }'
+```
+
+### 3. Query Unfulfilled Packages
+```bash
+curl -X POST "http://localhost:3010/api/server/fulfillment/query" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "filters": {
+      "status": "UNFULFILLED"
+    },
+    "expand": ["order", "customer"],
+    "page": 1,
+    "limit": 50
+  }'
+```
+
+### 4. Retrieve Fulfillment
+```bash
+curl -X GET "http://localhost:3010/api/server/fulfillment/retrieve/88abe1c2-83dd-4412-a3e5-88198c2dc2e6?expand=items,order"
+```
+
+### 5. Update Delivery Status
+```bash
+curl -X PUT "http://localhost:3010/api/server/fulfillment/update-status/88abe1c2-83dd-4412-a3e5-88198c2dc2e6" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "delivery_status": "IN_TRANSIT",
+    "carrier_status": "Package in transit to destination"
+  }'
+```
+
+### 6. Update Carrier Status Only
+```bash
+curl -X PUT "http://localhost:3010/api/server/fulfillment/update-status/88abe1c2-83dd-4412-a3e5-88198c2dc2e6" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "carrier_status": "Package at sorting facility - Praha 5"
+  }'
+```
+
+### 7. Mark as Delivered
+```bash
+curl -X PUT "http://localhost:3010/api/server/fulfillment/update-status/88abe1c2-83dd-4412-a3e5-88198c2dc2e6" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "delivery_status": "DELIVERED",
+    "carrier_status": "Delivered to recipient"
+  }'
+```
+
+### 8. Modify Fulfillment Details
+```bash
+curl -X PUT "http://localhost:3010/api/server/fulfillment/modify/88abe1c2-83dd-4412-a3e5-88198c2dc2e6" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "carrier_name": "DHL Express",
+    "shipping_type": "EXPRESS"
+  }'
+```
+
+### 9. Cancel Unfulfilled Package
+```bash
+curl -X PUT "http://localhost:3010/api/server/fulfillment/cancel/88abe1c2-83dd-4412-a3e5-88198c2dc2e6" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "reason": "Wrong items selected"
+  }'
+```
+
+### 10. Unfulfill Before Shipping
+```bash
+curl -X PUT "http://localhost:3010/api/server/fulfillment/unfulfill/88abe1c2-83dd-4412-a3e5-88198c2dc2e6" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "reason": "Damaged items found during packing"
+  }'
+```
+
+### 11. Reship Lost Package
+```bash
+curl -X POST "http://localhost:3010/api/server/fulfillment/reship/88abe1c2-83dd-4412-a3e5-88198c2dc2e6" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "reason": "Package lost by carrier",
+    "notes": "Customer requested express shipping"
+  }'
+```
+
+### 12. Search by Tracking Number
+```bash
+curl -X POST "http://localhost:3010/api/server/fulfillment/query" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "search": "CZ123456789"
+  }'
+```
+
+### 11. Cancel Fulfillment
+```bash
+curl -X PUT "http://localhost:3010/api/server/fulfillment/cancel/88abe1c2-83dd-4412-a3e5-88198c2dc2e6" \
+  -H "Content-Type: application/json" \
+  -d '{}'
+```
+
+### 12. Delete Fulfillment
+```bash
+curl -X DELETE "http://localhost:3010/api/server/fulfillment/delete/88abe1c2-83dd-4412-a3e5-88198c2dc2e6"
+```
+
+## 📚 **Related Systems**
+
+### Integration with Other Modules
+- **Orders**: Link fulfillments to orders
+- **Customers**: Track customer shipments
+- **Shipping Addresses**: Manage delivery addresses
+- **Carriers**: External carrier API integration
+
+---
+
+## 📅 **Real-World Example Timeline**
+
+### **Complete 2-Day Delivery Journey**
+
+#### **Monday 10:00 AM - Order Created**
+```json
+{
+  "status": "UNFULFILLED",
+  "delivery_status": "PENDING",
+  "carrier_status": null
+}
+```
+📦 Fulfillment created, waiting for warehouse to process.
+
+---
+
+#### **Monday 2:00 PM - Warehouse Packed**
+```json
+{
+  "status": "FULFILLED",          ⭐ Changed!
+  "delivery_status": "PREPARED",   ⭐ Changed!
+  "carrier_status": "Package packed by warehouse team - ready at dock 3"
+}
+```
+✅ Warehouse finished their work. Package ready for pickup.
+
+---
+
+#### **Monday 4:00 PM - Carrier Pickup**
+```json
+{
+  "status": "FULFILLED",
+  "delivery_status": "IN_TRANSIT",  ⭐ Changed!
+  "carrier_status": "Package picked up by DHL driver - Praha warehouse"
+}
+```
+🚚 DHL has the package.
+
+---
+
+#### **Monday 6:00 PM - At Sorting Facility**
+```json
+{
+  "status": "FULFILLED",
+  "delivery_status": "IN_TRANSIT",
+  "carrier_status": "Package at DHL sorting center - Praha 5"  ⭐ Updated!
+}
+```
+📍 Package at sorting facility.
+
+---
+
+#### **Monday 10:00 PM - Night Transport**
+```json
+{
+  "status": "FULFILLED",
+  "delivery_status": "IN_TRANSIT",
+  "carrier_status": "Package on truck to Brno"  ⭐ Updated!
+}
+```
+🚛 Moving to destination city.
+
+---
+
+#### **Tuesday 6:00 AM - Arrived Destination**
+```json
+{
+  "status": "FULFILLED",
+  "delivery_status": "IN_TRANSIT",
+  "carrier_status": "Package arrived at DHL Brno depot"  ⭐ Updated!
+}
+```
+📍 Reached destination city.
+
+---
+
+#### **Tuesday 8:00 AM - Out for Delivery**
+```json
+{
+  "status": "FULFILLED",
+  "delivery_status": "OUT_FOR_DELIVERY",  ⭐ Changed!
+  "carrier_status": "Package on delivery vehicle - driver Petr Svoboda"
+}
+```
+🚐 On delivery vehicle heading to customer.
+
+---
+
+#### **Tuesday 2:30 PM - Delivered!**
+```json
+{
+  "status": "FULFILLED",
+  "delivery_status": "DELIVERED",  ⭐ Changed!
+  "carrier_status": "Delivered to recipient - signed by customer"
+}
+```
+✅ Customer received package. Complete!
+
+---
+
+### **Key Insights from Timeline:**
+
+1. **`status` changed once** - From `UNFULFILLED` to `FULFILLED` when warehouse prepared the package (Monday 2 PM)
+
+2. **`delivery_status` changed 4 times**:
+   - `PENDING` → `PREPARED` (Monday 2 PM)
+   - `PREPARED` → `IN_TRANSIT` (Monday 4 PM)
+   - `IN_TRANSIT` → `OUT_FOR_DELIVERY` (Tuesday 8 AM)
+   - `OUT_FOR_DELIVERY` → `DELIVERED` (Tuesday 2:30 PM)
+
+3. **`carrier_status` updated 8 times** - Every significant event in the journey
+
+4. **Tracking history** - All 8 status changes automatically logged with timestamps
+
+5. **Customer visibility** - Customer can see real-time updates throughout the journey
+
+---
+
+This fulfillment system provides a robust foundation for order fulfillment and shipping management! 🚀

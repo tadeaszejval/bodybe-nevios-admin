@@ -23,7 +23,7 @@ import { NeviosCustomBadge } from "./nevios/NeviosCustomBadge";
  * @param {string} address.store - Store UUID (for STORE)
  * @param {string} address.phone - Phone number (optional)
  */
-export function ShippingAddressDisplay({ address }) {
+export function ShippingAddressCard({ address }) {
   if (!address) {
     return (
       <NeviosFormPaper title="Shipping Address" titleIcon={<TbTruck size={16} />}>

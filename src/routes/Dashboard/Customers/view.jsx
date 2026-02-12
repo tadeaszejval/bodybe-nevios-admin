@@ -35,7 +35,7 @@ import { createBillingAddress } from "../../../../actions/customers/billing-addr
 import { createShippingAddress } from "../../../../actions/customers/shipping-address/create";
 import { NeviosBadge } from "../../../components/nevios/NeviosBadge";
 import { ContentLoadingScreen } from "../../../components/ContentLoadingScreen";
-import { ShippingAddressDisplay } from "../../../components/ShippingAddressDisplay";
+import { ShippingAddressCard } from "../../../components/ShippingAddressCard";
 
 export function CustomerView({ customerId }) {
   const router = useRouter();
@@ -518,7 +518,7 @@ export function CustomerView({ customerId }) {
             <NeviosFormPaper title="Benefit Account" gap={4}>
                 <NeviosBadge value={customer.account_enabled} configKey="customerAccountStatus" />
             </NeviosFormPaper>
-            <ShippingAddressDisplay address={shippingAddress} />
+            <ShippingAddressCard address={shippingAddress} />
           </>
         }
       />

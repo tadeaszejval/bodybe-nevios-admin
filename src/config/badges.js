@@ -181,6 +181,11 @@ export const BADGE_CONFIGS = {
       color: "yellow",
       icon: <TbClock size={14} />
     },
+    CREATED: {
+      label: "Created",
+      color: "blue",
+      icon: <TbCircleCheck size={14} />
+    },
     UNKNOWN: {
       label: "Unknown",
       color: "gray"
@@ -217,13 +222,28 @@ export const BADGE_CONFIGS = {
 
   // Delivery status badges
   deliveryStatus: {
+    CREATED: {
+      label: "Created",
+      color: "blue",
+      icon: <TbCircleCheck size={14} />
+    },
     PENDING: {
       label: "Pending",
       color: "gray",
       icon: <TbClock size={14} />
     },
+    PREPARED: {
+      label: "Prepared",
+      color: "blue",
+      icon: <TbTruck size={14} />
+    },
     IN_TRANSIT: {
       label: "In Transit",
+      color: "violet",
+      icon: <TbTruck size={14} />
+    },
+    OUT_FOR_DELIVERY: {
+      label: "Out for Delivery",
       color: "blue",
       icon: <TbTruck size={14} />
     },

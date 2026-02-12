@@ -148,8 +148,8 @@ Retrieve a single order by ID with optional related data.
 
 **Query Parameters:**
 - `expand` (string) - Comma-separated list of relations to expand
-  - Available expansions: `customer`, `items`, `pricing`, `billing_address`, `shipping_address`
-  - Example: `?expand=customer,items,pricing`
+  - Available expansions: `customer`, `items`, `pricing`, `billing_address`, `shipping_address`, `fulfillments`, `payments`
+  - Example: `?expand=customer,items,pricing,fulfillments,payments`
 
 **Response includes:**
 - Order details (name, status, pricing totals)
@@ -158,6 +158,8 @@ Retrieve a single order by ID with optional related data.
 - Payment and shipping methods
 - Order items with pricing (if requested)
 - Pricing components breakdown (if requested)
+- Fulfillments for this order (if requested)
+- Payments for this order (if requested)
 
 #### 3. Search Orders
 **POST** `/server/order/search`
@@ -646,7 +648,145 @@ Cancel an order, release all reserved inventory, cancel backorders, and set stat
 }
 ```
 
-#### 12. Archive Order
+### Document Creation
+
+#### 12. Create Deposit Invoice from Order
+**POST** `/server/order/create-deposit-invoice/:orderId`
+
+Create a deposit invoice document from an order. This is a convenience endpoint that wraps the document system's deposit invoice creation.
+
+**Request Body (all optional):**
+```json
+{
+  "language": "cs",
+  "status": "ISSUED",
+  "due_at": "2025-02-15T00:00:00Z",
+  "note": "Payment due within 30 days",
+  "internal_note": "Customer requested deposit invoice",
+  "name": "DI-2025-001",
+  "metadata": {},
+  "payment_method": "bank_transfer",
+  "bank_account": "bank-account-uuid-or-custom-json"
+}
+```
+
+**Response:**
+```json
+{
+  "success": true,
+  "data": {
+    "id": "document-uuid",
+    "doc_type": "DEPOSIT_INVOICE",
+    "name": "DI-2025-001",
+    "currency": "CZK",
+    "language": "cs",
+    "customer": "customer-uuid",
+    "status": "ISSUED",
+    "total_price_net": 826.45,
+    "total_price_gross": 1000.00,
+    "total_price_vat": 173.55,
+    "vat_rate": 21,
+    "items": [
+      {
+        "id": "item-uuid",
+        "item_name": "Product Name - Variant",
+        "quantity": 2,
+        "unit_price_net": 413.22,
+        "unit_price_gross": 500.00,
+        "vat_rate": 21
+      }
+    ],
+    "sources": {
+      "relationships": [
+        {
+          "relationship_type": "DERIVED_FROM",
+          "target_record_type": "order",
+          "target_record_name": "150000000001"
+        }
+      ]
+    }
+  }
+}
+```
+
+**Key Features:**
+- Automatically fetches order data and transforms to document format
+- Inherits customer, addresses, items, and pricing from order
+- Supports language override (defaults to order's market language)
+- Requires bank account (uses default for currency if not provided)
+- Creates relationship to source order for traceability
+
+#### 13. Create Invoice from Order
+**POST** `/server/order/create-invoice/:orderId`
+
+Create a full invoice document from an order. This is a convenience endpoint that wraps the document system's invoice creation.
+
+**Request Body (all optional):**
+```json
+{
+  "language": "en",
+  "status": "ISSUED",
+  "due_at": "2025-02-15T00:00:00Z",
+  "note": "Payment due within 30 days",
+  "internal_note": "Full invoice for completed order",
+  "name": "INV-2025-001",
+  "metadata": {},
+  "payment_method": "bank_transfer",
+  "bank_account": "bank-account-uuid-or-custom-json"
+}
+```
+
+**Response:**
+```json
+{
+  "success": true,
+  "data": {
+    "id": "document-uuid",
+    "doc_type": "INVOICE",
+    "name": "INV-2025-001",
+    "currency": "USD",
+    "language": "en",
+    "customer": "customer-uuid",
+    "status": "ISSUED",
+    "total_price_net": 826.45,
+    "total_price_gross": 1000.00,
+    "total_price_vat": 173.55,
+    "vat_rate": 21,
+    "items": [
+      {
+        "id": "item-uuid",
+        "item_name": "Product Name - Variant",
+        "quantity": 2,
+        "unit_price_net": 413.22,
+        "unit_price_gross": 500.00,
+        "vat_rate": 21
+      }
+    ],
+    "sources": {
+      "relationships": [
+        {
+          "relationship_type": "DERIVED_FROM",
+          "target_record_type": "order",
+          "target_record_name": "150000000001"
+        }
+      ]
+    }
+  }
+}
+```
+
+**Key Features:**
+- Automatically fetches order data and transforms to document format
+- Includes all order items, shipping, payment fees, and discounts
+- Supports language override (defaults to order's market language)
+- Bank account is optional for invoices
+- Creates relationship to source order for traceability
+
+**See Also:**
+- For complete document system documentation, see [DOCUMENTS/README.md](../DOCUMENTS/DocumentsSystem.md)
+- For direct document creation endpoints, see [DOCUMENTS/INVOICE/README.md](../DOCUMENTS/API/INVOICE/) and [DOCUMENTS/DEPOSIT_INVOICE/README.md](../DOCUMENTS/API/DEPOSIT_INVOICE/)
+
+#### 14. Archive Order
 **PUT** `/server/order/archive/:orderId`
 
 Set an order status to ARCHIVED for completed orders (status change only, no inventory operations).
@@ -673,7 +813,7 @@ Set an order status to ARCHIVED for completed orders (status change only, no inv
 }
 ```
 
-#### 13. Hold Order
+#### 15. Hold Order
 **PUT** `/server/order/hold/:orderId`
 
 Set an order status to HOLD to prevent standard order processing actions while keeping the order visible and accessible.
@@ -709,7 +849,7 @@ Set an order status to HOLD to prevent standard order processing actions while k
 
 ### Order Alerts Management
 
-#### 14. Add Single Alert to Order
+#### 16. Add Single Alert to Order
 **POST** `/server/order/alert/:orderId`
 
 Add a single alert to an order to track issues, warnings, or notifications.
@@ -755,7 +895,7 @@ Add a single alert to an order to track issues, warnings, or notifications.
 }
 ```
 
-#### 15. Add Multiple Alerts to Order
+#### 17. Add Multiple Alerts to Order
 **POST** `/server/order/alert/:orderId`
 
 Add multiple alerts to an order at once.
@@ -1916,7 +2056,56 @@ curl -X POST "http://localhost:3010/api/server/order/query" \
 
 ### 7. Retrieve Single Order with Details
 ```bash
-curl -X GET "http://localhost:3010/api/server/order/retrieve/order-uuid?expand=items,pricing,customer,billing_address,shipping_address"
+curl -X GET "http://localhost:3010/api/server/order/retrieve/order-uuid?expand=items,pricing,customer,billing_address,shipping_address,fulfillments,payments"
+```
+
+**Response Example:**
+```json
+{
+  "success": true,
+  "data": {
+    "id": "order-uuid",
+    "name": "ORD-1234",
+    "status": "FULFILLED",
+    "fulfillment_status": "FULFILLED",
+    "total": 299.99,
+    "customer": {
+      "id": "customer-uuid",
+      "email": "customer@example.com",
+      "full_name": "John Doe"
+    },
+    "items": [
+      {
+        "id": "item-uuid",
+        "product_title": "Product Name",
+        "variant_title": "Size: L",
+        "quantity": 2,
+        "unit_price": 99.99
+      }
+    ],
+    "fulfillments": [
+      {
+        "id": "fulfillment-uuid",
+        "name": "FF-1001",
+        "status": "FULFILLED",
+        "delivery_status": "DELIVERED",
+        "tracking": "1Z999AA10123456784",
+        "carrier_name": "UPS",
+        "created_at": "2024-01-15T10:00:00Z"
+      }
+    ],
+    "payments": [
+      {
+        "id": "payment-uuid",
+        "amount": 299.99,
+        "currency": "USD",
+        "status": "PAID",
+        "payment_method": "credit_card",
+        "created_at": "2024-01-15T09:30:00Z"
+      }
+    ]
+  }
+}
 ```
 
 ### 8. Apply Discount to Order
@@ -1977,7 +2166,45 @@ curl -X PUT "http://localhost:3010/api/server/order/archive/order-uuid"
 curl -X PUT "http://localhost:3010/api/server/order/hold/order-uuid"
 ```
 
-### 14. Create Order with HOLD Status
+### 14. Create Deposit Invoice from Order
+```bash
+curl -X POST "http://localhost:3010/api/server/order/create-deposit-invoice/order-uuid" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "language": "cs",
+    "due_at": "2025-02-15T00:00:00Z",
+    "note": "Payment due within 30 days"
+  }'
+```
+
+### 15. Create Invoice from Order
+```bash
+curl -X POST "http://localhost:3010/api/server/order/create-invoice/order-uuid" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "language": "en",
+    "status": "ISSUED",
+    "bank_account": "bank-account-uuid"
+  }'
+```
+
+### 16. Create Deposit Invoice with Custom Bank Account
+```bash
+curl -X POST "http://localhost:3010/api/server/order/create-deposit-invoice/order-uuid" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "bank_account": {
+      "name": "Custom Bank Account",
+      "iban": "CZ6508000000192000145399",
+      "bic_swift": "GIBACZPX",
+      "account_number": "192000145399",
+      "bank_code": "0800"
+    },
+    "note": "Deposit invoice for order"
+  }'
+```
+
+### 17. Create Order with HOLD Status
 ```bash
 curl -X POST "http://localhost:3010/api/server/order/create" \
   -H "Content-Type: application/json" \
@@ -2017,7 +2244,7 @@ curl -X POST "http://localhost:3010/api/server/order/create" \
   }'
 ```
 
-### 15. Add Single Alert to Order
+### 18. Add Single Alert to Order
 ```bash
 curl -X POST "http://localhost:3010/api/server/order/alert/order-uuid" \
   -H "Content-Type: application/json" \

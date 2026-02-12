@@ -182,7 +182,7 @@ const primaryColorScale = {
 	700: "hsl(236, 76%, 48%)",
 	800: "hsl(236, 71%, 40%)",
 	900: "hsl(236, 65%, 34%)",
-	main: "hsl(236, 99.10%, 45.50%)",
+	main: "hsl(236, 91.20%, 22.20%)",
 	subtle: "hsla(236, 83%, 70%, 0.1)",
 };
 const yellowColorScale = {
@@ -411,7 +411,6 @@ const darkPaletteScales = {
 };
 // create the typography scale in pixels based on a 16px base font size
 const typographySizesPx = {
-	"2xs": 10,
 	xs: 12,
 	sm: 13,
 	md: 16,
@@ -478,7 +477,6 @@ const customTheme = createTheme({
 	// allow styling individual fontSizes in a component with the fontSize prop: "xs", "sm", "md", etc.
 	typography: {
 		fontSize: 13,
-		"2xs": "0.625rem",
 		xs: "0.75rem",
 		sm: "0.875rem",
 		md: "1rem",

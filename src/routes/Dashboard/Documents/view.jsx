@@ -31,7 +31,8 @@ import NeviosGroupButton from "../../../components/nevios/NeviosGroupButton";
 import NeviosPaginationButtons from "../../../components/nevios/NeviosPaginationButtons";
 import { ContentLoadingScreen } from "../../../components/ContentLoadingScreen";
 import { NeviosDangerButton } from "../../../components/nevios/NeviosButtons";
-import { ShippingAddressDisplay } from "../../../components/ShippingAddressDisplay";
+import { ShippingAddressCard } from "../../../components/ShippingAddressCard";
+import { NeviosCustomerCard } from "../../../components/nevios/NeviosCustomerCard";
 
 export function DocumentView({ documentId }) {
   const router = useRouter();
@@ -350,55 +351,13 @@ export function DocumentView({ documentId }) {
               </NeviosFormPaperBlock>
             </NeviosFormPaper>
 
-            {customer && (
-              <NeviosFormPaper title="Customer" titleIcon={<TbUser size={16} />}>
-                <NeviosFormPaperBlock>
-                  <Typography variant="body2" fontWeight={600}>
-                    {customer.first_name} {customer.last_name}
-                  </Typography>
-                  {customer.email && (
-                    <NeviosCopyBlock copyValue={customer.email} />
-                  )}
-                  {customer.phone && (
-                    <NeviosCopyBlock copyValue={customer.phone} />
-                  )}
-                </NeviosFormPaperBlock>
-              </NeviosFormPaper>
-            )}
+            <NeviosCustomerCard 
+              customer={customer}
+              billingAddress={document?.billing_address_log}
+              showBillingAddress={true}
+            />
 
-            {document.billing_address_log && (
-              <NeviosFormPaper title="Billing Address" titleIcon={<TbBuilding size={16} />}>
-                <NeviosFormPaperBlock>
-                <Typography variant="body2" fontWeight={600}>
-                  {document.billing_address_log.first_name} {document.billing_address_log.last_name}
-                </Typography>
-                {document.billing_address_log.company && (
-                  <Typography variant="body2" fontWeight={600}>
-                    {document.billing_address_log.company}
-                  </Typography>
-                )}
-                <Typography variant="body2">{document.billing_address_log.address}</Typography>
-                <Typography variant="body2">
-                  {document.billing_address_log.city}, {document.billing_address_log.zip}
-                </Typography>
-                <Typography variant="body2">
-                  {getCountryName(document.billing_address_log.country)}
-                </Typography>
-                {document.billing_address_log.company_id && (
-                  <Typography variant="body2" fontWeight={600}>
-                    ID: {document.billing_address_log.company_id}
-                  </Typography>
-                )}
-                {document.billing_address_log.company_vat && (
-                  <Typography variant="body2" fontWeight={600}>
-                    VAT: {document.billing_address_log.company_vat}
-                  </Typography>
-                )}
-                </NeviosFormPaperBlock>
-              </NeviosFormPaper>
-            )}
-
-            <ShippingAddressDisplay address={document.shipping_address_log} />
+                  <ShippingAddressCard address={document.shipping_address_log} />
           </>
         }
       />

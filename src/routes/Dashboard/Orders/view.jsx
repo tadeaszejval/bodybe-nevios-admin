@@ -26,8 +26,9 @@ import { NeviosFormPaperBlock } from "../../../components/nevios/NeviosFormPaper
 import { NeviosCopyBlock } from "../../../components/nevios/NeviosCopyBlock";
 import { getCountryName } from "../../../core/countryName";
 import { ContentLoadingScreen } from "../../../components/ContentLoadingScreen";
-import { ShippingAddressDisplay } from "../../../components/ShippingAddressDisplay";
+import { ShippingAddressCard } from "../../../components/ShippingAddressCard";
 import { NeviosBadge } from "../../../components/nevios/NeviosBadge";
+import { NeviosCustomerCard } from "../../../components/nevios/NeviosCustomerCard";
 
 export function OrderView({ orderId }) {
   const router = useRouter();
@@ -305,54 +306,12 @@ export function OrderView({ orderId }) {
                     </NeviosFormPaperBlock>
                   )}
                 </NeviosFormPaper>
-                <NeviosFormPaper title="Customer" gap={3}>
-                  {!order?.customer ? (
-                    <Typography color="text.secondary">No customer data</Typography>
-                  ) : (
-                    <>
-                      <NeviosFormPaperBlock>
-                        <Tooltip title="View customer profile">
-                          <Typography 
-                            onClick={() => router.push(`/dashboard/customers/${order.customer.id}`)} 
-                            variant="body2x" 
-                            sx={{ width: 'fit-content', cursor: 'pointer', color: 'primary.main', '&:hover': { textDecoration: 'underline' } }}
-                          >
-                            {order.customer.first_name} {order.customer.last_name}
-                          </Typography>
-                        </Tooltip>
-                        {order.customer.email && <NeviosCopyBlock copyValue={order.customer.email} />}
-                        {order.customer.phone && <NeviosCopyBlock copyValue={order.customer.phone} />}
-                        {order.customer.country && (
-                          <Typography variant="body2" color="text.secondary">
-                            {getCountryName(order.customer.country)}
-                          </Typography>
-                        )}
-                      </NeviosFormPaperBlock>
-                      <NeviosFormPaperBlock title="Billing Address">
-                        {order.billing_address_log ? (
-                          <>
-                            <Typography variant="body2">{order.billing_address_log.first_name} {order.billing_address_log.last_name}</Typography>
-                            {order.billing_address_log.company && (
-                              <Typography variant="body2">{order.billing_address_log.company}</Typography>
-                            )}
-                            <Typography variant="body2">{order.billing_address_log.address}</Typography>
-                            <Typography variant="body2">{order.billing_address_log.city}, {order.billing_address_log.zip}</Typography>
-                            <Typography variant="body2">{getCountryName(order.billing_address_log.country)}</Typography>
-                            {order.billing_address_log.company_id && (
-                              <Typography variant="body2x">ID: {order.billing_address_log.company_id}</Typography>
-                            )}
-                            {order.billing_address_log.company_vat && (
-                              <Typography variant="body2x">VAT: {order.billing_address_log.company_vat}</Typography>
-                            )}
-                          </>
-                        ) : (
-                          <Typography color="text.secondary">No billing address</Typography>
-                        )}
-                      </NeviosFormPaperBlock>
-                    </>
-                  )}
-                </NeviosFormPaper>
-                <ShippingAddressDisplay address={order?.shipping_address_log} />
+                <NeviosCustomerCard 
+                  customer={order?.customer}
+                  billingAddress={order?.billing_address_log}
+                  showBillingAddress={true}
+                />
+                  <ShippingAddressCard address={order?.shipping_address_log} />
               </>
             }
           />

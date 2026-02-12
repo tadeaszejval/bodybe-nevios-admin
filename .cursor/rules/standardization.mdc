@@ -1034,5 +1034,653 @@ When creating or reviewing a table component:
 
 ---
 
+## 14. View/Detail Page Data Retrieval
+
+**Purpose**: Standardize how view/detail pages fetch single records via Express API.
+
+### Overview
+
+View pages (detail pages like `/dashboard/orders/:id`) fetch single records using the `useModuleRetrieve` hook instead of direct database queries.
+
+**Key Principle**: One API call fetches the complete record with all related data via expansions.
+
+---
+
+### Required Pattern
+
+**ALL view/detail pages MUST follow this pattern:**
+
+```javascript
+"use client";
+import React, { useMemo, useCallback } from "react";
+import { useRouter } from "next/navigation";
+import { useModuleRetrieve } from "../../../hooks/useModuleRetrieve";
+import { ContentLoadingScreen } from "../../../components/ContentLoadingScreen";
+
+export function ModuleView({ moduleId }) {
+  const router = useRouter();
+
+  // ✅ STEP 1: Fetch data with useModuleRetrieve
+  const { 
+    data: record, 
+    loading, 
+    error: fetchError, 
+    refreshData 
+  } = useModuleRetrieve('module', moduleId, {
+    expand: ['relation1', 'relation2', 'relation3']
+  });
+
+  // ✅ STEP 2: Process/derive data with useMemo (if needed)
+  const processedData = useMemo(() => {
+    if (!record) return null;
+    // Transform or sort data
+    return record;
+  }, [record]);
+
+  // ✅ STEP 3: Action handlers with useCallback
+  const handleAction = useCallback(async (data) => {
+    const result = await someAction(data);
+    if (result.success) {
+      await refreshData(); // ✅ Refresh from API
+    }
+  }, [refreshData]);
+
+  // ✅ STEP 4: Loading state
+  if (loading) {
+    return <ContentLoadingScreen />;
+  }
+
+  // ✅ STEP 5: Error state
+  if (fetchError || !record) {
+    return (
+      <PageContainer>
+        <Alert severity="error">
+          {fetchError || 'Record not found'}
+        </Alert>
+      </PageContainer>
+    );
+  }
+
+  // ✅ STEP 6: Render with safe access
+  return (
+    <PageContainer>
+      <DashboardHeader title={record?.name} />
+      {/* Use record.relation1, record.relation2, etc. */}
+    </PageContainer>
+  );
+}
+```
+
+---
+
+### Module Name Convention
+
+**Always use SINGULAR form** (same as `useModuleQuery`):
+
+```javascript
+// ✅ CORRECT
+useModuleRetrieve('order', orderId, {...})
+useModuleRetrieve('customer', customerId, {...})
+useModuleRetrieve('product', productId, {...})
+useModuleRetrieve('payment', paymentId, {...})
+
+// ❌ WRONG - Don't use plural
+useModuleRetrieve('orders', orderId, {...})
+useModuleRetrieve('customers', customerId, {...})
+```
+
+---
+
+### API Endpoint Pattern
+
+The hook calls the retrieve endpoint:
+
+```
+GET /server/{module}/retrieve/:id?expand=relation1,relation2,relation3
+```
+
+**Examples**:
+- `GET /server/order/retrieve/:orderId?expand=customer,items,pricing,items.pricing`
+- `GET /server/customer/retrieve/:customerId?expand=billing_addresses,shipping_addresses,orders`
+- `GET /server/product/retrieve/:productId?expand=variants,variants.pricing,images`
+
+---
+
+### Expand Parameters
+
+**Rule**: Expand ALL relations you display in the UI.
+
+**Supported Formats**:
+```javascript
+// Array format (recommended)
+expand: ['customer', 'items', 'pricing']
+
+// Nested expansion
+expand: ['items', 'items.pricing', 'variants.pricing']
+
+// Multiple relations
+expand: ['customer', 'billing_address', 'shipping_address', 'items', 'pricing']
+```
+
+**Common Expansions by Module**:
+
+**Order**:
+```javascript
+expand: ['customer', 'items', 'pricing', 'items.pricing']
+// Returns: order.customer, order.items, order.pricing.components
+```
+
+**Customer**:
+```javascript
+expand: ['billing_addresses', 'shipping_addresses', 'orders']
+// Returns: customer.billing_addresses[], customer.shipping_addresses[], customer.orders[]
+```
+
+**Product**:
+```javascript
+expand: ['variants', 'variants.pricing', 'images']
+// Returns: product.variants[], product.images[]
+```
+
+---
+
+### Hook Return Values
+
+```javascript
+const { 
+  data,         // The fetched record (null if loading/error)
+  loading,      // Boolean: true during fetch
+  error,        // String: error message or null
+  refreshData,  // Function: () => Promise<void> to re-fetch
+  resetData,    // Function: () => void to clear data
+  lastFetched   // Date: timestamp of last successful fetch
+} = useModuleRetrieve('module', id, options);
+```
+
+---
+
+### Response Structure Variations
+
+**Different modules return data in different structures. Handle variations safely:**
+
+#### Nested Arrays vs Direct Arrays
+
+```javascript
+// Some APIs return: { pricing: [...] }
+// Others return: { pricing: { components: [...] } }
+
+// ✅ SAFE: Handle both formats
+const pricingArray = Array.isArray(record?.pricing) 
+  ? record.pricing 
+  : record?.pricing?.components;
+```
+
+#### Address Logs (Orders)
+
+**Orders use JSONB snapshot fields** for addresses (historical preservation):
+
+```javascript
+// ✅ CORRECT - Use _log fields
+order.billing_address_log.first_name
+order.shipping_address_log.address
+
+// ❌ WRONG - These are just UUIDs
+order.billing_address  // Just a UUID reference
+order.shipping_address // Just a UUID reference
+```
+
+**Why**: Address logs preserve historical data. If customer updates their address, past orders still show the original address.
+
+#### Expanded Relations (Customers)
+
+**Customers use expanded arrays** for addresses:
+
+```javascript
+// ✅ CORRECT - Expanded arrays
+customer.billing_addresses[0].first_name
+customer.shipping_addresses.find(addr => addr.id === customer.default_shipping)
+
+// Access via expansion
+expand: ['billing_addresses', 'shipping_addresses']
+```
+
+---
+
+### Data Access Rules
+
+**ALWAYS use optional chaining** to prevent crashes:
+
+```javascript
+// ✅ CORRECT - Safe access
+{record?.customer?.first_name}
+{record?.items?.length > 0 && ...}
+{record?.pricing?.components?.map(...)}
+
+// ❌ WRONG - Will crash if null
+{record.customer.first_name}
+{record.items.length}
+```
+
+**Extract defaults with useMemo**:
+
+```javascript
+// Extract default billing address
+const billingAddress = useMemo(() => {
+  if (!customer?.billing_addresses?.length) return null;
+  return customer.billing_addresses.find(addr => addr.id === customer.default_billing)
+    || customer.billing_addresses[0];
+}, [customer]);
+
+// Extract default shipping address
+const shippingAddress = useMemo(() => {
+  if (!customer?.shipping_addresses?.length) return null;
+  return customer.shipping_addresses.find(addr => addr.id === customer.default_shipping)
+    || customer.shipping_addresses[0];
+}, [customer]);
+```
+
+---
+
+### Action Integration
+
+**Actions MUST call `refreshData()` after successful updates**:
+
+```javascript
+// ✅ CORRECT Pattern
+const handleModify = useCallback(async (formData) => {
+  setSaving(true);
+  try {
+    const result = await modifyAPI(recordId, formData);
+    if (!result.success) {
+      throw new Error(result.error);
+    }
+    
+    // ✅ Refresh data from API (don't manually update state)
+    await refreshData();
+    
+    showSnackbar('Updated successfully', 'success');
+    closeDialog();
+  } catch (err) {
+    showSnackbar(err.message, 'error');
+  } finally {
+    setSaving(false);
+  }
+}, [recordId, refreshData]);
+
+// ❌ WRONG - Manual state updates
+const handleModify = async (formData) => {
+  const result = await modifyAPI(recordId, formData);
+  setRecord(prev => ({ ...prev, ...formData })); // ❌ Don't do this
+};
+```
+
+**Why**: `refreshData()` ensures data consistency by fetching the latest state from the API, including any server-side transformations.
+
+---
+
+### Complete Examples
+
+#### OrderView Example
+
+```javascript
+"use client";
+import React, { useMemo } from "react";
+import { useRouter } from "next/navigation";
+import { useModuleRetrieve } from "../../../hooks/useModuleRetrieve";
+import { ContentLoadingScreen } from "../../../components/ContentLoadingScreen";
+
+export function OrderView({ orderId }) {
+  const router = useRouter();
+
+  // Fetch order with all relations
+  const { 
+    data: order, 
+    loading, 
+    error: fetchError, 
+    refreshData 
+  } = useModuleRetrieve('order', orderId, {
+    expand: ['customer', 'items', 'pricing', 'items.pricing']
+  });
+
+  // Sort pricing components
+  const sortedPricing = useMemo(() => {
+    const components = Array.isArray(order?.pricing) 
+      ? order.pricing 
+      : order?.pricing?.components;
+    
+    if (!components) return [];
+    
+    const sortOrder = {
+      'subtotal': 1, 'discount': 2, 'shipping': 3,
+      'payment': 4, 'tip': 5, 'total': 6
+    };
+    
+    return [...components].sort((a, b) => 
+      (sortOrder[a.component] || 99) - (sortOrder[b.component] || 99)
+    );
+  }, [order?.pricing]);
+
+  if (loading) return <ContentLoadingScreen />;
+  if (fetchError || !order) return <ErrorDisplay error={fetchError} />;
+
+  return (
+    <PageContainer>
+      <DashboardHeader title={order?.name} />
+      
+      {/* Order Items - already includes pricing */}
+      {order.items?.map(item => (
+        <Box key={item.id}>
+          <Typography>{item.product_title}</Typography>
+          <Typography>{item.pricing?.price}</Typography>
+        </Box>
+      ))}
+      
+      {/* Pricing Breakdown */}
+      {sortedPricing.map(pricing => (
+        <TableRow key={pricing.component}>
+          <TableCell>{pricing.component}</TableCell>
+          <TableCell>{pricing.gross_local}</TableCell>
+        </TableRow>
+      ))}
+      
+      {/* Customer - expanded */}
+      <Typography>{order.customer?.first_name} {order.customer?.last_name}</Typography>
+      
+      {/* Addresses - use _log fields */}
+      <Typography>{order.billing_address_log?.address}</Typography>
+      <ShippingAddressCard address={order.shipping_address_log} />
+    </PageContainer>
+  );
+}
+```
+
+#### CustomerView Example
+
+```javascript
+"use client";
+import React, { useMemo } from "react";
+import { useRouter } from "next/navigation";
+import { useModuleRetrieve } from "../../../hooks/useModuleRetrieve";
+import { ContentLoadingScreen } from "../../../components/ContentLoadingScreen";
+
+export function CustomerView({ customerId }) {
+  const router = useRouter();
+
+  // Fetch customer with addresses and orders
+  const { 
+    data: customer, 
+    loading, 
+    error: fetchError, 
+    refreshData 
+  } = useModuleRetrieve('customer', customerId, {
+    expand: ['billing_addresses', 'shipping_addresses', 'orders']
+  });
+
+  // Extract default billing address
+  const billingAddress = useMemo(() => {
+    if (!customer?.billing_addresses?.length) return null;
+    return customer.billing_addresses.find(addr => addr.id === customer.default_billing)
+      || customer.billing_addresses[0];
+  }, [customer]);
+
+  // Extract default shipping address
+  const shippingAddress = useMemo(() => {
+    if (!customer?.shipping_addresses?.length) return null;
+    return customer.shipping_addresses.find(addr => addr.id === customer.default_shipping)
+      || customer.shipping_addresses[0];
+  }, [customer]);
+
+  // Get recent orders (limit to 5)
+  const recentOrders = useMemo(() => {
+    return customer?.orders?.slice(0, 5) || [];
+  }, [customer?.orders]);
+
+  if (loading) return <ContentLoadingScreen />;
+  if (fetchError || !customer) return <ErrorDisplay error={fetchError} />;
+
+  return (
+    <PageContainer>
+      <DashboardHeader 
+        title={`${customer?.first_name} ${customer?.last_name}`}
+      />
+      
+      {/* Customer Info */}
+      <Typography>{customer.email}</Typography>
+      
+      {/* Billing Address */}
+      {billingAddress && (
+        <Box>
+          <Typography>{billingAddress.address}</Typography>
+          <Typography>{billingAddress.city}, {billingAddress.zip}</Typography>
+        </Box>
+      )}
+      
+      {/* Shipping Address */}
+      <ShippingAddressCard address={shippingAddress} />
+      
+      {/* Recent Orders */}
+      {recentOrders.map(order => (
+        <Box key={order.id}>
+          <Typography>{order.name}</Typography>
+        </Box>
+      ))}
+    </PageContainer>
+  );
+}
+```
+
+---
+
+### Common Patterns
+
+#### Pattern 1: Extract Default from Array
+```javascript
+const defaultItem = useMemo(() => {
+  if (!record?.items?.length) return null;
+  return record.items.find(item => item.is_default) || record.items[0];
+}, [record?.items]);
+```
+
+#### Pattern 2: Sort Array by Priority
+```javascript
+const sortedItems = useMemo(() => {
+  if (!record?.items) return [];
+  const order = { high: 1, medium: 2, low: 3 };
+  return [...record.items].sort((a, b) => 
+    (order[a.priority] || 99) - (order[b.priority] || 99)
+  );
+}, [record?.items]);
+```
+
+#### Pattern 3: Limit Array Results
+```javascript
+const recentItems = useMemo(() => {
+  return record?.items?.slice(0, 5) || [];
+}, [record?.items]);
+```
+
+#### Pattern 4: Filter Array
+```javascript
+const activeItems = useMemo(() => {
+  return record?.items?.filter(item => item.status === 'ACTIVE') || [];
+}, [record?.items]);
+```
+
+---
+
+### API Response Structure Reference
+
+#### Order Response Structure
+```javascript
+{
+  // Core fields
+  id, name, status, payment_status, fulfillment_status,
+  inventory_status, local_currency, created_at,
+  
+  // Expanded relations
+  customer: { id, first_name, last_name, email, ... },
+  items: [{ id, product_title, quantity, pricing: {...} }],
+  
+  // Nested pricing
+  pricing: {
+    components: [
+      { component: 'subtotal', gross_local, net_local },
+      { component: 'shipping', gross_local, net_local },
+      { component: 'total', gross_local, net_local }
+    ]
+  },
+  
+  // JSONB snapshots (included by default)
+  billing_address_log: { first_name, address, city, ... },
+  shipping_address_log: { first_name, address, city, type, ... },
+  shipping_method: { name, type, price },
+  payment_method: { name, type, price },
+  
+  // Arrays
+  alerts: [{ key, level, value, action, order_item }],
+  
+  // Notes
+  customer_note: "...",
+  internal_note: "..."
+}
+```
+
+#### Customer Response Structure
+```javascript
+{
+  // Core fields
+  id, email, first_name, last_name, phone, country,
+  subscribed, account_enabled, gender, created_at,
+  
+  // Expanded arrays
+  billing_addresses: [{ id, first_name, address, city, ... }],
+  shipping_addresses: [{ id, first_name, address, city, type, ... }],
+  orders: [{ id, name, payment_status, fulfillment_status, ... }],
+  
+  // References
+  default_billing: "uuid",
+  default_shipping: "uuid"
+}
+```
+
+---
+
+### View Page Checklist
+
+When creating or reviewing a view page:
+
+- [ ] Uses `useModuleRetrieve` hook (not Supabase queries)
+- [ ] Module name is **singular** (`'order'` not `'orders'`)
+- [ ] All displayed relations are in **expand array**
+- [ ] **Optional chaining** used for all data access (`?.`)
+- [ ] Loading state shows `<ContentLoadingScreen />`
+- [ ] Error state shows clear error message
+- [ ] Derived data uses **useMemo**
+- [ ] Action handlers use **useCallback**
+- [ ] Actions call **refreshData()** after success
+- [ ] Handles API response variations (nested arrays, _log fields)
+- [ ] No manual state updates (uses refreshData instead)
+- [ ] Zero linter errors
+
+---
+
+### Migration Guide
+
+**To convert an existing Supabase-based view page:**
+
+#### Step 1: Identify the Module
+- What module? (order, customer, product, etc.)
+- Check `.cursor/rules/Modules/{module}.mdc` for API documentation
+
+#### Step 2: Find Available Expansions
+- Look for "Retrieve" section in module documentation
+- Note which relations can be expanded
+
+#### Step 3: Replace Data Fetching
+```javascript
+// ❌ REMOVE: All useEffect + Supabase queries
+useEffect(() => {
+  const { data } = await supabase.from('table')...
+}, [id]);
+
+// ✅ ADD: Single useModuleRetrieve call
+const { data, loading, error, refreshData } = useModuleRetrieve('module', id, {
+  expand: ['relation1', 'relation2']
+});
+```
+
+#### Step 4: Update Data Access
+```javascript
+// ❌ OLD: Separate state variables
+{customer?.first_name}
+{billingAddress?.address}
+
+// ✅ NEW: Nested access from record
+{record?.customer?.first_name}
+{record?.billing_address_log?.address}
+```
+
+#### Step 5: Update Actions
+```javascript
+// ❌ OLD: Manual state update
+setCustomer(prev => ({ ...prev, ...newData }));
+
+// ✅ NEW: Refresh from API
+await refreshData();
+```
+
+#### Step 6: Test
+- Navigate to view page
+- Verify all data displays correctly
+- Test all actions (edit, delete, etc.)
+- Check browser console for errors
+
+---
+
+### Performance Benefits
+
+**Metrics from CustomerView and OrderView refactors:**
+
+| Metric | Before (Supabase) | After (useModuleRetrieve) | Improvement |
+|--------|-------------------|---------------------------|-------------|
+| Lines of Code | 150-200 lines | 60-100 lines | **60-75% reduction** |
+| API Calls | 4-6+ queries | 1 API call | **4-6x fewer** |
+| State Variables | 8-12 useState | 1 (from hook) | **8-12x simpler** |
+| useEffect Hooks | 2-3 complex | 0 | **Eliminated** |
+| Loading States | 3-4 separate | 1 unified | **3-4x simpler** |
+
+---
+
+### Prohibited Patterns
+
+**NEVER do these in view pages:**
+
+```javascript
+// ❌ Direct Supabase queries
+import { supabase } from "../../../utils/supabase";
+const { data } = await supabase.from('table')...
+
+// ❌ Multiple useEffect for data fetching
+useEffect(() => { fetchData1() }, [id]);
+useEffect(() => { fetchData2() }, [id]);
+
+// ❌ Manual state updates after actions
+setRecord(prev => ({ ...prev, ...updates }));
+
+// ❌ Unsafe data access without optional chaining
+{record.customer.first_name}
+
+// ❌ Using plural module names
+useModuleRetrieve('customers', id, {...})
+
+// ❌ Not refreshing after actions
+const handleUpdate = async () => {
+  await updateAPI(...);
+  // Missing: await refreshData();
+};
+```
+
+---
+
 **Last Updated**: January 2026  
-**Version**: 1.1
+**Version**: 1.2

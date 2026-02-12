@@ -1,28 +1,36 @@
 "use client";
-import React, { useState, useEffect } from "react";
+import React, { useState, useMemo } from "react";
 import { useRouter } from "next/navigation";
-import { 
-  Box,
-  Typography,
-  Alert,
-  Snackbar,
-  CircularProgress,
-  Tooltip,
-  Button
+import {
+	Box,
+	Typography,
+	Alert,
+	Snackbar,
+	Tooltip,
+	Button,
+	Table,
+	TableBody,
+	TableCell,
+	TableContainer,
+	TableRow,
+	Paper
 } from "@mui/material";
 import { DashboardHeader } from "../../../components/DashboardHeader";
 import { PageContainer } from "../../../components/PageContainer";
 import { NeviosFormPaper } from "../../../components/nevios/NeviosFormPaper";
 import { NeviosFormPaperBlock } from "../../../components/nevios/NeviosFormPaperBlock";
-import { TbCreditCard, TbUser, TbShoppingCart, TbReceipt, TbArrowLeft } from "react-icons/tb";
+import { TbCreditCard, TbUser, TbShoppingCart, TbReceipt, TbArrowLeft, TbClock } from "react-icons/tb";
 import { NeviosTwoColumnFormContainer } from "../../../components/nevios/NeviosFormContainer";
-import { supabase } from "../../../utils/supabase";
 import { formatReadableDatetime, formatCurrencyNumber } from "../../../core/formatters";
 import { NeviosCopyBlock } from "../../../components/nevios/NeviosCopyBlock";
 import NeviosGroupButton from "../../../components/nevios/NeviosGroupButton";
 import NeviosPaginationButtons from "../../../components/nevios/NeviosPaginationButtons";
 import { getCountryName } from "../../../core/countryName";
 import { ContentLoadingScreen } from "../../../components/ContentLoadingScreen";
+import { useModuleRetrieve } from "../../../hooks/useModuleRetrieve";
+import { NeviosCustomerCard } from "../../../components/nevios/NeviosCustomerCard";
+import { NeviosOrderCard } from "../../../components/nevios/NeviosOrderCard";
+import { NeviosBadge } from "../../../components/nevios/NeviosBadge";
 
 // Import the badge components from PaymentsTable
 const PAYMENT_STATUSES = {
@@ -91,7 +99,7 @@ const paymentTypeMatcher = (value) =>
 const PaymentStatusBadge = ({ status, customSx = {} }) => {
 	const normalizedStatus = status?.toUpperCase() || "UNPAID";
 	const statusMeta = paymentStatusMatcher(normalizedStatus);
-	
+
 	return (
 		<Box
 			sx={{
@@ -121,7 +129,7 @@ const PaymentStatusBadge = ({ status, customSx = {} }) => {
 const PaymentTypeBadge = ({ type, customSx = {} }) => {
 	const normalizedType = type?.toUpperCase() || "MANUAL";
 	const typeMeta = paymentTypeMatcher(normalizedType);
-	
+
 	return (
 		<Box
 			sx={{
@@ -150,57 +158,46 @@ const PaymentTypeBadge = ({ type, customSx = {} }) => {
 
 export function PaymentView({ paymentId }) {
 	const router = useRouter();
-	const [loading, setLoading] = useState(true);
-	const [payment, setPayment] = useState(null);
-	const [customer, setCustomer] = useState(null);
-	const [order, setOrder] = useState(null);
-	const [error, setError] = useState(null);
 	const [snackbar, setSnackbar] = useState({
 		open: false,
 		message: '',
 		severity: 'info'
 	});
 
-	useEffect(() => {
-		if (paymentId) {
-			fetchPaymentData(paymentId);
-		}
-	}, [paymentId]);
+	// ✅ NEW: Use useModuleRetrieve hook to fetch payment data via Express API
+	const {
+		data: payment,
+		loading,
+		error: fetchError,
+		refreshData
+	} = useModuleRetrieve('payment', paymentId, {
+		expand: ['customer', 'order', 'status_history']
+	});
 
-	const fetchPaymentData = async (id) => {
-		try {
-			setLoading(true);
-			
-			// Fetch payment details with related data
-			const { data: paymentData, error: paymentError } = await supabase
-				.from('payments')
-				.select(`
-					*,
-					customer:customers(*),
-					order:orders(*)
-				`)
-				.eq('id', id)
-				.single();
+	// Extract related data from payment object
+	const customer = payment?.customer;
+	const order = payment?.order;
 
-			if (paymentError) throw paymentError;
-			if (!paymentData) throw new Error('Payment not found');
-			
-			setPayment(paymentData);
-			setCustomer(paymentData.customer);
-			setOrder(paymentData.order);
+	// Build complete status history including initial creation (newest first)
+	const completeStatusHistory = useMemo(() => {
+		if (!payment) return [];
 
-		} catch (err) {
-			console.error('Error fetching payment data:', err);
-			setError(err.message || 'Failed to fetch payment data');
-			setSnackbar({
-				open: true,
-				message: err.message || 'Failed to fetch payment data',
-				severity: 'error'
-			});
-		} finally {
-			setLoading(false);
-		}
-	};
+		const history = payment.status_history || [];
+		const allStatuses = [];
+
+		// Add initial "Created" status using payment creation date
+		allStatuses.push({
+			id: 'created',
+			new_status: 'CREATED',
+			created_at: payment.created_at
+		});
+
+		// Add all status history entries
+		allStatuses.push(...history);
+
+		// Reverse to show newest first (latest at top)
+		return allStatuses.reverse();
+	}, [payment]);
 
 	const handleCloseSnackbar = () => {
 		setSnackbar(prev => ({
@@ -233,17 +230,17 @@ export function PaymentView({ paymentId }) {
 		return <ContentLoadingScreen />;
 	}
 
-	if (error || !payment) {
+	if (fetchError || !payment) {
 		return (
 			<PageContainer>
 				<Alert severity="error">
-					{error || 'Payment not found'}
+					{fetchError || 'Payment not found'}
 				</Alert>
 				<Box sx={{ mt: 2 }}>
-					<Button 
-						variant="outlined" 
-						color="primary" 
-						startIcon={<TbArrowLeft />} 
+					<Button
+						variant="outlined"
+						color="primary"
+						startIcon={<TbArrowLeft />}
 						onClick={() => router.push('/dashboard/payments')}
 					>
 						Back to Payments
@@ -259,21 +256,21 @@ export function PaymentView({ paymentId }) {
 				maxWidth: "950px"
 			}}
 		>
-			<Snackbar 
-				open={snackbar.open} 
-				autoHideDuration={6000} 
+			<Snackbar
+				open={snackbar.open}
+				autoHideDuration={6000}
 				onClose={handleCloseSnackbar}
 				anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }}
 			>
-				<Alert 
-					onClose={handleCloseSnackbar} 
-					severity={snackbar.severity} 
+				<Alert
+					onClose={handleCloseSnackbar}
+					severity={snackbar.severity}
 					sx={{ width: '100%' }}
 				>
 					{snackbar.message}
 				</Alert>
 			</Snackbar>
-			
+
 			<DashboardHeader
 				title={payment.name || 'Payment Details'}
 				icon={<TbCreditCard size={24} />}
@@ -284,13 +281,13 @@ export function PaymentView({ paymentId }) {
 						<NeviosGroupButton
 							buttonText="Actions"
 							menuItems={[
-								{ 
-									label: 'Mark as Paid', 
+								{
+									label: 'Mark as Paid',
 									onClick: handleMarkAsPaid,
 									disabled: payment.status === 'PAID' || payment.status === 'REFUNDED'
 								},
-								{ 
-									label: 'Refund Payment', 
+								{
+									label: 'Refund Payment',
 									onClick: handleRefund,
 									disabled: payment.status !== 'PAID'
 								},
@@ -299,8 +296,8 @@ export function PaymentView({ paymentId }) {
 							]}
 						/>
 						<NeviosPaginationButtons
-							previousButtonOnClick={() => {}}
-							nextButtonOnClick={() => {}}
+							previousButtonOnClick={() => { }}
+							nextButtonOnClick={() => { }}
 						/>
 					</Box>
 				}
@@ -312,14 +309,14 @@ export function PaymentView({ paymentId }) {
 					</Box>
 				}
 			/>
-			
+
 			<NeviosTwoColumnFormContainer
 				mainContent={
 					<>
 						<NeviosFormPaper title="Payment Information" titleIcon={<TbReceipt size={16} />}>
 							<NeviosFormPaperBlock>
 								<Typography variant="body2" fontWeight={600}>Amount</Typography>
-								<Typography variant="h6" color="primary.main">
+								<Typography variant="h6" color="text.primary" fontWeight={600}>
 									{payment.currency} {formatCurrencyNumber(payment.amount || 0)}
 								</Typography>
 							</NeviosFormPaperBlock>
@@ -376,73 +373,47 @@ export function PaymentView({ paymentId }) {
 								)}
 							</NeviosFormPaper>
 						)}
+
+						{completeStatusHistory.length > 0 && (
+							<NeviosFormPaper title="Payment Status History" titleIcon={<TbClock size={16} />}>
+								<TableContainer component={Paper} elevation={0}>
+									<Table size="small">
+										<TableBody>
+											{completeStatusHistory.map((history, index) => (
+												<TableRow 
+													key={history.id}
+													sx={{
+														"&:last-child td": {
+															borderBottom: "none",
+														}
+													}}
+												>
+													<TableCell sx={{ padding: "10px 15px", borderBottom: index !== completeStatusHistory.length - 1 ? "1px solid" : "none", borderColor: "grey.200" }}>
+														<Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+															<NeviosBadge 
+																value={history.new_status} 
+																configKey="paymentStatus" 
+															/>
+														</Box>
+													</TableCell>
+													<TableCell align="right" sx={{ padding: "10px 15px", borderBottom: index !== completeStatusHistory.length - 1 ? "1px solid" : "none", borderColor: "grey.200" }}>
+														<Typography variant="body2" color="text.secondary">
+															{formatReadableDatetime(history.created_at)}
+														</Typography>
+													</TableCell>
+												</TableRow>
+											))}
+										</TableBody>
+									</Table>
+								</TableContainer>
+							</NeviosFormPaper>
+						)}
 					</>
 				}
 				sideContent={
 					<>
-						{customer && (
-							<NeviosFormPaper title="Customer" titleIcon={<TbUser size={16} />}>
-								<NeviosFormPaperBlock>
-									<Tooltip title="View customer profile">
-										<Typography 
-											onClick={() => router.push(`/dashboard/customers/${customer.id}`)} 
-											variant="body2x" 
-											sx={{ 
-												width: 'fit-content', 
-												cursor: 'pointer', 
-												color: 'primary.main', 
-												'&:hover': { textDecoration: 'underline' } 
-											}}
-										>
-											{customer.first_name} {customer.last_name}
-										</Typography>
-									</Tooltip>
-									{customer.email && <NeviosCopyBlock copyValue={customer.email} />}
-									{customer.phone && <NeviosCopyBlock copyValue={customer.phone} />}
-									{customer.country && (
-										<Typography variant="body2" color="text.secondary">
-											{getCountryName(customer.country)}
-										</Typography>
-									)}
-								</NeviosFormPaperBlock>
-							</NeviosFormPaper>
-						)}
-
-						{order && (
-							<NeviosFormPaper title="Order" titleIcon={<TbShoppingCart size={16} />}>
-								<NeviosFormPaperBlock>
-									<Tooltip title="View order details">
-										<Typography 
-											onClick={() => router.push(`/dashboard/orders/${order.id}`)} 
-											variant="body2x" 
-											sx={{ 
-												width: 'fit-content', 
-												cursor: 'pointer', 
-												color: 'primary.main', 
-												'&:hover': { textDecoration: 'underline' } 
-											}}
-										>
-											{order.name}
-										</Typography>
-									</Tooltip>
-									<Typography variant="body2" color="text.secondary">
-										{formatReadableDatetime(order.created_at)}
-									</Typography>
-									{order.total_amount && (
-										<Typography variant="body2" color="text.secondary">
-											Total: {order.local_currency} {formatCurrencyNumber(order.total_amount)}
-										</Typography>
-									)}
-								</NeviosFormPaperBlock>
-							</NeviosFormPaper>
-						)}
 
 						<NeviosFormPaper title="Details" titleIcon={<TbReceipt size={16} />}>
-							<NeviosFormPaperBlock>
-								<Typography variant="body2" fontWeight={600}>Payment ID</Typography>
-								<NeviosCopyBlock copyValue={payment.id} />
-							</NeviosFormPaperBlock>
-
 							<NeviosFormPaperBlock>
 								<Typography variant="body2" fontWeight={600}>Created</Typography>
 								<Typography variant="body2">
@@ -455,6 +426,18 @@ export function PaymentView({ paymentId }) {
 								<Typography variant="body2">{payment.currency}</Typography>
 							</NeviosFormPaperBlock>
 						</NeviosFormPaper>
+						<NeviosCustomerCard
+							customer={customer}
+							showBillingAddress={false}
+						/>
+
+						<NeviosOrderCard
+							order={order}
+							showTotalAmount={true}
+							showCreatedDate={true}
+							showOrderStatus={true}
+						/>
+
 					</>
 				}
 			/>

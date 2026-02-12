@@ -4,11 +4,11 @@ import { NavigationHistoryProvider } from '../../context/NavigationHistoryContex
 
 export default function DashboardPageLayout({ children }) {
     return (
-        <RequireAuth>
+        //<RequireAuth>
             <NavigationHistoryProvider>
                 <DashboardLayout>{children}</DashboardLayout>
             </NavigationHistoryProvider>
-        </RequireAuth>
+        //</RequireAuth>
     );
 }
 
